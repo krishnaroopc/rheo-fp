@@ -1,1 +1,67 @@
 # rheo-fp
+
+An open-source ML classifier for linear rheology. Ingests small-amplitude
+oscillatory shear (SAOS) data — G′(ω), G″(ω) — and outputs (1) material type
+identification and (2) fitted constitutive model parameters.
+
+## Architecture
+
+- **Input**: set-based stacks of spectra (multiple curves across temperature
+  or concentration). A single curve is the degenerate N=1 case.
+- **Output**: two heads — material-type classification (with abstention when
+  the input lacks discriminating information) and a best-fit constitutive
+  model, always emitted.
+- **Taxonomy**: 3 regimes (Terminal/liquid-like, Solid/gel-like,
+  Yield-dominated); 8 fine classes; 6 model-only classes.
+
+See `CLAUDE.md` for the full architecture rationale and validation history.
+
+## Layout
+
+```
+rheofp/            importable package
+  models/           forward physics: maxwell, tube, solutions, pompom
+  fitting/          shared optimizer core + AICc-based regime identification
+  io/               data loading/conversion (npz canonical format)
+scripts/            validation scripts (plot + assert against known-good results)
+data/               converted spectral datasets (.npz, open format)
+docs/               reference bibliography, model-taxonomy notes
+tests/              pytest regression tests
+```
+
+No `.ipynb` or `.xlsx` files are distributed in this repository. Original
+working notebooks and source spreadsheets stay local-only, in a gitignored
+`originals/` folder.
+
+## Setup
+
+```
+pip install -r requirements.txt
+```
+
+## Running the validation scripts
+
+Each forward-model module has a corresponding script that reproduces its
+planted-parameter recovery / literature-figure checks and plots the result:
+
+```
+python scripts/validate_maxwell.py       # Maxwell/Prony family, WLM, sticky-Maxwell stack
+python scripts/validate_tube.py          # Likhtman-McLeish tube model + branched/LCB
+python scripts/validate_solutions.py     # Zimm/Rouse/reptation regime identifier
+python scripts/validate_pompom.py        # XPP pom-pom fit (NOT YET VALIDATED - see module docstring)
+python scripts/prep_interpolate.py       # common-omega-grid interpolation utility
+```
+
+## Status
+
+- `rheofp/models/maxwell.py`, `tube.py`, `solutions.py`: validated (forward
+  physics reproduces published figures; inverse fits recover planted
+  parameters).
+- `rheofp/models/pompom.py`: **not yet validated** — awaiting real
+  Pivokonsky et al. (2006) spectrum tables; current verification uses a
+  substitute Verbeeten (2001) dataset.
+- ML training pipeline: not yet started.
+
+## License
+
+MIT — see `LICENSE`.

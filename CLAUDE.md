@@ -50,7 +50,7 @@ log space → AICc ranking with Akaike weights → none-of-the-above floor via
 FLOOR_CHI2. Lesson learned: aggressive pre-filter pruning caused
 misclassification; keep the pre-filter permissive and let AICc resolve.
 
-**Pom-pom notebook** (`mcleish_larson1998_pompom_fit.ipynb`): multimode
+**Pom-pom notebook** (`xpp_pompom_fit.ipynb`): multimode
 generalized Maxwell spectrum; verification target is Pivokonsky, Zatloukal &
 Filip (2006, J. Non-Newt. Fluid Mech. 135, 58), two LDPE melts at 200 °C
 (spectrum tables still needed).
