@@ -29,9 +29,14 @@ docs/               reference bibliography, model-taxonomy notes
 tests/              pytest regression tests
 ```
 
-No `.ipynb` or `.xlsx` files are distributed in this repository. Original
-working notebooks and source spreadsheets stay local-only, in a gitignored
-`originals/` folder.
+No `.ipynb` or `.xlsx` files are distributed in this repository, and none of
+`rheofp/`, `scripts/`, or `tests/` read from anywhere outside the repo -
+everything needed to run tests, validation scripts, or build on this work
+lives here. Original working notebooks and source spreadsheets stay
+local-only in a gitignored `originals/` folder purely as a private archive;
+it was only ever needed for the one-time xlsx -> npz conversion into `data/`,
+which is already done and committed. You do not need to carry `originals/`
+to another machine to work on this repo.
 
 ## Setup
 
