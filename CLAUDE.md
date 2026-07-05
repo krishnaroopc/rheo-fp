@@ -1,5 +1,26 @@
 # rheo-fp — Project Context
 
+Read `.claude-notes/` for evolving facts, decisions, and preferences —
+including `.claude-notes/sessions.md`, a dated journal of past working sessions.
+**Append a short entry to that journal at the end of each working session** so
+context carries across PCs.
+
+## Cross-PC workflow (important)
+User works from multiple PCs (home + office). Git is the sync layer:
+- **Pull before starting**, commit + push before leaving a machine. Only
+  committed work is visible on the other PC.
+- Reconstruct "what changed on the other PC" from `git log` / `git diff`.
+
+## Environment — reproducible, DO NOT loosen
+The env is locked for **identical versions across PCs** (user requirement — no
+dependency issues, computer-agnostic):
+- Managed by **uv**; **Python pinned to 3.12**; exact deps+hashes in `uv.lock`.
+- Fresh PC: install uv, then `uv sync`. Run things with `uv run …`
+  (e.g. `uv run pytest`).
+- `.venv/` is per-machine (gitignored) — recreate it, never commit it.
+- Full details, including how to change dependencies, in
+  `.claude-notes/environment.md`.
+
 ## What this is
 An open-source ML classifier for linear rheology. Ingests small-amplitude
 oscillatory shear (SAOS) data — G′(ω), G″(ω) — and outputs (1) material type

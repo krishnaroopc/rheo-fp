@@ -40,9 +40,25 @@ to another machine to work on this repo.
 
 ## Setup
 
+The environment is locked for reproducibility across machines (Python pinned to
+3.12, exact dependency versions + hashes in `uv.lock`). Recommended:
+
+```
+# install uv once:  winget install --id=astral-sh.uv -e
+uv sync
+```
+
+`uv sync` installs Python 3.12 (managed by uv) and all locked dependencies into
+a local `.venv/`, and installs this package editable. Run things with `uv run`,
+e.g. `uv run pytest`.
+
+pip fallback (also fully pinned — from the same lock):
+
 ```
 pip install -r requirements.txt
 ```
+
+See `.claude-notes/environment.md` for details and how to change dependencies.
 
 ## Running the validation scripts
 

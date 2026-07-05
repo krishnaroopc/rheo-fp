@@ -1,3 +1,5 @@
 {
-  "python.defaultInterpreterPath": "C:\\Users\\krish\\AppData\\Local\\Programs\\Python\\Python312\\python.exe"
+  // Point at the local uv-managed venv (relative, so it works on any PC).
+  // Recreate it with `uv sync`. Do NOT hardcode a machine-specific Python path.
+  "python.defaultInterpreterPath": "${workspaceFolder}/.venv/Scripts/python.exe"
 }
