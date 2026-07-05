@@ -1,16 +1,28 @@
 """XPP (eXtended Pom-Pom) linear-viscoelastic fitting for branched melts.
 
-NOT YET VALIDATED: awaiting real Pivokonsky, Zatloukal & Filip (2006,
-J. Non-Newt. Fluid Mech. 135, 58) spectrum tables for the two LDPE melts at
-200 C. Currently verifies only against a substitute Verbeeten et al. (2001)
-Table III dataset (Lupolen 1810H, 150 C), reconstructed from its published
-Maxwell spectrum. Treat any fit through this module as provisional until
-real Pivokonsky data is wired in (see CLAUDE.md).
+LVE VALIDATED against the real target: Pivokonsky, Zatloukal & Filip (2006,
+J. Non-Newt. Fluid Mech. 135, 58), two LDPE melts at 200 C (data/pivo2006.npz,
+see scripts/validate_pompom.py and tests/test_pompom.py). fit_maxwell
+recovers both melts' measured G'/G'' to < 0.02 decades mean log10 error.
 
-In the linear regime the XPP model reduces exactly to a multimode Maxwell
-spectrum, so forward/fit logic reuses rheofp.models.maxwell rather than the
-notebook's local maxwell_Gstar/fit_maxwell duplicates (confirmed identical
-formula by diff).
+Scope: only the linear regime is validated (XPP reduces exactly to multimode
+Maxwell in LVE, so forward/fit logic reuses rheofp.models.maxwell rather than
+the notebook's local maxwell_Gstar/fit_maxwell duplicates - confirmed
+identical formula by diff). The paper's nonlinear parameters (q_i,
+lambda_b/lambda_s, alpha_i) were fit against nonlinear flow data
+(extensional/shear viscosity, normal stress coefficients) that this repo does
+not have digitized; build_xpp_table() assembles them from the paper's Tables
+2/3 but true nonlinear-XPP flow prediction is not validated here.
+
+Classifier scope decision: the product only ever ingests SAOS (LVE) data, and
+XPP is indistinguishable from a generic multimode Maxwell fit in that regime
+(its q_i/alpha_i/lambda_b/lambda_s are underdetermined by LVE data alone - the
+paper itself needed nonlinear flow curves to pin them down). So this module is
+NOT wired into rheofp.fitting.identify's model bank and is not a classifier
+output class; branched melts are represented for classification purposes via
+rheofp.models.maxwell.branched_spectrum (hierarchical double-reptation)
+instead. This module stays as a validated reference/tool, e.g. for future
+nonlinear-data workflows, not part of the SAOS-only pipeline.
 """
 from __future__ import annotations
 

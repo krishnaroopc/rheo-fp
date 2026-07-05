@@ -71,10 +71,24 @@ log space → AICc ranking with Akaike weights → none-of-the-above floor via
 FLOOR_CHI2. Lesson learned: aggressive pre-filter pruning caused
 misclassification; keep the pre-filter permissive and let AICc resolve.
 
-**Pom-pom notebook** (`xpp_pompom_fit.ipynb`): multimode
-generalized Maxwell spectrum; verification target is Pivokonsky, Zatloukal &
-Filip (2006, J. Non-Newt. Fluid Mech. 135, 58), two LDPE melts at 200 °C
-(spectrum tables still needed).
+**Pom-pom** (`rheofp/models/pompom.py`): LVE-validated against the real target,
+Pivokonsky, Zatloukal & Filip (2006, J. Non-Newt. Fluid Mech. 135, 58), two
+LDPE melts at 200 °C (data/pivo2006.npz; originals/ has the source xlsx +
+paper PDF, local-only). fit_maxwell recovers both melts' G'/G'' to < 0.02
+decades. Nonlinear XPP parameters (q_i, λb/λs, α_i) are transcribed from the
+paper's Tables 2/3 and assembled by build_xpp_table(), but were fit by the
+paper against nonlinear flow data (extensional/shear viscosity, normal stress
+coefficients) not digitized here — true nonlinear-XPP prediction remains
+unvalidated. See `rheofp/models/pompom.py` docstring for exact scope.
+
+**Scope decision (2026-07-04): XPP is not a classifier output class.** Product
+only ever ingests SAOS/LVE data (frozen input scope above); in that regime
+XPP is indistinguishable from a generic multimode Maxwell fit, and its
+nonlinear parameters are underdetermined by LVE data alone. Branched melts
+are represented for classification via `branched_spectrum` (hierarchical
+double-reptation, already in `maxwell.py`) instead. `pompom.py` is not wired
+into `fitting/identify.py`'s model bank and stays as a validated
+reference/tool, not part of the SAOS-only pipeline.
 
 ## Immediate goals (the current task)
 1. Restructure into a GitHub-ready repo "rheo-fp": sensible folder layout

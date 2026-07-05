@@ -78,9 +78,12 @@ python scripts/prep_interpolate.py       # common-omega-grid interpolation utili
 - `rheofp/models/maxwell.py`, `tube.py`, `solutions.py`: validated (forward
   physics reproduces published figures; inverse fits recover planted
   parameters).
-- `rheofp/models/pompom.py`: **not yet validated** — awaiting real
-  Pivokonsky et al. (2006) spectrum tables; current verification uses a
-  substitute Verbeeten (2001) dataset.
+- `rheofp/models/pompom.py`: LVE validated against the real target — Pivokonsky
+  et al. (2006) LDPE melts (data/pivo2006.npz). Nonlinear XPP flow prediction
+  is out of scope (not digitized). Not a classifier output class either way —
+  branched melts are classified via `branched_spectrum` in `maxwell.py`
+  instead, since XPP is indistinguishable from generic Maxwell in LVE; see
+  module docstring for exact scope.
 - ML training pipeline: not yet started.
 
 ## License

@@ -43,5 +43,5 @@ repository - citations only, below.
 - Pivokonsky, R., Zatloukal, M., & Filip, P. (2006). On the predictive/fitting
   capabilities of the advanced differential constitutive equations for
   branched LDPE melts. *Journal of Non-Newtonian Fluid Mechanics*, 135(1),
-  58-73. — `rheofp/models/pompom.py` verification target (spectrum tables
-  still needed; see module docstring)
+  58-73. — `rheofp/models/pompom.py` LVE verification target (data/pivo2006.npz,
+  Tables 2/3; see module docstring for validation scope)
