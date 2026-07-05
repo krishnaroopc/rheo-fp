@@ -12,6 +12,16 @@ Last updated: 2026-07-04 (end of day, home PC).
   the venv is missing, bootstrap per `.claude-notes/environment.md`
   (install uv, then `uv sync`). Python is pinned to 3.12 — do not change.
 - Skim `.claude-notes/sessions.md` (newest entries) for what changed since.
+- **CHECK FOR `originals/` AND ASK THE USER IF IT'S MISSING.** `originals/` is
+  gitignored + per-machine, so it does NOT arrive via `git pull`. It holds the
+  source PDFs (and my extracted `.txt`) + `pivo2006.xlsx` needed for the
+  elastomer build's real-data validation. If this session is on a PC where
+  `originals/` is absent or empty (e.g. first time on the office PC), and the
+  active task touches those papers/data, **proactively ask the user to copy
+  the `originals/` folder over** (USB/cloud) before attempting any digitizing
+  or real-data validation. The forward-model code + planted-parameter tests
+  can proceed without it; only the real-data steps are blocked.
+  Quick check: `ls originals/` — expect the pivo/EPDM/Tixier PDFs + .txt.
 
 ## 1. ACTIVE TASK — build the elastomer / rubber + critical-gel module
 Full design + literature basis: `docs/elastomer_litreview.md` (read it first;
