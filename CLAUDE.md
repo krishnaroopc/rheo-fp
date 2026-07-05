@@ -5,6 +5,11 @@ including `.claude-notes/sessions.md`, a dated journal of past working sessions.
 **Append a short entry to that journal at the end of each working session** so
 context carries across PCs.
 
+**When the user says "continue" / "pick up where we left off" / "do the next
+thing" (esp. on a different PC), read `.claude-notes/next-actions.md` first** —
+it's the live cross-PC to-do list with the current active task and decisions
+already made.
+
 ## Cross-PC workflow (important)
 User works from multiple PCs (home + office). Git is the sync layer:
 - **Pull before starting**, commit + push before leaving a machine. Only

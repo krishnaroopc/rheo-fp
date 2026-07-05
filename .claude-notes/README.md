@@ -11,6 +11,8 @@ file where practical; keep entries short and dated (absolute dates).
 
 ## Index
 
+- [next-actions.md](next-actions.md) — **live "what to do next" list; read this
+  first when the user says "continue" / "pick up where we left off".**
 - [sessions.md](sessions.md) — dated journal of Claude working sessions.
 - [environment.md](environment.md) — reproducible Python env (uv + Python 3.12).
 - [workflow.md](workflow.md) — cross-PC working agreement.
