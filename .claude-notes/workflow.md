@@ -5,6 +5,12 @@ context travels via **git + `CLAUDE.md` + this folder**.
 
 - **Sync rule:** pull before starting on a machine; commit + push before
   leaving it. Only committed work is visible on the other PC.
+- **Session-start protocol (Claude, do this FIRST, before any new work):**
+  `git pull` in **both** repos (this one and the website repo), fetch + prune
+  to catch stray branches, then reconstruct what changed on the other PC from
+  the new commits, read the updated `.claude-notes/` (esp. `next-actions.md`),
+  and run the session-start checks in `next-actions.md` §0. Only after this
+  sync is confirmed should new work begin. (User instruction, 2026-07-09.)
 - Claude reconstructs "what changed on the other PC" from **git history**
   (`git log` / `git diff`), not from chat.
 - **Untracked local files** are per-machine and invisible elsewhere. Here that
