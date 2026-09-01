@@ -45,3 +45,40 @@ repository - citations only, below.
   branched LDPE melts. *Journal of Non-Newtonian Fluid Mechanics*, 135(1),
   58-73. — `rheofp/models/pompom.py` LVE verification target (data/pivo2006.npz,
   Tables 2/3; see module docstring for validation scope)
+
+- Chasset, R., & Thirion, P. (1965). Viscoelastic relaxation of rubber
+  vulcanizates. In *Proc. Conf. Phys. Non-Cryst. Solids*, 345-359. —
+  power-law relaxation of crosslinked networks; frequency-domain form is the
+  forward model in `rheofp/models/network.py`
+
+- Curro, J. G., & Pincus, P. (1983). A theoretical basis for viscoelastic
+  relaxation of elastomers in the long-time limit. *Macromolecules*, 16(4),
+  559-562. — Chasset-Thirion exponent m tied to crosslink density,
+  `rheofp/models/network.py`
+
+- Winter, H. H., & Chambon, F. (1986). Analysis of linear viscoelasticity of
+  a crosslinking polymer at the gel point. *Journal of Rheology*, 30(2),
+  367-382. — critical-gel criterion (`critical_gel_spectrum`),
+  `rheofp/models/network.py`
+
+- Tixier, T., Tordjeman, P., Cohen-Solal, G., & Mutin, P. H. (2004).
+  Structural effects on the viscoelasticity of PDMS networks close to the
+  sol-gel threshold. *Journal of Rheology*, 48(1), 39-52. — critical-gel
+  real-data validation (native SAOS, exponent u = 0.69-0.75),
+  `rheofp/models/network.py`
+
+- Vega, D. A., Villar, M. A., Alessandrini, J. L., & Vallés, E. M. (2001).
+  Terminal relaxation of model poly(dimethylsiloxane) networks with pendant
+  chains. *Macromolecules*, 34(13), 4591-4596. — model PDMS network,
+  route-(a) parameter self-consistency check (Table 2), `rheofp/models/network.py`
+
+- Martin, G., Barrès, C., Cassagnau, P., Sonntag, P., & Garois, N. (2008).
+  Viscoelasticity of randomly crosslinked EPDM networks. *Polymer*, 49(7),
+  1892-1901. — cured-EPDM tabulated Ge/tan d (Table 1) + swelling-based
+  crosslink density (Table 2) single-point checks, `rheofp/models/network.py`
+
+- Darby, D. R., Cai, Z., Mason, C. R., & Pham, J. T. (2022). Modulus and
+  adhesion of Sylgard 184, Solaris, and Ecoflex 00-30 silicone elastomers
+  with varied mixing ratios. *Journal of Applied Polymer Science*, 139(25),
+  e52412. — cured-elastomer real-data validation (native cured-PDMS SAOS,
+  Fig. 1a / Fig. S1), `rheofp/models/network.py`

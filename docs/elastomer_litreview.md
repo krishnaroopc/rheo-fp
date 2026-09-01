@@ -4,10 +4,12 @@ Purpose: identify (1) the forward-model physics for a basic crosslinked
 elastomer/rubber SAOS class, (2) validation-grade datasets, (3) the
 melt-vs-elastomer discrimination + abstention grounding.
 
-STATUS: five source PDFs obtained + read (in `originals/`, gitignored). Key
-findings extracted below. Forward-model equation is settled; validation-data
-situation has a wrinkle (both dedicated network papers are time-domain G(t),
-not SAOS) — see section 3.
+STATUS: COMPLETE (2026-08-31). Forward model settled, module built (section 6),
+and validated against real data — cured elastomer vs **Darby et al. 2022**
+(native cured-PDMS SAOS; Martin 2008 has no cured-network spectrum figure, so
+it dropped to a tabulated check), critical gel vs **Tixier 2004**, melt
+counterexample vs Likhtman-McLeish. See section 3 for the data inventory,
+section 6 for the build/validation record.
 
 ## 0. Extracted forward model (SETTLED) — fractional Kelvin-Voigt = frequency-domain Chasset-Thirion
 
@@ -86,9 +88,19 @@ parallel power-law scaling.
 
 ## 3. Validation datasets — inventory of the obtained PDFs (IMPORTANT wrinkle)
 
-**Wrinkle: the two dedicated network papers report time-domain stress
-relaxation G(t), NOT oscillatory G'(omega)/G''(omega).** Our classifier is
-SAOS-only. Two ways to still use them (in preference order):
+**UPDATE 2026-08-31: the cured-elastomer real-SAOS source is now Darby et al.
+(2022), NOT Martin (2008).** On re-reading Martin 2008 (see the corrected
+entry below) it has NO figure of crosslinked-network G'(omega)/G''(omega) —
+only tabulated low-frequency Ge/tan d (its Table 1) and time-domain G(t) (its
+Fig. 6). Darby 2022 has genuine native cured-PDMS frequency sweeps (its
+Fig. 1a + Fig. S1). So the route-(b) real-material check for the cured class
+is Darby; Martin drops to a tabulated single-point Ge check; Villar stays
+route (a). See sections 3a-3c.
+
+**Wrinkle: the two dedicated model-network papers (Villar, and the Martin
+crosslinked data) report time-domain stress relaxation G(t) or tabulated
+values, NOT oscillatory G'(omega)/G''(omega).** Our classifier is SAOS-only.
+Two ways to still use them (in preference order):
 
 (a) **Reconstruct G*(omega) from published Chasset-Thirion fit parameters.**
     Both papers TABULATE fitted (G_inf, m, tau) per sample. Since we now have
@@ -126,14 +138,64 @@ Obtained PDFs (all in originals/, text extracted):
 
 - **Martin, Barrès, Cassagnau, Sonntag, Garois (2008), Polymer 49, 1892** —
   "Viscoelasticity of randomly crosslinked EPDM networks." REAL engineering
-  elastomer. Has BOTH: (i) frequency sweeps with a genuine G' low-frequency
-  plateau + tan(delta) (Fig. showing G'/G'' vs rad/s; low-freq G'/Ge and tan d
-  in Table 1) — digitizable measured SAOS, route (b); and (ii) stress
-  relaxation modeled with Chasset-Thirion (route a). Crucially, crosslink
-  density is independently obtained via **equilibrium swelling +
-  Pearson-Graessley** (Tables 2-3), so G_inf recovery is checkable against an
-  independent structural measurement. This is the strongest single validation
-  source — real material, real SAOS, independent crosslink density.
+  elastomer. **CORRECTED 2026-08-31 (the earlier entry overstated this):**
+  the paper has NO crosslinked-network frequency-sweep spectrum figure.
+  - Fig. 2 = G'/G''/eta* vs omega, but of the *un-crosslinked* EPDM (a melt,
+    +/- plasticizer). NOT a cured network.
+  - Fig. 6 = stress relaxation G(t) over 10 h at 100 C (time-domain).
+  - Table 1 = tan d and Ge at low frequency for the 5 crosslinked resol
+    ratios (1, 1/4, 1/7, 1/10, 1/30) -> Ge = 3.3e5, 9.8e4, 5.8e4, 3.4e4,
+    2.0e3 Pa; tan d = 0.01, 0.07, 0.12, 0.18, 0.40. Two numbers per sample,
+    one frequency. NOT a spectrum.
+  - Table 3 = Chasset-Thirion (EN, t0, m) fitted to the Fig. 6 *relaxation*
+    (REF: EN=6.3e5 Pa, t0=0.09 min, m=0.067; RES1/4: 2.6e5, 13, 0.070;
+    RES1/7: 1.2e5, 104, 0.170; ...).
+  - Table 2 = independent crosslink density nu (mol/m3) from equilibrium
+    swelling + Pearson-Graessley (REF 124, RES1/4 39, RES1/7 17, RES1/10 6.5,
+    RES1/30 1.25).
+  USE: (i) Table 1 as a single-frequency check — fitted G_inf should match Ge
+  and predicted tan d at that omega should match, per resol ratio; (ii) Table
+  3 via route (a) self-consistency; (iii) Table 2 as an independent nu*kB*T
+  cross-check on G_inf order of magnitude. Do NOT digitize any Martin figure
+  for the cured class — none of them is cured-network SAOS.
+
+- **Darby, Cai, Mason, Pham (2022), J. Appl. Polym. Sci. 139, e52412** —
+  "Modulus and adhesion of Sylgard 184, Solaris, and Ecoflex 00-30 silicone
+  elastomers with varied mixing ratios." (originals/ "J of Applied Polymer
+  Sci - 2022 - Darby ...pdf" + "app52412-sup-0001-supinfo.pdf"; text at
+  originals/darby2022-main.txt, darby2022-supp.txt.)
+  **This is the route-(b) real cured-elastomer SAOS source.** Native
+  G'(omega)/G''(omega) frequency sweeps, 0.01-100 rad/s, 0.1% strain (LVE),
+  25 mm parallel plate, platinum-cured (hydrosilylation) PDMS networks -
+  permanent covalent networks.
+  - Fig. 1a: overlaid G' (filled) / G'' (unfilled) vs omega for SY 184,
+    Solaris, EF 00-30 at factory-recommended ratios. The cleanest curves
+    (best-cured). PRIMARY digitizing target.
+  - Fig. S1 (supp): G'/G'' vs omega for SY (10:1, 20:1, 35:1, 45:1, 60:1),
+    Solaris (1:1, 5:1, 10:1, 20:1), EF (1:1, 30:1, 60:1); plus modulus-
+    matched G'/G'' overlays at ~30, ~10, ~1 kPa. SECONDARY targets — take a
+    couple of the *stiffer* ratios (SY 10:1/20:1) for a G_inf range; skip the
+    extreme-ratio soft ones (SY 60:1 = 0.9 kPa etc. — defect-dominated,
+    near-critical).
+  - Table 1: low-frequency (0.01 rad/s) G' for many ratios (SY 10:1 = 620,
+    20:1 = 190, 30:1 = 59 kPa; SO 1:1 = 120; EF 1:1 = 27 kPa). Internal-
+    consistency anchor for fitted G_inf.
+  - Sol fraction by hexane swelling: SY 10:1 ~4.5%, SO 1:1 ~12%, EF 1:1 ~55%;
+    at 30 kPa: SY 35:1 ~24%, SO 5:1 ~26%, EF 1:1 ~55%. A free-chain / defect
+    proxy relevant to m, but NOT a crosslink density.
+  CAVEATS (record, do not overstate):
+  * "Research data are not shared" (explicit statement) -> digitizing the
+    figures is the only route.
+  * G'' << G' for these near-elastic materials and is noisy on the log plots;
+    the paper barely discusses G'' and has a G''/G' label slip in Table 1.
+    Expect fits to pin G_inf well and leave (c, m) loosely constrained - an
+    honest identifiability result for well-cured rubber, matching the planted
+    "weak network" test case, not a failure.
+  * Filled systems (silica in Sylgard 184 especially) - real engineering
+    elastomers, representative of the target use case, but not pure model
+    networks.
+  * Single temperature -> does not exercise the abstention-lifting T-stack
+    path (fine; the melt counterexample covers abstention).
 
 Physics/theory PDFs obtained:
 - **Curro & Pincus (1983), Macromolecules 16, 559** — "A Theoretical Basis for
@@ -179,9 +241,13 @@ sweeps (route b), to not rest validation on EPDM alone. Ranked:
      G*(omega)/G*(omega*) (Fig 7) — scaling collapses, not raw cured-network
      spectra with an absolute plateau. So this does NOT give a clean
      large-G_inf/small-m cured-elastomer SAOS curve.
-   Net: use Tixier (or Winter-Chambon Fig 3) to validate the critical-gel
-   boundary. The cured rubbery-plateau elastomer class still rests on EPDM
-   (Martin 2008, native SAOS plateau) + Villar via route (a).
+   Net: Tixier Fig. 2/4 validates the critical-gel boundary — DONE
+   (`data/tixier2004.npz`, `scripts/prep_tixier.py`, u = 0.762 recovered).
+   The cured rubbery-plateau elastomer class rests on **Darby 2022** (native
+   cured-PDMS SAOS, route b — see section 3), also DONE. (Superseded
+   2026-08-31: the earlier version of this line named Martin 2008 as the
+   native-SAOS plateau source, which was wrong — Martin has no cured-network
+   spectrum figure.)
 
 2. **Chambon & Winter's own near-GP PDMS SAOS** (the data underlying Winter &
    Chambon 1986, already in originals/) — congruent G'(omega)=G''(omega) over
@@ -195,11 +261,15 @@ sweeps (route b), to not rest validation on EPDM alone. Ranked:
    (route a) rather than native SAOS — lower priority, but same-lineage
    crosslink-density methodology.
 
-Recommendation: fetch candidate 1 (J. Rheol. 2004 PDMS sol-gel). Combined with
-EPDM (Martin 2008), that gives two independent real materials AND the critical-
-gel boundary, covering the whole Solid/gel-like discriminator. Villar stays
-route-(a) only. No further digitizing beyond EPDM Fig. + (optionally) the
-J. Rheol. 2004 PDMS frequency sweeps.
+Status 2026-08-31: real-material coverage of the Solid/gel-like regime is DONE.
+  - cured elastomer: **Darby 2022** (Sylgard/Solaris/Ecoflex native SAOS,
+    Fig. 1a) digitized -> `data/darby2022.npz`. G_inf recovered to +1..+28%
+    vs Darby Table 1. (Optional add-ons not done: Fig. S1 stiff ratios;
+    Villar 2001 route (a); Martin 2008 Table 1 single-point Ge.)
+  - critical gel: **Tixier 2004** (Fig. 2/4, native SAOS near GP) digitized
+    -> `data/tixier2004.npz`. u = 0.762 recovered (Table II range 0.69-0.75).
+  - melt counterexample: Likhtman-McLeish 2002 PS 6, frequency-truncated.
+  All in `tests/test_network.py` + `scripts/validate_network.py`.
 
 ## 4. Counterexample for abstention logic (melt masquerading as rubber)
 
@@ -239,18 +309,58 @@ reported/labeled distinctly.
 - No affine-vs-phantom discrimination: report G_inf (and nu*kB*T-derived
   density) model-agnostically. Same honesty policy as the XPP scope decision.
 
-## 6. Next steps (where we paused 2026-07-04)
+## 6. Next steps
 
-Lit-review phase complete; physics + data sources settled. Remaining:
-1. USER (manual, WebPlotDigitizer -> xlsx, same as pivo2006.xlsx): digitize
-   (a) EPDM (Martin 2008) frequency sweep -> cured-elastomer real-data check,
-   (b) Tixier Fig 2 or 4 -> critical-gel real-data check.
-   Not a blocker for starting the build (planted-parameter tests need no data).
-2. BUILD (Claude, when asked): `chasset_thirion_spectrum` forward + fit,
-   planted-parameter recovery tests, then wire the two new fine-class
-   discriminators + abstention into `fitting/identify.py`, then real-data
-   validation against the digitized xlsx + Villar route-(a) reconstruction +
-   the Likhtman-McLeish truncated-window melt counterexample.
+**Status 2026-08-31:** forward model, discriminators, abstention rule, and the
+melt counterexample are BUILT (`rheofp/models/network.py`,
+`tests/test_network.py`, `scripts/validate_network.py`; 42 tests pass). Data
+sources settled (section 3 / 3b, corrected: Darby 2022 replaces Martin 2008
+for the cured class). Remaining:
+
+1. DIGITIZING:
+   (a) DONE (2026-08-31). **Darby 2022 Fig. 1a** digitized (WebPlotDigitizer)
+       -> `originals/darby.ods` -> `data/darby2022.npz` via
+       `scripts/prep_darby.py` (does the kPa->Pa there). 3 samples
+       SY184_10-1 / Solaris_1-1 / EF0030_1-1, 16 pts each, 0.1-100 rad/s.
+       Fit: G_inf recovered to +1% (SY), +4% (Solaris), +28% (EF, the noisy
+       ~55%-sol-fraction kit) vs Darby Table 1; residual < 0.003 decades;
+       m ~ 0.23-0.30; identify() -> cured_elastomer for all three (large AICc
+       margins), abstains (single curve). Optional later: add stiff Fig. S1
+       ratios (SY 10:1 / 20:1).
+   (b) DONE (2026-08-31). **Tixier 2004 Fig. 2/4** digitized ->
+       `originals/tixier.xlsx` (moduli already in Pa) -> `data/tixier2004.npz`
+       via `scripts/prep_tixier.py`. 11 pts, 1-100 rad/s, one near-GP curve.
+       Both G' and G'' power-law slopes ~0.755; tan(delta) ~ 2.55 flat
+       (spread 0.06 decades). `fit_critical_gel` -> u = 0.762 (Tixier
+       Table II range 0.69-0.75; = system III), c = 6.85 Pa, residual
+       < 0.011 decades. identify() -> critical_gel, but only ΔAICc ~ 2.4 /
+       weight 0.77 over cured_elastomer — the two models are nested (gel =
+       cured with G_inf->0) so when G_inf truly ~ 0 only the parameter count
+       separates them, and ΔAICc ~ 2 is exactly the 1-param penalty. Correct
+       outcome, thin margin. Possible future tiebreaker: use the (unused)
+       frequency-flat-tan(delta) feature. Surface to user before adding.
+2. DONE. `chasset_thirion_spectrum` + `critical_gel_spectrum` + fits.
+3. DONE. Discriminators + abstention wired into `fitting/identify.py`
+   (`ALL_MODELS`, `melt_rubber_ambiguous`). Abstention built WITHOUT a
+   flatness threshold — see `.claude-notes/next-actions.md` "Abstention rule
+   as built".
+4. DONE. All three real/planted validation legs pass, in
+   `scripts/validate_network.py` and `tests/test_network.py` (46 tests):
+   melt counterexample (Likhtman-McLeish PS 6, truncated); Darby 2022 real
+   cured-elastomer (1a); Tixier 2004 real critical gel (1b).
+   Optional extras not done — Villar 2001 Table 2 route-(a) self-consistency;
+   Martin 2008 Table 1 single-point Ge/tan d; Martin Table 2 nu*kB*T
+   cross-check. None blocking.
+
+The elastomer / critical-gel module is COMPLETE. Remaining project work is
+the stack-level abstention resolver (below) and then ML training.
+
+### Stack-level abstention resolver (not yet built)
+`identify(..., n_temperatures=N)` currently TRUSTS N>=2 to mean the
+melt-vs-rubber ambiguity is resolvable. The real per-temperature physics check
+— does terminal motion (G'~omega^2 upturn) actually walk into the window as T
+rises across the stack — is future work. Needs the frozen architecture's
+set-based stack input plumbed through `identify`.
 
 ## Sources (web survey)
 
@@ -268,3 +378,6 @@ Lit-review phase complete; physics + data sources settled. Remaining:
   Chasset–Thirion complex-modulus form)
 - https://pmc.ncbi.nlm.nih.gov/articles/PMC11562782/ (2024 molecular model,
   entangled network LVE — modern context)
+- https://doi.org/10.1002/app.52412 (Darby et al. 2022, J. Appl. Polym. Sci.
+  139, e52412 — Sylgard 184 / Solaris / Ecoflex 00-30 native SAOS; the
+  route-(b) cured-elastomer source, added 2026-08-31)
