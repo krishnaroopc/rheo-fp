@@ -20,10 +20,12 @@ See `CLAUDE.md` for the full architecture rationale and validation history.
 
 ```
 rheofp/            importable package
-  models/           forward physics: maxwell, tube, solutions, pompom
+  models/           forward physics: maxwell, tube, solutions, network, pompom
   fitting/          shared optimizer core + AICc-based regime identification
+  data/             synthetic training-set generator
+  ml/               dataset, two-head set model, training, evaluation
   io/               data loading/conversion (npz canonical format)
-scripts/            validation scripts (plot + assert against known-good results)
+scripts/            validation, data prep, generation, training
 data/               converted spectral datasets (.npz, open format)
 docs/               reference bibliography, model-taxonomy notes
 tests/              pytest regression tests
@@ -69,22 +71,49 @@ planted-parameter recovery / literature-figure checks and plots the result:
 python scripts/validate_maxwell.py       # Maxwell/Prony family, WLM, sticky-Maxwell stack
 python scripts/validate_tube.py          # Likhtman-McLeish tube model + branched/LCB
 python scripts/validate_solutions.py     # Zimm/Rouse/reptation regime identifier
-python scripts/validate_pompom.py        # XPP pom-pom fit (NOT YET VALIDATED - see module docstring)
+python scripts/validate_pompom.py        # XPP pom-pom fit (LVE only - see module docstring)
+python scripts/validate_network.py       # cured elastomer + critical gel, incl. real data
+python scripts/validate_stack.py         # melt-vs-network resolution across a T stack
 python scripts/prep_interpolate.py       # common-omega-grid interpolation utility
 ```
+
+## Generating data and training the classifier
+
+```
+python scripts/generate_dataset.py -n 20000 -o data/train.npz
+python scripts/train_classifier.py -n 16000 --epochs 55
+```
+
+`train_classifier.py` reports against the AICc physics identifier as a
+baseline; on synthetic data the network scores ~0.93 against ~0.68 for the
+baseline, with abstention lifting accuracy to ~0.98 at 20% coverage dropped.
+Requires PyTorch (a locked dependency); uses CUDA when available, CPU
+otherwise.
 
 ## Status
 
 - `rheofp/models/maxwell.py`, `tube.py`, `solutions.py`: validated (forward
   physics reproduces published figures; inverse fits recover planted
   parameters).
+- `rheofp/models/network.py`: validated, including against real measured data —
+  cured elastomers (Darby et al. 2022, three commercial silicones) and a
+  critical gel (Tixier et al. 2004, end-linked PDMS near the sol-gel
+  threshold).
+- `rheofp/fitting/identify.py`: AICc identifier over a 7-candidate bank, with
+  single-curve abstention and a temperature-stack resolver for the
+  melt-vs-network ambiguity.
+- `rheofp/data/synth.py`: synthetic training-set generator (labelled stacks,
+  planted parameters, physically coherent temperature stacks).
 - `rheofp/models/pompom.py`: LVE validated against the real target — Pivokonsky
   et al. (2006) LDPE melts (data/pivo2006.npz). Nonlinear XPP flow prediction
   is out of scope (not digitized). Not a classifier output class either way —
   branched melts are classified via `branched_spectrum` in `maxwell.py`
   instead, since XPP is indistinguishable from generic Maxwell in LVE; see
   module docstring for exact scope.
-- ML training pipeline: not yet started.
+- `rheofp/ml/`: two-head set model (masked attention pooling over a stack) with
+  a learned abstention head. Trained and evaluated on synthetic data only —
+  **it has not yet been trained on or validated against real measured
+  spectra.** Do not read the synthetic accuracy as real-world performance.
 
 ## License
 

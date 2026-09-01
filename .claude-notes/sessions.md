@@ -6,6 +6,203 @@ the end of each working session (what was discussed, decided, and changed).
 
 ---
 
+## 2026-09-01 — ML training pipeline; all three CLAUDE.md goals complete
+
+- **Scope correction from the user, important.** I had treated the locked env
+  as a reason to avoid adding `torch` and asked permission. User clarified:
+  "computer-agnostic" means *the same across machines*, NOT *keep deps
+  minimal* — **install whatever is needed**, just re-lock so every PC and any
+  third-party GitHub user gets the identical thing. Recorded in workflow.md
+  under Preferences. Do not repeat that hesitation.
+- **torch 2.13.0+cu130 added** via `uv add torch`, `requirements.txt`
+  regenerated. numpy stayed 2.5.1 — no resolver collateral. CUDA works on this
+  PC's GTX 1660 Ti. Also registered a `slow` pytest marker.
+- **Built `rheofp/ml/`** — dataset, model, train, evaluate — plus
+  `scripts/train_classifier.py` and `tests/test_ml.py`. **Suite 84 -> 102.**
+  `RheoNet` (246k params) is the frozen architecture made real: conv
+  curve-encoder -> masked attention pool -> two heads. Conv because the
+  discriminating features are local shape in log-frequency and windows are
+  randomly cropped; attention rather than mean because a stack's information
+  often sits in one curve (the hottest).
+- **Abstention is a learned logit**, trained against whether the classifier
+  actually erred (detached). It predicts its own failures rather than applying
+  a threshold after the fact.
+- **Results** (16k examples, 55 epochs, ~12 min): accuracy **0.932 vs 0.680**
+  for the AICc physics baseline (+0.252). Regime 0.999. Abstaining on the
+  least-confident 20% -> 0.979, 30% -> 0.992. Stacks beat single curves.
+  cured_elastomer and critical_gel perfect, never confused with a melt.
+- **The dominant error is physics, not a defect**: 58% of all errors are
+  Zimm<->Rouse, which differ only in mode-spacing exponent (1.8 vs 2.0);
+  measured log-slope distributions overlap almost entirely (1.05+/-0.70 vs
+  1.08+/-0.69). Added `merged_pair_accuracy` + `pair_confusions` to
+  evaluate.py so this is reported honestly instead of looking like failure.
+  Caveat: `rouse_screened` per-class accuracy is seed-unstable (0.20 vs 0.71);
+  the merged-pair number (~0.96) is the stable one.
+- **Two real bugs caught by the tests, both now guarded:**
+  1. Head 2 was silently UNTRAINED — `param_targets` was always None, so
+     `head_params` received zero gradient. Wired through with masked padded
+     targets; verified MAE 9.96 vs 19.0 for predict-the-mean.
+  2. `_auc` gave 0.0 instead of 0.5 for a constant score (ties not
+     rank-averaged).
+- Gitignored `checkpoints/` and `data/synthetic_train*.npz` — both are
+  reproducible from scripts, so nothing generated travels via git.
+- Process note: a training run was left in the background overnight and I
+  misreported its elapsed time as ~10 min when it was 9h21m (idle, not
+  computing). Actual compute is ~12 min. Piping through `tail` also hides all
+  progress until exit — don't do that for long runs.
+- **All three CLAUDE.md goals are now complete.** What's genuinely open: the
+  model has never seen REAL data (everything is synthetic), no real
+  temperature stack has been tested, and the yield-dominated regime still has
+  no physics. See next-actions.md §3.
+- One portability fix: `ndarray.ptp()` is gone in NumPy 2 — used `np.ptp()`.
+- `originals/` is present on this PC (all 6 PDFs + pivo2006.xlsx).
+- NOT committed — left in the working tree for the user's end-of-day sync.
+
+---
+
+## 2026-08-31 — Linux PC set up; elastomer + critical-gel module BUILT
+
+- **New machine** (Linux/CachyOS, first session here). Cloned the repo to
+  `~/Documents/local_drive/coding/rheo-fp`. Installed uv 0.12.8 via the
+  standalone installer to `~/.local/bin` (NOT pacman — no sudo needed);
+  `uv sync` built `.venv` with Python 3.12.14 + the locked deps. Baseline
+  confirmed 27/27 before touching anything. Note: system Python here is 3.14,
+  so always go through `uv run` — and `~/.local/bin` must be on PATH.
+- **Built the elastomer/critical-gel module** (next-actions §1 steps 1-3, and
+  the melt-counterexample half of step 4). Suite **27 -> 42 passing**.
+  - `rheofp/models/network.py` (new module — the fractional springpot family
+    has no mode ladder, so it did not belong in `maxwell.py`):
+    `chasset_thirion_spectrum(w, G_inf, c, m)` and `critical_gel_spectrum(w,
+    c, u)`, plus log-space fits on `multi_restart_fit`, plus
+    `tan_delta_spread` as the gel discriminating statistic.
+  - **Design call**: critical gel is a genuine **2-parameter** model (bare
+    springpot), not the 3-param element with G_inf driven small. Both fit the
+    same data equally well, so parameter count via AICc is what actually
+    separates the two classes. A test asserts the 3-param fit drives
+    G_inf < 1e-3 * springpot on true gel data.
+  - `fitting/identify.py`: banks merged into `ALL_MODELS = MODELS |
+    NETWORK_MODELS`. Pre-filter kept permissive per the original lesson — the
+    ONLY hard discard added is `terminal_reached` removing both network
+    classes (a permanent network cannot flow).
+  - `identify()` gained `n_temperatures` and returns `abstain` /
+    `abstain_reason`. Head 2 still always emits a model, per the frozen
+    two-head architecture.
+- **Abstention threshold — decided, please review.** Spec said "decades of
+  flatness / T-shift coverage"; built with **no flatness threshold**, because
+  from a single curve a melt's absent terminal relaxation is missing evidence,
+  not evidence of absence — no number of flat decades ever proves a network.
+  Abstains whenever best == cured_elastomer AND not terminal_reached AND
+  n_temperatures < 2. Flat decades are measured and reported as confidence,
+  not as a gate. Recorded in next-actions.md under "Abstention rule as built".
+- **Melt counterexample passed**: Likhtman-McLeish (2002) PS 6 truncated at
+  wmin = 1e-5/1e-2/1e-1/1e0 — reptation wins on AICc every time, so the
+  network classes never steal real melt data. Useful finding: the ambiguity
+  does NOT materialize against a real melt, because reptation's plateau +
+  Rouse wing outfits a flat springpot. Also noticed `terminal_reached` is
+  False even on PS 6's full window (its low-w slope is 1.02, under the 1.4
+  threshold) — pre-existing detector behavior, left alone rather than tuned.
+- **Validation scope, do not overstate**: both new classes are
+  planted-parameter validated ONLY. Real-material validation still needs the
+  user to digitize figures to xlsx. `scripts/validate_network.py` prints that
+  reminder on every run.
+- **Data-source correction (later same session).** Re-read Martin 2008
+  (EPDM): it has NO crosslinked-network G'(w)/G''(w) figure — Fig. 2 is the
+  *un-crosslinked* polymer, Fig. 6 is time-domain G(t), and only tabulated
+  low-freq Ge/tan d (Table 1) + swelling-based nu (Table 2) describe the
+  cured networks. So Martin cannot be the route-(b) cured-elastomer SAOS
+  source. User supplied **Darby et al. 2022, J. Appl. Polym. Sci. 139,
+  e52412** (Sylgard 184 / Solaris / Ecoflex 00-30) — main PDF + supp now in
+  `originals/` (+ darby2022-main.txt / darby2022-supp.txt). It HAS native
+  cured-PDMS frequency sweeps (Fig. 1a, Fig. S1), 0.01-100 rad/s, LVE. That
+  is now the route-(b) source; Martin drops to a Table 1 single-point Ge
+  check; Villar stays route (a). `docs/elastomer_litreview.md` section 3 / 3b
+  / 6 and next-actions.md updated. Caveats on Darby: data-not-shared (must
+  digitize), noisy G'' (expect G_inf pinned, c/m loose), filled systems,
+  single T. Digitizing targets are now Darby Fig. 1a (+ optional stiff
+  Fig. S1 ratios) and Tixier Fig. 2/4.
+- **Darby Fig. 1a digitized + validated (still same session).** User
+  digitized it into `originals/darby.ods` (moduli in kPa). New
+  `scripts/prep_darby.py` converts kPa->Pa and writes `data/darby2022.npz`
+  (committed) — 3 samples SY184_10-1 / Solaris_1-1 / EF0030_1-1, 16 pts,
+  0.1-100 rad/s. `fit_chasset_thirion`: G_inf vs Darby Table 1 (0.01 rad/s)
+  to +1% (SY, 629 vs 620 kPa), +4% (Solaris, 124 vs 120), +28% (EF, 19.4 vs
+  27 — softest, ~55% sol fraction, noisiest curve, Table 1 itself +/-30%
+  there); log-residual < 0.003 dec; m ~ 0.23-0.30. `identify()` -> all 3
+  cured_elastomer with big AICc margins, abstains (single curve). Wired into
+  `scripts/validate_network.py` (now 4-panel) + `tests/test_network.py` (3
+  parametrized real-data tests). **Suite 42 -> 45 passing.** Cured-elastomer
+  class is now REAL-DATA validated; only Tixier critical-gel check remains.
+- pandas needs `odfpy` for .ods, deliberately NOT added to the locked env
+  (one-off prep). Used `libreoffice --headless --convert-to xlsx` ->
+  `originals/darby.xlsx`, which `prep_darby.py` reads. Both gitignored.
+- Extracted the two Darby PDF figures with `pdfimages` to scratchpad to read
+  Fig. 1a / Fig. S1 (pdftotext gave only text). Nothing new installed.
+- **Tixier Fig. 2/4 digitized + validated (same session) — module now
+  COMPLETE.** User digitized into `originals/tixier.xlsx` (moduli in Pa
+  already, so no conversion). New `scripts/prep_tixier.py` -> committed
+  `data/tixier2004.npz` (1 curve, 11 pts, 1-100 rad/s). Both G'/G''
+  power-law slopes ~0.755; tan(delta) ~ 2.55 flat (spread 0.06 dec).
+  `fit_critical_gel` -> u = 0.762 (Tixier Table II 0.69-0.75; = system III),
+  c = 6.85 Pa, residual < 0.011 dec. `identify()` -> critical_gel, but
+  ΔAICc only ~2.4 / weight 0.77 over cured_elastomer — the two are nested
+  (gel = cured with G_inf->0), so when G_inf truly ~0 only param count
+  separates them and ΔAICc ~2 is exactly the 1-param penalty. Correct call,
+  thin margin; noted a possible future tiebreaker (the unused
+  frequency-flat-tan(delta) feature) — ask user before adding.
+  Wired into validate_network.py (now 5-panel) + tests (1 more). **Suite
+  45 -> 46 passing.** The elastomer / critical-gel module is done: forward
+  model, discriminators, abstention, and real-data validation for both
+  classes + the melt counterexample.
+- **Stack-level abstention resolver BUILT (same session).** `identify.py` gains
+  `resolve_melt_vs_network(stack)`, `shift_factor(ref, cur)` and
+  `identify_stack(stack)`; `scripts/validate_stack.py` + `tests/test_stack.py`
+  (13 tests). **Suite 46 -> 59 passing.**
+  - Evidence 1: terminal relaxation at ANY temperature -> melt outright.
+  - Evidence 2: horizontal shift of the spectrum across the stack.
+    SHIFT_DECADES_MIN = 0.5 — this finally grounds the "T-shift coverage"
+    threshold the original spec asked for (melt @ Ea 60 kJ/mol over 40 K
+    shifts ~1.4 dec; network shifts 0.00).
+  - **Design choice worth keeping**: alignment is done on **tan(delta)**, not
+    the moduli. tan(delta) is a modulus ratio so the vertical shift factor b_T
+    cancels exactly — only the horizontal shift needs fitting, and nothing has
+    to be assumed about how the plateau scales with T. Verified by a test that
+    a pure 3x vertical rescaling reports zero shift.
+  - Coarse scan + parabolic refine rather than a gradient fit: the objective is
+    a smooth 1-D curve and L-BFGS-B stalls on a flat tan(delta).
+  - `identify_stack` runs the single-curve pipeline on the COLDEST curve (its
+    window is likeliest to hide a melt's terminal relaxation) then applies the
+    resolver. It only removes unjustified confidence or adds justified
+    confidence.
+  - **The payoff case**: an entangled melt (broad mode ladder, terminal below
+    window) is confidently called `critical_gel` by a single curve with
+    abstain=False. The stack measures 1.89 decades of shift and forces the
+    abstention. This is why the feature exists.
+  - Honest limit, tested: Ea = 0 -> the melt does not move -> resolver says
+    "network". It reports what is observable, not what is true.
+- **Synthetic data generator BUILT (same session).** `rheofp/data/synth.py`,
+  `scripts/generate_dataset.py`, `tests/test_synth.py` (25 tests). **Suite
+  59 -> 84 passing.** Labelled stacks from all 9 classes; labels planted not
+  fitted; parameter ranges read from the fitters' own bounds (tested, so the
+  population and search space cannot drift); stacks share ONE parameter set
+  with an Arrhenius shift (networks: Ea = 0, moduli scale with absolute T);
+  random window cropping is what teaches abstention; ~2% log-normal noise;
+  canonical npz out; tqdm bar; ~1200 ex/s; xlsx is a capped human backdoor.
+  Round-trip through `identify()` ~82-85% on single cropped noisy curves —
+  the residual confusions (Zimm<->Rouse, gel<->elastomer) are real physical
+  ambiguity, which is exactly what the ML model needs to learn.
+- **Generator surfaced a real bug in the stack resolver, now fixed.** A
+  critical gel's tan(delta) is frequency-independent by construction, so the
+  tan(delta) alignment objective is FLAT — every shift fits equally well, and
+  `shift_factor` was returning the scan grid's arbitrary minimum as though it
+  were a measurement (2.23 decades of pure noise). Added
+  `MIN_TAN_DELTA_STRUCTURE = 0.15`; `shift_factor` now returns NaN and
+  `resolve_melt_vs_network` reports "ambiguous — loss tangent is
+  frequency-independent". Lesson: a flat objective is degeneracy, not a zero
+  answer. Covered by tests in both test_synth.py and test_stack.py.
+- Next project work: the ML training pipeline (CLAUDE.md goal 3).
+
+---
+
 ## 2026-07-04 (later still) — Elastomer/rubber module: literature review + scope decisions
 
 - Clarified `docs/rheology_models.md` is a **wishlist**, not current scope: added
@@ -45,6 +242,8 @@ the end of each working session (what was discussed, decided, and changed).
   `uv`-nothing-new; saved autonomy + roadmap + env facts to Claude's
   cross-conversation memory.
 
+---
+
 ## 2026-07-04 (later) — Validated XPP pom-pom against real Pivokonsky (2006) data
 
 - User supplied the real target data in `originals/` (gitignored, local-only):
@@ -83,6 +282,8 @@ the end of each working session (what was discussed, decided, and changed).
 - Committed at end of day 2026-07-04 (env setup + pompom validation + docs all
   in one end-of-day sync).
 
+---
+
 ## 2026-07-04 — Set up second PC + reproducible env + cross-PC brain
 
 - Cloned `rheo-fp` to this (home) PC at `C:\Users\krish\rheo-fp`.
@@ -101,3 +302,6 @@ the end of each working session (what was discussed, decided, and changed).
   `.claude-notes/` (README, workflow, environment, this journal).
 - Note: `gh` CLI installed on this PC but not yet authenticated
   (`gh auth login` still pending — only needed for PR/issue work).
+
+---
+

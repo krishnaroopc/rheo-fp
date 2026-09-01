@@ -13,24 +13,46 @@ Locked so every machine runs an identical toolchain. **Do not loosen the pins.**
   lock, kept for pip-only fallback — regenerate it, never hand-edit.
 
 ## First-time setup on a new PC
+
+**Windows:**
 ```powershell
-# 1. Install uv (once per machine)
 winget install --id=astral-sh.uv -e     # or: irm https://astral.sh/uv/install.ps1 | iex
 # open a new shell so uv is on PATH
-
-# 2. From the repo root — creates .venv with Python 3.12 + all locked deps
 uv sync
 ```
+
+**Linux / macOS:**
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh    # installs to ~/.local/bin
+# ensure ~/.local/bin is on PATH (fish: source ~/.local/bin/env.fish)
+uv sync
+```
+Do NOT install uv from a distro package manager (pacman/apt) — the standalone
+installer needs no sudo and matches the version used elsewhere.
+
 `uv sync` reads `uv.lock`, installs Python 3.12 if missing, builds `.venv/`, and
 installs `rheofp` editable. `.venv/` is gitignored (per-machine, never committed).
 
+**The system Python is irrelevant and often wrong** (the Linux PC ships 3.14).
+Always go through `uv run`; never `python` directly.
+
 ## Daily use
-```powershell
-uv run pytest              # run tests
-uv run python scripts/validate_maxwell.py   # run a validation script
-uv run python              # a REPL inside the locked env
+```bash
+uv run pytest                                # 102 tests
+uv run pytest -m "not slow"                  # skip end-to-end training tests
+uv run python scripts/validate_maxwell.py    # a validation script
+uv run python scripts/train_classifier.py    # train the classifier (~12 min)
+uv run python                                # a REPL inside the locked env
 ```
 `uv run` auto-syncs if the lock changed, so the env is always current.
+
+## GPU / PyTorch
+`torch` is a locked dependency (2.13.0+cu130). It resolves to the CUDA build,
+which works on an NVIDIA card and falls back to CPU cleanly elsewhere — the
+same lock works on every machine, no per-PC variant. `torch.cuda.is_available()`
+tells you which you got; training auto-selects via `device_auto()`.
+Cost of this: `uv sync` pulls ~2.5 GB of CUDA wheels on a fresh machine.
+Home PC (2026-09-01): GTX 1660 Ti, ~11 s/epoch at 16k examples.
 
 ## Changing dependencies
 - Add/remove a package: edit `[project].dependencies` in `pyproject.toml`, then
@@ -41,6 +63,15 @@ uv run python              # a REPL inside the locked env
 - Commit `pyproject.toml`, `uv.lock`, and `requirements.txt` together.
 
 ## History
+- **2026-09-01:** Added `torch` (2.13.0+cu130) for the ML training pipeline.
+  Re-locked with `uv add torch`; numpy stayed at 2.5.1 and nothing else moved,
+  so no resolver collateral. `requirements.txt` regenerated from the new lock.
+  Registered a `slow` pytest marker for the end-to-end training tests.
+  Note on scope: "computer-agnostic" means *the same everywhere*, NOT *keep the
+  dependency list small* — adding a dep and re-locking is the mechanism that
+  keeps machines identical, so do not hesitate to add what the work needs.
+- **2026-08-31:** Linux PC (CachyOS) added as a third machine. uv installed via
+  the standalone script to `~/.local/bin`, not pacman.
 - **2026-07-04:** Introduced this uv setup. Previously `requirements.txt` was
   unpinned (bare names) and PCs differed (office 3.12, home 3.14) — not
   reproducible. Standardized on Python 3.12 + uv lockfile per user's requirement

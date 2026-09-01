@@ -95,16 +95,20 @@ double-reptation, already in `maxwell.py`) instead. `pompom.py` is not wired
 into `fitting/identify.py`'s model bank and stays as a validated
 reference/tool, not part of the SAOS-only pipeline.
 
-## Immediate goals (the current task)
-1. Restructure into a GitHub-ready repo "rheo-fp": sensible folder layout
-   (e.g. notebooks/, src or rheofp/ package, data/, docs/), README.md,
-   requirements.txt (single env file — repo is cloned per machine and the
-   environment recreated from it; no Codespaces), .gitignore (strip notebook
-   outputs), LICENSE.
-2. Synthetic data generator: binary output (.npz or Parquet) with a
-   tqdm-style progress bar. xlsx retained only as a human-facing
-   sanity-check backdoor.
-3. Then: ML training pipeline on the frozen architecture.
+## Goals — ALL THREE COMPLETE as of 2026-09-01
+1. DONE. Restructured into the GitHub-ready `rheo-fp` package (rheofp/,
+   scripts/, data/, docs/, tests/), README, locked env, .gitignore, LICENSE.
+2. DONE. Synthetic data generator — `rheofp/data/synth.py` +
+   `scripts/generate_dataset.py`. Binary npz out, tqdm bar; xlsx kept only as
+   a capped human sanity-check backdoor.
+3. DONE. ML training pipeline — `rheofp/ml/` + `scripts/train_classifier.py`.
+   Two-head set model (conv encoder -> masked attention pool -> classify +
+   regress) with a learned abstention head, on the frozen architecture.
+
+**Current state:** 102 tests pass. On synthetic data the classifier scores
+~0.93 vs ~0.68 for the AICc physics baseline. **It has never been trained on
+or evaluated against real measured spectra** — that is the main open item.
+See `.claude-notes/next-actions.md` §3 for what is genuinely open.
 
 ## Data format conventions
 xlsx: column 0 = ω; paired columns named `<sample> G' (Pa)` / `<sample> G'' (Pa)`;
