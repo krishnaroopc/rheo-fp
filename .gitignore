@@ -7,3 +7,10 @@ venv/
 .pytest_cache/
 *.egg-info/
 .DS_Store
+
+# generated training sets (regenerate with scripts/generate_dataset.py)
+data/synthetic_train*.npz
+data/*_xlsxsubset.npz
+
+# model checkpoints (reproduce with scripts/train_classifier.py)
+checkpoints/
