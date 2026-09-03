@@ -33,7 +33,15 @@ from rheofp.models.solutions import MODELS as SOLUTION_MODELS
 
 # ── config ────────────────────────────────────────────────────────────────
 OMEGA_DECADES = (-2.0, 3.0)   # log10 rad/s, the span of a typical sweep
-N_OMEGA = 60
+N_OMEGA = 60                  # default/reference density (see N_OMEGA_RANGE)
+# Real uploads are not all one density: a curve digitized off a published
+# figure carries ~10-20 points, a rheometer sweep 50-100. Training at a single
+# fixed count taught the model to lean on density itself, and it then failed
+# on every real curve until it was resampled. The count is therefore sampled
+# per curve; the ML loader resamples to its own grid regardless
+# (rheofp.ml.dataset.resample_log_grid), so this varies what the model sees
+# rather than what it requires.
+N_OMEGA_RANGE = (10, 100)
 # A real instrument sees a window, not the whole spectrum. Randomly cropping
 # the window is what teaches the classifier to abstain rather than assume the
 # terminal region is absent because the material has none.
@@ -81,7 +89,16 @@ WLM_BETA = (0.2, 1.5)
 
 BRANCHED_LOG_GE = (3.0, 6.0)
 BRANCHED_LOG_TAU_B = (-1.0, 3.0)
-BRANCHED_SIGMA = (1.0, 4.0)
+# sigma = breadth of the mode ladder, in decades. The old ceiling of 4.0 made
+# the whole class plateau-dominated (median tan(delta) ~0.32) while real LDPE
+# melts sit near ~1.0 - so no synthetic branched example looked like the one
+# real branched material in data/. Widened after fitting branched_spectrum to
+# Pivokonsky E and B, which drove sigma hard against any ceiling it was given.
+# Note the honest limit recorded in next-actions.md: even at large sigma this
+# 3-parameter form only reaches ~0.2-0.28 decades RMS on that data (a 10-mode
+# Maxwell reaches 0.02), so widening the range makes the class cover realistic
+# breadth - it does not make the forward model adequate for real LDPE.
+BRANCHED_SIGMA = (1.0, 10.0)
 
 
 # ── parameter sampling ────────────────────────────────────────────────────
@@ -152,12 +169,18 @@ def _scale_solution_times(name, theta, tau_scale):
 
 
 # ── one example ───────────────────────────────────────────────────────────
-def _omega_window(rng):
-    """A randomly cropped measurement window inside the full span."""
+def _omega_window(rng, n=None):
+    """A randomly cropped measurement window inside the full span.
+
+    `n` is the point count; when None it is drawn from N_OMEGA_RANGE so the
+    population spans the densities real uploads arrive at.
+    """
     lo, hi = OMEGA_DECADES
     crop = rng.uniform(*WINDOW_CROP_DECADES)
     lo_shift = rng.uniform(0.0, crop)
-    return np.logspace(lo + lo_shift, hi - (crop - lo_shift), N_OMEGA)
+    if n is None:
+        n = int(rng.integers(N_OMEGA_RANGE[0], N_OMEGA_RANGE[1] + 1))
+    return np.logspace(lo + lo_shift, hi - (crop - lo_shift), n)
 
 
 def _add_noise(rng, Gp, Gpp):
@@ -192,15 +215,21 @@ def make_example(rng, name, n_curves=None):
     Ea = 0.0 if is_network else _u(rng, EA_RANGE)
 
     curves = []
+    lw = np.log10(w)
     for T in temps:
+        # Same window (one material, one instrument), but each temperature is
+        # its own sweep, so the point count is redrawn per curve.
+        w_T = np.logspace(lw[0], lw[-1],
+                          int(rng.integers(N_OMEGA_RANGE[0],
+                                           N_OMEGA_RANGE[1] + 1)))
         tau_scale = 1.0 if is_network else float(
             arrhenius_shift(1.0, Ea, T, T_REF))
-        Gp, Gpp = forward(name, w, theta, tau_scale=tau_scale)
+        Gp, Gpp = forward(name, w_T, theta, tau_scale=tau_scale)
         if is_network:
             # entropic elasticity: moduli scale with absolute temperature
             Gp, Gpp = Gp * (T / T_REF), Gpp * (T / T_REF)
         Gp, Gpp = _add_noise(rng, Gp, Gpp)
-        curves.append((w, Gp, Gpp, float(T)))
+        curves.append((w_T, Gp, Gpp, float(T)))
 
     return {"curves": curves, "label": name, "regime": CLASS_REGIME[name],
             "params": theta, "Ea": Ea}

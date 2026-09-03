@@ -6,6 +6,52 @@ the end of each working session (what was discussed, decided, and changed).
 
 ---
 
+## 2026-09-02 — First real-data evaluation; density-invariance bug found + fixed
+
+Ran the trained classifier against the digitized literature data for the first
+time (the "main open item" from 2026-09-01). Two findings, both real.
+
+**1. The model scored 0/6 on real curves — confidently wrong (abstain_p ~ 0).**
+Sanity-checked the harness first (18/20 on synthetic through the identical code
+path), so it was the model, not the plumbing. Cause: the generator emitted every
+curve at exactly 60 points, so the model keyed on sampling density. Real data is
+11-90 points. Hand-resampling to 60 fixed 4/6 on the spot, which is what pinned
+the diagnosis. Fixed structurally rather than by patching the training
+distribution alone: `resample_log_grid()` in `rheofp/ml/dataset.py` now puts
+every curve on a fixed 60-point log-omega grid over its own window, so ANY
+uploaded point count and frequency range works; the generator additionally
+varies density (`N_OMEGA_RANGE = (10, 100)`, redrawn per curve within a stack).
+User's framing: "the external user can upload any number of data points across
+any freq range. the framework should adjust accordingly."
+After retraining: **4/6, and raw == resampled** — the invariance holds. Darby
+(3 cured silicones) and Tixier (critical gel) now correct from raw points.
+Synthetic accuracy 0.917 vs 0.627 baseline (0.857 before the branched widening
+below). Not comparable to the old 0.932, which was measured at a uniform 60
+points. Suite 102 -> 112.
+
+**2. Pivokonsky LDPE still fails — and it is a forward-model limit, not tuning.**
+Fitting `branched_spectrum` to that data drives sigma against any ceiling given
+(12, then 30) and still bottoms out at ~0.19-0.28 decades RMS; a 10-mode
+Maxwell fits the same curves at ~0.02. Synthetic branched sat at median
+tan(delta) ~0.32 vs the real ~0.95-0.99. Widened `BRANCHED_SIGMA` to
+(1.0, 10.0) (-> ~0.47). That helped the SYNTHETIC class a lot (274/277, overall
+0.857 -> 0.917) and did nothing for the real melts. Recorded in
+next-actions.md §1f: the 3-parameter hierarchical double-reptation form cannot
+represent real LDPE — either give the branched class a broader forward model or
+keep it model-only behind abstention.
+
+Unwelcome side effect, worth remembering: pre-widening the model was
+appropriately unsure on Pivokonsky (abstain_p ~0.29); post-widening it is
+confidently wrong (~0.01, p(rouse_screened) ~0.99). Abstention is trained
+against the model's own errors on the synthetic distribution, so it cannot flag
+a material whose true class is not in that distribution. Low abstain_p is not
+evidence of a correct answer on out-of-distribution material.
+
+New: `scripts/eval_real_data.py` (reports raw AND resampled, so a regression in
+the invariance shows up immediately).
+
+---
+
 ## 2026-09-01 — ML training pipeline; all three CLAUDE.md goals complete
 
 - **Scope correction from the user, important.** I had treated the locked env

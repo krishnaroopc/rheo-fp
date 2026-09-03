@@ -105,10 +105,22 @@ reference/tool, not part of the SAOS-only pipeline.
    Two-head set model (conv encoder -> masked attention pool -> classify +
    regress) with a learned abstention head, on the frozen architecture.
 
-**Current state:** 102 tests pass. On synthetic data the classifier scores
-~0.93 vs ~0.68 for the AICc physics baseline. **It has never been trained on
-or evaluated against real measured spectra** — that is the main open item.
-See `.claude-notes/next-actions.md` §3 for what is genuinely open.
+**Current state:** 112 tests pass. On synthetic data the classifier scores
+~0.92 vs ~0.63 for the AICc physics baseline (not comparable to the older 0.93,
+which was measured when every curve had exactly 60 points; ~62% of the
+remaining error is the physically degenerate Zimm<->Rouse pair). It has now
+been evaluated against real measured spectra for the first time: **4/6
+literature curves correct** (Darby 2022 cured silicones, Tixier 2004 critical
+gel), with Pivokonsky LDPE still misclassified because the 3-parameter branched
+forward model cannot represent it — and misclassified *confidently*, since
+abstention is trained only against synthetic errors and does not fire on
+out-of-distribution material.
+
+**Uploads are density-agnostic by construction**: any point count and any
+frequency range are resampled onto a fixed internal log-omega grid in
+`rheofp/ml/dataset.py` (`resample_log_grid`), so raw and resampled inputs give
+identical predictions. Do not reintroduce a fixed-density assumption.
+See `.claude-notes/next-actions.md` §1f and §3.
 
 ## Data format conventions
 xlsx: column 0 = ω; paired columns named `<sample> G' (Pa)` / `<sample> G'' (Pa)`;

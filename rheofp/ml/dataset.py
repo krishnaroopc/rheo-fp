@@ -41,6 +41,19 @@ N_SUMMARY = 6           # per-curve scalars, see _summary()
 EPS = 1e-30
 SPLIT_FRACTIONS = (0.70, 0.15, 0.15)   # train / val / test
 
+# An uploaded spectrum carries whatever point count and frequency range the
+# instrument (or the digitized figure) happened to produce - 11 points off a
+# published plot, 90 off a rheometer sweep. The network needs a rectangular
+# input, so every curve is resampled onto a fixed-length grid in log-frequency
+# spanning that curve's OWN window. Two consequences, both wanted:
+#   * point density becomes a property of the loader, not of the model, so a
+#     sparse curve and a dense one over the same window give the same tensor;
+#   * the window itself (where it sits, how wide it is) is preserved, because
+#     that is real information - it goes to the model through _summary().
+# Interpolation is linear in log-log, which is exact for the power-law
+# segments that dominate these spectra.
+N_GRID = 60
+
 # Head 2 emits a fixed-width vector, but classes carry different parameter
 # counts (2 for a critical gel, 4 for sticky reptation). Targets are padded to
 # this width and masked, so a short class never trains the unused slots.
@@ -61,11 +74,35 @@ def _summary(w, Gp, Gpp, T_K):
     ], dtype=np.float32)
 
 
-def curve_tensor(w, Gp, Gpp):
-    """(n_points, N_CHANNELS) float32 for one curve."""
+def resample_log_grid(w, Gp, Gpp, n=N_GRID):
+    """Put one curve on a fixed-length log-frequency grid over its own window.
+
+    Accepts any point count and any frequency range, sorted or not. Returns
+    (w, Gp, Gpp) of length `n`. A single-point curve is degenerate and is
+    broadcast flat rather than raising - the summary features still carry its
+    scale.
+    """
     w = np.asarray(w, float)
     Gp = np.clip(np.asarray(Gp, float), EPS, None)
     Gpp = np.clip(np.asarray(Gpp, float), EPS, None)
+
+    order = np.argsort(w)               # np.interp requires increasing x
+    lw = np.log10(w[order])
+    lGp, lGpp = np.log10(Gp[order]), np.log10(Gpp[order])
+
+    if lw.size < 2 or not np.ptp(lw) > 0:
+        grid = np.full(n, lw[0] if lw.size else 0.0)
+        return 10.0 ** grid, np.full(n, 10.0 ** lGp[0]), np.full(n, 10.0 ** lGpp[0])
+
+    grid = np.linspace(lw[0], lw[-1], n)
+    return (10.0 ** grid,
+            10.0 ** np.interp(grid, lw, lGp),
+            10.0 ** np.interp(grid, lw, lGpp))
+
+
+def curve_tensor(w, Gp, Gpp):
+    """(N_GRID, N_CHANNELS) float32 for one curve, at any input density."""
+    w, Gp, Gpp = resample_log_grid(w, Gp, Gpp)
     lw = np.log10(w)
     return np.stack([
         lw - lw.mean(),                 # shape of the window, not its position
@@ -184,7 +221,11 @@ def collate_stacks(batch):
     pooled representation or a gradient.
     """
     n_max = max(b["x"].shape[0] for b in batch)
+    # Point count is fixed by curve_tensor's resampling, so it is the same for
+    # every curve in every stack; assert rather than trusting batch[0].
     n_pts = batch[0]["x"].shape[1]
+    assert all(b["x"].shape[1] == n_pts for b in batch), \
+        "curves must be resampled to a common grid before collation"
     C = batch[0]["x"].shape[2]
     B = len(batch)
 

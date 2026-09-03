@@ -12,7 +12,7 @@ import pytest
 from rheofp.data.synth import (
     make_example, generate, to_npz_dataset, class_counts, sample_params,
     forward, ALL_CLASSES, FINE_CLASSES, MODEL_ONLY_CLASSES, CLASS_REGIME,
-    T_REF, N_OMEGA,
+    T_REF, N_OMEGA, N_OMEGA_RANGE,
 )
 from rheofp.fitting.identify import identify
 from rheofp.io.data import save_npz, load_npz
@@ -24,7 +24,8 @@ def test_every_class_produces_a_finite_positive_spectrum(name):
     for _ in range(8):
         ex = make_example(rng, name, n_curves=1)
         w, Gp, Gpp, _ = ex["curves"][0]
-        assert len(w) == N_OMEGA
+        assert N_OMEGA_RANGE[0] <= len(w) <= N_OMEGA_RANGE[1]
+        assert len(Gp) == len(w) and len(Gpp) == len(w)
         assert np.all(np.isfinite(Gp)) and np.all(np.isfinite(Gpp))
         assert np.all(Gp > 0) and np.all(Gpp > 0)
 
@@ -64,9 +65,13 @@ def test_temperature_stack_shares_one_parameter_set():
     assert all(np.isfinite(temps))
     assert temps == sorted(temps)
     assert np.isfinite(ex["Ea"]) and ex["Ea"] > 0
-    # one window shared across the stack
+    # One window shared across the stack - same instrument, same material.
+    # The point COUNT is redrawn per curve (each temperature is its own
+    # sweep), so compare the window's endpoints, not the arrays.
+    w0 = ex["curves"][0][0]
     for c in ex["curves"][1:]:
-        np.testing.assert_allclose(c[0], ex["curves"][0][0])
+        np.testing.assert_allclose(c[0][0], w0[0])
+        np.testing.assert_allclose(c[0][-1], w0[-1])
 
 
 def test_a_melt_stack_actually_shifts_with_temperature():

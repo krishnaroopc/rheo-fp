@@ -14,7 +14,7 @@ from rheofp.data.synth import generate
 from rheofp.ml.dataset import (
     SpectraStacks, collate_stacks, fit_normalisation, split_records,
     examples_to_records, npz_to_records, curve_tensor, CLASSES, CLASS_TO_IDX,
-    N_CHANNELS, N_SUMMARY,
+    N_CHANNELS, N_SUMMARY, N_GRID,
 )
 from rheofp.ml.model import RheoNet, count_parameters
 from rheofp.ml.train import train, make_loaders, compute_loss, evaluate, _auc
@@ -35,11 +35,67 @@ def records():
 def test_curve_tensor_shape_and_channels():
     w = np.logspace(-2, 2, 40)
     x = curve_tensor(w, np.full(40, 100.0), np.full(40, 10.0))
-    assert x.shape == (40, N_CHANNELS)
+    assert x.shape == (N_GRID, N_CHANNELS)
     assert np.isfinite(x).all()
     # log-frequency channel is centred, so window POSITION is carried by the
     # summary vector rather than leaking into the sequence
     assert abs(x[:, 0].mean()) < 1e-5
+
+
+@pytest.mark.parametrize("n", [5, 11, 16, 40, 60, 90, 200])
+def test_curve_tensor_accepts_any_point_count(n):
+    """An upload carries whatever density it carries; the tensor is fixed."""
+    w = np.logspace(-1, 2, n)
+    x = curve_tensor(w, 100.0 * w ** 0.5, 10.0 * w ** 0.5)
+    assert x.shape == (N_GRID, N_CHANNELS)
+    assert np.isfinite(x).all()
+
+
+def test_curve_tensor_is_invariant_to_sampling_density():
+    """Same spectrum, same window, different densities -> same tensor.
+
+    This is the property that was missing: the model was trained only at 60
+    points and keyed on density, so every real curve (11-90 points) was
+    misclassified until it was resampled by hand.
+    """
+    power = lambda w: (100.0 * w ** 0.5, 10.0 * w ** 0.5)   # exact in log-log
+    sparse = np.logspace(-1, 2, 13)
+    dense = np.logspace(-1, 2, 97)
+    x_sparse = curve_tensor(sparse, *power(sparse))
+    x_dense = curve_tensor(dense, *power(dense))
+    assert np.allclose(x_sparse, x_dense, atol=1e-5)
+
+
+def test_curve_tensor_still_distinguishes_different_windows():
+    """Density invariance must not flatten away the window itself."""
+    a = np.logspace(-2, 0, 30)
+    b = np.logspace(1, 3, 30)
+    xa = curve_tensor(a, 100.0 * a ** 0.5, 10.0 * a ** 0.5)
+    xb = curve_tensor(b, 100.0 * b ** 0.5, 10.0 * b ** 0.5)
+    assert not np.allclose(xa[:, 1], xb[:, 1])
+
+
+def test_curve_tensor_handles_unsorted_frequencies():
+    w = np.logspace(-1, 2, 25)
+    perm = np.random.default_rng(0).permutation(len(w))
+    ordered = curve_tensor(w, 100.0 * w ** 0.5, 10.0 * w ** 0.5)
+    shuffled = curve_tensor(w[perm], (100.0 * w ** 0.5)[perm],
+                            (10.0 * w ** 0.5)[perm])
+    assert np.allclose(ordered, shuffled, atol=1e-6)
+
+
+def test_collate_accepts_stacks_whose_curves_had_different_densities():
+    """A stack's curves are separate sweeps and need not share a density."""
+    rng = np.random.default_rng(0)
+    curves = []
+    for n in (11, 47, 90):
+        w = np.logspace(-1, 2, n)
+        curves.append((w, 100.0 * w ** 0.5, 10.0 * w ** 0.5, 300.0))
+    rec = {"curves": curves, "label": CLASSES[0],
+           "regime": "terminal", "params": np.zeros(2)}
+    batch = collate_stacks([SpectraStacks([rec])[0]])
+    assert batch["x"].shape[1:3] == (3, N_GRID)
+    assert batch["mask"].all()
 
 
 def test_split_is_by_stack_not_by_curve(records):

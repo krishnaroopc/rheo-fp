@@ -232,10 +232,74 @@ described here — n_temperatures is only a hint there.
 degenerate pair onto one member. Check `merged_pair_accuracy` (stable ~0.96)
 before concluding anything is broken.
 
+### 1f. First real-data evaluation + density invariance — DONE 2026-09-02
+`scripts/eval_real_data.py` runs the trained checkpoint against the digitized
+literature sets. Those npz files carry only omega/Gp/Gpp (physics-validation
+schema, no label/stack_id/params), so `npz_to_records` cannot read them — the
+script builds tensors directly and compares against the ground truth the
+physics validation already established.
+
+**The first run scored 0/6, confidently wrong (abstain_p ~ 0 everywhere).**
+Cause: the generator emitted EVERY curve at exactly 60 points, so the model
+keyed on sampling density. Real curves are 11 (Tixier), 16 (Darby), 85-90
+(Pivokonsky). Hand-resampling them to 60 points fixed 4 of 6 immediately,
+which is what identified the bug. Not a units/window problem — the real omega
+ranges already sat inside the training span.
+
+Fixed in two places, deliberately:
+- `rheofp/ml/dataset.py` — new `resample_log_grid()`, called by
+  `curve_tensor()`, puts EVERY curve on a fixed `N_GRID`=60 log-omega grid
+  over its own window. Density becomes a property of the loader, not the
+  model, so an upload of any point count and any frequency range works. The
+  window itself is preserved and still reaches the model via `_summary()`.
+  Interpolation is linear in log-log (exact for power-law segments).
+  `collate_stacks` now asserts the common grid instead of trusting `batch[0]`.
+- `rheofp/data/synth.py` — `N_OMEGA_RANGE = (10, 100)`, count drawn per curve
+  (a T-stack shares one window but redraws density per curve, since each
+  temperature is its own sweep). This varies what the model SEES; the loader
+  is what guarantees invariance.
+Tests: `test_curve_tensor_is_invariant_to_sampling_density`, plus any-count,
+unsorted-input, window-still-distinguished, and mixed-density-stack collation.
+Suite 102 -> 112.
+
+**Result after retraining (16k, 55 epochs, seed 1): 4/6, and raw == resampled
+(the invariance holds).** Darby 2022 all three cured silicones and Tixier 2004
+critical gel are now correct straight from raw digitized points.
+
+Two retrains were run. Both scored 4/6 on real data; the difference is the
+`BRANCHED_SIGMA` widening below:
+  - before widening: synthetic **0.857** vs 0.627 baseline
+  - after widening:  synthetic **0.917** vs 0.627 baseline (shipped checkpoint)
+Both are below the old 0.932, but that number is not comparable — it was
+measured when every curve had exactly 60 points. ~62% of the remaining error
+is the known Zimm<->Rouse degeneracy. Stacks now help monotonically again
+(N=1 0.901 -> N=5 0.935), and abstention is sharp: dropping the least-confident
+30% takes accuracy to 0.995.
+
+**Pivokonsky LDPE (E and B) still misclassifies as rouse_screened, and this is
+a FORWARD-MODEL limit, not a sampling or tuning gap.** Fitting
+`branched_spectrum` to that data drives sigma against any ceiling it is given
+(tried 12 and 30) and still bottoms out at ~0.19-0.28 decades RMS, while a
+10-mode Maxwell fits the same curves to ~0.02 (see `tests/test_pompom.py`).
+The synthetic branched population sat at median tan(delta) ~0.32 vs the real
+melts' ~0.95-0.99. `BRANCHED_SIGMA` was widened (1.0, 4.0) -> (1.0, 10.0),
+moving it to ~0.47 — that helped the SYNTHETIC branched class a lot (it is now
+274/277, and overall accuracy rose 0.857 -> 0.917) but did nothing for the real
+melts. **The 3-parameter hierarchical double-reptation form cannot represent
+real LDPE.** Options: give the branched class a broader/Prony-style forward
+model, or accept it as model-only and let abstention carry it.
+
+Caveat worth knowing before trusting abstention here: on the pre-widening
+checkpoint the model was appropriately unsure about Pivokonsky
+(abstain_p ~0.29); after widening it is confidently wrong (abstain_p ~0.01,
+p(rouse_screened) ~0.99). Abstention is trained against the model's own errors
+on the SYNTHETIC distribution, so it does not detect a material whose true
+class is absent from that distribution. Do not read low abstain_p as evidence
+of a correct answer on out-of-distribution material.
+
 ## 3. What's genuinely open
-- Train on / validate against REAL data. Everything above is synthetic; the
-  model has never seen a measured spectrum. The 4 literature datasets in
-  `data/` are the obvious first test.
+- Real-data coverage is still thin: 4 of 6 curves, from 3 papers, all N=1.
+  Darby + Tixier pass; Pivokonsky needs the branched forward model above.
 - No temperature stack has ever been tested on real material — the stack
   resolver and the stack-aware model are both synthetic-only so far.
 - Yield-dominated regime has no implemented physics at all (3rd taxonomy
