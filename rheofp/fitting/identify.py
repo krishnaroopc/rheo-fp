@@ -6,11 +6,17 @@ AICc ranking with Akaike weights -> none-of-the-above floor via FLOOR_CHI2.
 Lesson learned in the original notebook: aggressive pre-filter pruning caused
 misclassification; keep the pre-filter permissive and let AICc resolve.
 
-The candidate bank merges two families: the polymer-solution models
-(Zimm/Rouse/reptation and their sticky variants) and the crosslinked-network
-models (cured elastomer, critical gel). A permanent network cannot flow, so
-observing terminal relaxation inside the window is the one robust
+The candidate bank merges three families: the polymer-solution models
+(Zimm/Rouse/reptation and their sticky variants), the crosslinked-network
+models (cured elastomer, critical gel), and the branched / long-chain-branched
+melt model (a BSW spectrum, e.g. for LDPE). A permanent network cannot flow,
+so observing terminal relaxation inside the window is the one robust
 contraindication that hard-discards the network candidates.
+
+"branched" is emitted only at regime level (Terminal/liquid-like) per the
+frozen taxonomy - it is a model-only class. It sits in the bank so AICc can
+actually adjudicate a broad, LCB-like terminal spectrum against the linear
+reptation model instead of always defaulting to rouse_screened.
 
 Abstention: a cured elastomer and a high-Mw entangled melt are genuinely
 indistinguishable from a single SAOS curve whose terminal relaxation lies
@@ -32,17 +38,21 @@ import numpy as np
 
 from rheofp.models.solutions import MODELS
 from rheofp.models.network import NETWORK_MODELS, tan_delta_spread
+from rheofp.models.maxwell import BRANCHED_MODELS
 from rheofp.fitting.optimize import multi_restart_fit
 
 N_RESTARTS = 12
 FLOOR_CHI2 = 0.15  # normalized RMS log-residual above which we flag low confidence
 RNG_SEED = 0
 
-# Full candidate bank: solution family + crosslinked-network family.
-ALL_MODELS = {**MODELS, **NETWORK_MODELS}
+# Full candidate bank: solution family + crosslinked-network family +
+# branched / LCB melt.
+ALL_MODELS = {**MODELS, **NETWORK_MODELS, **BRANCHED_MODELS}
 
 # Names belonging to the Solid/gel-like regime, for regime-level reporting.
 NETWORK_CLASSES = frozenset(NETWORK_MODELS)
+# Model-only classes: emitted at regime level only, never as a fine label.
+MODEL_ONLY_CLASSES = frozenset(BRANCHED_MODELS)
 
 # --- abstention thresholds (melt-vs-rubber) ---
 # |dlog10 G'/dlog10 w| below this counts as "flat" when measuring plateau width.

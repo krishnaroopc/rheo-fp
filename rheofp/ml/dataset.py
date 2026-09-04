@@ -55,9 +55,10 @@ SPLIT_FRACTIONS = (0.70, 0.15, 0.15)   # train / val / test
 N_GRID = 60
 
 # Head 2 emits a fixed-width vector, but classes carry different parameter
-# counts (2 for a critical gel, 4 for sticky reptation). Targets are padded to
-# this width and masked, so a short class never trains the unused slots.
-N_PARAMS = 4
+# counts (2 for a critical gel, 4 for sticky reptation, 5 for branched/BSW).
+# Targets are padded to this width and masked, so a short class never trains
+# the unused slots.
+N_PARAMS = 5
 
 
 def _summary(w, Gp, Gpp, T_K):

@@ -44,7 +44,17 @@ repository - citations only, below.
   capabilities of the advanced differential constitutive equations for
   branched LDPE melts. *Journal of Non-Newtonian Fluid Mechanics*, 135(1),
   58-73. — `rheofp/models/pompom.py` LVE verification target (data/pivo2006.npz,
-  Tables 2/3; see module docstring for validation scope)
+  Tables 2/3; see module docstring for validation scope). Also the real-data
+  target for the branched class's BSW spectrum (`bsw_spectrum` in
+  `rheofp/models/maxwell.py`): E and B fit to ~0.06-0.07 decades RMS.
+
+- Baumgärtel, M., Schausberger, A., & Winter, H. H. (1990). The relaxation of
+  polymers with linear flexible chains of uniform length. *Rheologica Acta*,
+  29(5), 400-408; and Baumgärtel, M., & Winter, H. H. (1992). Interrelation
+  between continuous and discrete relaxation time spectra. *Journal of
+  Non-Newtonian Fluid Mechanics*, 44, 15-36. — the BSW relaxation-time
+  spectrum (two power-law wedges); `bsw_spectrum` / `model_branched` in
+  `rheofp/models/maxwell.py`, the branched / long-chain-branched melt class.
 
 - Chasset, R., & Thirion, P. (1965). Viscoelastic relaxation of rubber
   vulcanizates. In *Proc. Conf. Phys. Non-Cryst. Solids*, 345-359. —

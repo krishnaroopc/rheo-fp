@@ -6,9 +6,22 @@ maxwell_spectrum, solution_identifier's _maxwell_sum, xpp_pompom's
 maxwell_Gstar, and batch2's inline sum inside branched_spectrum) - all compute
 Gp = sum(g * wt^2 / (1+wt^2)), Gpp = sum(g * wt / (1+wt^2)) over modes.
 
-branched_spectrum lives here (not in tube.py) because its output
-representation is a Prony/Maxwell sum over a hierarchically constructed mode
-ladder, even though it models entangled/LCB melts.
+branched_spectrum and bsw_spectrum live here (not in tube.py) because their
+output representation is a Prony/Maxwell sum over a constructed mode ladder,
+even though they model entangled / long-chain-branched melts.
+
+Two branched-melt forwards, kept for different jobs:
+  * branched_spectrum - 3-param hierarchical double-reptation. Cheap, and the
+    right shape for a moderately broadened linear/LCB spectrum. It CANNOT
+    represent real LDPE: fitting it to Pivokonsky (2006) E and B bottoms out
+    at ~0.28-0.32 decades RMS whatever sigma is allowed (a 10-mode Maxwell
+    reaches ~0.02). Retained for the tube-model context and its tests.
+  * bsw_spectrum - 5-param Baumgartel-Schausberger-Winter relaxation spectrum
+    (two power-law wedges: a broad terminal wedge tau^n_e and a high-frequency
+    wedge tau^-n_g below a crossover time). This is the branched class's
+    forward model in the classifier: it fits Pivokonsky E and B to ~0.06-0.07
+    decades RMS, and its intrinsically broad spectrum cannot fake a sharp
+    reptation terminal, so AICc still separates it from the linear-melt class.
 """
 from __future__ import annotations
 
@@ -75,6 +88,71 @@ def branched_spectrum(omega, Ge, tau_b, sigma, n_modes=60, p_tail=2.0):
     tau_ij = 1.0 / (inv[:, None] + inv[None, :])
     g_ij = Ge * np.outer(w, w)
     return maxwell_spectrum(omega, g_ij.ravel(), tau_ij.ravel())
+
+
+def bsw_spectrum(omega, G_N, tau_max, tau_c, n_e, n_g, n_modes=120):
+    """Baumgartel-Schausberger-Winter relaxation spectrum -> (G', G'').
+
+    H(tau) = n_e G_N [ (tau/tau_max)^{n_e}
+                       + (tau/tau_c)^{-n_g} * 1(tau < tau_c) ]   for tau <= tau_max
+
+    Two power-law wedges: a broad TERMINAL wedge (exponent n_e, ~0.2-0.7) that
+    a single-power-law ladder cannot make wide enough, and a high-frequency
+    GLASSY/Rouse wedge (exponent n_g, ~0.4-0.7) that switches on below the
+    crossover time tau_c. Discretized onto a log-tau ladder (g_i = H_i * dln tau)
+    then fed to the canonical Maxwell sum.
+
+    Parameters:
+      G_N     spectrum amplitude scale [Pa]. Equals the plateau modulus only
+              when the window actually reaches the plateau; on a terminal-zone
+              sweep it acts as an overall amplitude and should not be read as a
+              measured G_N^0.
+      tau_max longest relaxation time [s] (sets the terminal region).
+      tau_c   crossover time [s] below which the glassy wedge dominates.
+      n_e     terminal-wedge exponent.
+      n_g     glassy-wedge exponent.
+    """
+    tau_max = float(tau_max)
+    tau_c = float(tau_c)
+    tau_lo = min(tau_c, tau_max) * 1e-4
+    log_tau = np.linspace(np.log(tau_lo), np.log(tau_max), n_modes)
+    tau = np.exp(log_tau)
+    dln = log_tau[1] - log_tau[0]
+    H = n_e * G_N * (tau / tau_max) ** n_e
+    glassy = tau < tau_c
+    H[glassy] += n_e * G_N * (tau[glassy] / tau_c) ** (-n_g)
+    return maxwell_spectrum(omega, H * dln, tau)
+
+
+# BSW parameter bounds (log10 for the moduli/times). n_e, n_g are linear.
+BSW_N_E_BOUNDS = (0.05, 0.90)
+BSW_N_G_BOUNDS = (0.20, 1.00)
+
+
+def fit_bsw(omega, Gp_data, Gpp_data, n_restarts=48, seed=0):
+    """Fit the BSW spectrum. Params [logG_N, logtau_max, logtau_c, n_e, n_g]."""
+    omega = np.asarray(omega, float)
+    yp = np.log(np.asarray(Gp_data, float))
+    ypp = np.log(np.asarray(Gpp_data, float))
+    Gscale = np.median(np.concatenate([Gp_data, Gpp_data]))
+    w_lo, w_hi = omega.min(), omega.max()
+    bGN = (np.log(Gscale) - np.log(10), np.log(Gscale) + 4 * np.log(10))
+    btmax = (np.log(1 / w_hi), np.log(1 / w_lo) + 4 * np.log(10))
+    btc = (np.log(1 / w_hi) - 4 * np.log(10), np.log(1 / w_lo))
+    bounds = [bGN, btmax, btc, BSW_N_E_BOUNDS, BSW_N_G_BOUNDS]
+
+    def objective(p):
+        Gp, Gpp = bsw_spectrum(omega, np.exp(p[0]), np.exp(p[1]), np.exp(p[2]),
+                               p[3], p[4])
+        r = np.concatenate([np.log(np.maximum(Gp, 1e-300)) - yp,
+                             np.log(np.maximum(Gpp, 1e-300)) - ypp])
+        return 0.5 * np.dot(r, r)
+
+    best = multi_restart_fit(objective, bounds, n_restarts, seed=seed)
+    return dict(G_N=float(np.exp(best.x[0])), tau_max=float(np.exp(best.x[1])),
+                tau_c=float(np.exp(best.x[2])), n_e=float(best.x[3]),
+                n_g=float(best.x[4]), cost=float(best.fun),
+                success=bool(best.success))
 
 
 def fit_maxwell(omega, Gp_data, Gpp_data, n_modes=1, n_restarts=None,
@@ -176,6 +254,33 @@ def fit_sticky_stack(omega, stack_Gp, stack_Gpp, T_list, T_ref,
     o = np.argsort(tau_ref)
     return dict(G=G[o], tau_ref=tau_ref[o], Ea=float(Ea),
                 cost=float(best.fun), success=bool(best.success))
+
+
+def model_branched(w, theta):
+    """params: G_N(log10), tau_max(log10), tau_c(log10), n_e, n_g.
+
+    The branched / long-chain-branched melt class (e.g. LDPE), as a BSW
+    spectrum. Same (forward, p0, bounds, k) shape as the solution and network
+    banks so rheofp.fitting.identify can merge it in.
+    """
+    lGN, ltmax, ltc, n_e, n_g = theta
+    return bsw_spectrum(w, 10.0**lGN, 10.0**ltmax, 10.0**ltc, n_e, n_g)
+
+
+BRANCHED_P0 = [3.0, 1.0, -1.0, 0.3, 0.55]
+# Bounds are absolute (not data-scaled) so the merged identify() bank can use a
+# single static registry. They must enclose the synthetic population's ranges
+# in rheofp.data.synth (there is a test): G_N ~ 3 Pa - 1 MPa; tau_max 1 ms -
+# 1e4 s; tau_c from 7 decades below to just above 1 s (tau_max's synth ceiling
+# is 1e3 s, drawn at least 0.2 decades above tau_c); exponents per BSW_N_*.
+BRANCHED_BNDS = [(0.5, 6.0), (-3.0, 4.0), (-7.0, 2.9),
+                list(BSW_N_E_BOUNDS), list(BSW_N_G_BOUNDS)]
+
+# registry: name -> (forward, p0, bounds, k_params), same shape as
+# rheofp.models.solutions.MODELS and network.NETWORK_MODELS.
+BRANCHED_MODELS = {
+    "branched": (model_branched, BRANCHED_P0, BRANCHED_BNDS, 5),
+}
 
 
 def fit_branched(omega, Gp_data, Gpp_data, n_restarts=16, seed=0):

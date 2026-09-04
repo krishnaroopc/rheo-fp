@@ -6,6 +6,67 @@ the end of each working session (what was discussed, decided, and changed).
 
 ---
 
+## 2026-09-03 — Windows PC bootstrapped; BSW replaces the branched forward model; real data 4/6 -> 6/6
+
+**First session on this Windows home PC since the uv migration.** It had no uv
+and no `.venv` (it predates that change). Installed uv 0.12.8 via winget —
+matches the Linux PC's version — then `uv sync`. Baseline confirmed 112 passing
+before touching anything. Two notes for next time on this machine:
+- winget says "restart your shell"; uv is not on PATH in the session that
+  installed it. Full path:
+  `C:\Users\krish\AppData\Local\Microsoft\WinGet\Packages\astral-sh.uv_*\uv.exe`.
+- **torch resolves to 2.13.0+cpu here, not +cu130.** This is EXPECTED and
+  correct per environment.md: the lock's CUDA extras are marked
+  `sys_platform == 'linux'`, so Windows takes PyPI's CPU wheel. This box does
+  have an NVIDIA RTX A1000, but training runs on CPU (~9 s/epoch at 16k, vs
+  ~11 s/epoch on the Linux GTX 1660 Ti — barely different at this model size).
+  Do not "fix" this by adding a per-PC torch variant; it would break the
+  single-lock guarantee.
+- `originals/` is ABSENT on this PC (only an unrelated `rheo_fingerprinting`
+  folder). Nothing needed it this session — every derived `data/*.npz` is
+  committed, which is exactly the point of that design.
+
+**The work: closed the §1f blocker.** User picked option (a) — give the branched
+class a broader forward model — and specified a two-exponent BSW spectrum with
+5 parameters. Full detail in next-actions.md §1g; the short version:
+- Prototyped `bsw_spectrum` and measured it against Pivokonsky BEFORE writing
+  anything into the repo. Old model 0.316/0.280 decades RMS on E/B; BSW
+  0.068/0.059. Also checked up front that it does not steal planted reptation
+  curves (reptation AICc -4522 vs BSW -758) — that was the real risk with a
+  more flexible model, and it is why the class is safe to add.
+- Wired into `identify()`'s bank (now 8 candidates), the synth generator, and
+  the ML pipeline (`N_PARAMS` 4 -> 5, model imports it instead of hardcoding).
+- **Real data 4/6 -> 6/6.** Both LDPE melts now `branched` at p=0.92/0.96.
+  Synthetic 0.917 vs a 0.700 baseline (the BASELINE rose too, 0.627 -> 0.700,
+  because identify() can finally score branched). branched per-class 0.935.
+- Suite 112 -> 121.
+
+**Two things I got wrong along the way, both worth remembering:**
+1. I wrote a smoke test asserting a larger terminal-wedge exponent `n_e`
+   flattens tan(delta). It does not — `n_e` reshapes the spectrum
+   non-monotonically. Replaced with a claim that IS robustly true (BSW keeps
+   tan(delta) > 0.5 over more decades than a single Maxwell mode). Lesson: do
+   not assert a monotonic relationship in a test without checking it first.
+2. Two stack tests failed after the change because the "disguised melt" fixture
+   now correctly classifies as `branched` instead of a network class. That is
+   the fix WORKING one level upstream, not a regression — but the overturn
+   logic still needs a genuine test case, so I built a new fixture that really
+   does still read as cured_elastomer from one curve. Reframed rather than
+   deleted.
+
+**Also this session:** generated a private HTML project report to
+`C:\Users\krish\OneDrive - UCB-O365\CUB\ML\rheo_fingerprinting\originals\rheo-fp-report.html`
+(local file, not published anywhere).
+
+**Process note the user pushed on:** asked how long each step took, and I could
+only give the times commands print themselves — I have no timer on my own edits
+and correctly declined to invent numbers. Same for "what time did I send X":
+the transcript carries no per-message timestamps. Keep saying "unknown" rather
+than guessing; there is precedent for a bad time estimate in the 2026-09-01
+entry.
+
+---
+
 ## 2026-09-02 — First real-data evaluation; density-invariance bug found + fixed
 
 Ran the trained classifier against the digitized literature data for the first

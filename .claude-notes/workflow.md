@@ -1,7 +1,8 @@
 # Cross-PC workflow
 
-User works from multiple PCs (home + office). No need to sync chat transcripts —
-context travels via **git + `CLAUDE.md` + this folder**.
+User works across **three machines**: two Windows PCs (home + office) and a
+Linux box (CachyOS). No need to sync chat transcripts — context travels via
+**git + `CLAUDE.md` + this folder**.
 
 - **Sync rule:** pull before starting on a machine; commit + push before
   leaving it. Only committed work is visible on the other PC.
@@ -29,6 +30,22 @@ context travels via **git + `CLAUDE.md` + this folder**.
 - On a fresh PC: install uv, then `uv sync`. That recreates a byte-identical
   environment — same Python, same wheels — with zero dependency drift.
 - See [environment.md](environment.md) for the exact commands and rationale.
+
+### Per-machine gotchas (found the hard way, don't re-debug these)
+- **Windows, right after `winget install astral-sh.uv`:** the installer says
+  "restart your shell" and means it — `uv` is NOT on PATH in the session that
+  installed it. Either open a new terminal, or call it by full path:
+  `C:\Users\krish\AppData\Local\Microsoft\WinGet\Packages\astral-sh.uv_*\uv.exe`.
+- **Windows gets `torch==2.13.0+cpu`, Linux gets `+cu130`. This is correct.**
+  The lock marks the CUDA extras `sys_platform == 'linux'`, so Windows resolves
+  PyPI's CPU wheel from the SAME lockfile. A Windows box with an NVIDIA card
+  (the home PC has an RTX A1000) will still report
+  `torch.cuda.is_available() == False`. Do NOT "fix" this with a per-PC torch
+  variant — one lock for every machine is the whole guarantee. At this model
+  size it barely matters: ~9 s/epoch CPU vs ~11 s/epoch on the Linux GTX 1660 Ti.
+- **Full test suite is ~3 minutes** since `identify()` gained the 5-param BSW
+  candidate (8 models × multi-restart fits). Use `-m "not slow"` (~2 min) to
+  skip the end-to-end training test. Not a hang.
 
 ## Preferences
 - User does **not** need the same chat across PCs — shared *context* is enough.

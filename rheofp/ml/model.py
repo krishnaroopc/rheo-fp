@@ -28,7 +28,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from rheofp.ml.dataset import N_CHANNELS, N_SUMMARY, CLASSES, REGIMES
+from rheofp.ml.dataset import N_CHANNELS, N_SUMMARY, N_PARAMS, CLASSES, REGIMES
 
 # ── config ────────────────────────────────────────────────────────────────
 CONV_WIDTHS = (64, 96, 128)
@@ -36,7 +36,8 @@ KERNEL = 5
 EMBED_DIM = 128
 ATTN_HEADS = 4
 DROPOUT = 0.10
-N_PARAMS_OUT = 4          # head 2 emits a fixed-width parameter vector
+N_PARAMS_OUT = N_PARAMS   # head 2 emits a fixed-width parameter vector
+                          # (widest class: branched/BSW, 5 params)
 
 
 class CurveEncoder(nn.Module):

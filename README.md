@@ -85,10 +85,14 @@ python scripts/train_classifier.py -n 16000 --epochs 55
 ```
 
 `train_classifier.py` reports against the AICc physics identifier as a
-baseline; on synthetic data the network scores ~0.93 against ~0.68 for the
-baseline, with abstention lifting accuracy to ~0.98 at 20% coverage dropped.
+baseline; on synthetic data the network scores ~0.92 against ~0.70 for the
+baseline, with abstention lifting accuracy to ~0.97 at 20% coverage dropped.
 Requires PyTorch (a locked dependency); uses CUDA when available, CPU
 otherwise.
+
+```
+python scripts/eval_real_data.py          # trained checkpoint vs the literature sets
+```
 
 ## Status
 
@@ -99,9 +103,14 @@ otherwise.
   cured elastomers (Darby et al. 2022, three commercial silicones) and a
   critical gel (Tixier et al. 2004, end-linked PDMS near the sol-gel
   threshold).
-- `rheofp/fitting/identify.py`: AICc identifier over a 7-candidate bank, with
+- `rheofp/fitting/identify.py`: AICc identifier over an 8-candidate bank, with
   single-curve abstention and a temperature-stack resolver for the
   melt-vs-network ambiguity.
+- `rheofp/models/maxwell.py` `bsw_spectrum`: the branched / long-chain-branched
+  melt class (Baumgärtel–Schausberger–Winter spectrum, 5 parameters). Validated
+  against real LDPE — Pivokonsky et al. (2006) melts E and B, fit to under 0.07
+  decades, where the earlier 3-parameter double-reptation form could not get
+  below ~0.28.
 - `rheofp/data/synth.py`: synthetic training-set generator (labelled stacks,
   planted parameters, physically coherent temperature stacks).
 - `rheofp/models/pompom.py`: LVE validated against the real target — Pivokonsky
@@ -111,9 +120,12 @@ otherwise.
   instead, since XPP is indistinguishable from generic Maxwell in LVE; see
   module docstring for exact scope.
 - `rheofp/ml/`: two-head set model (masked attention pooling over a stack) with
-  a learned abstention head. Trained and evaluated on synthetic data only —
-  **it has not yet been trained on or validated against real measured
-  spectra.** Do not read the synthetic accuracy as real-world performance.
+  a learned abstention head. **Trained on synthetic data only**, then evaluated
+  against the digitized literature sets: currently 6/6 correct. That is six
+  curves from three papers, all single-temperature, four of them the same
+  material family — do not read either the synthetic accuracy or the 6/6 as
+  general real-world performance. Abstention is trained against the model's own
+  synthetic errors and does not fire on out-of-distribution material.
 
 ## License
 

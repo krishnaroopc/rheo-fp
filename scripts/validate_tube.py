@@ -9,8 +9,12 @@ Run directly: python scripts/validate_tube.py
 import numpy as np
 import matplotlib.pyplot as plt
 
-from rheofp.models.maxwell import branched_spectrum, fit_branched
+from rheofp.models.maxwell import (
+    branched_spectrum, fit_branched, bsw_spectrum, fit_bsw,
+)
 from rheofp.models.tube import Z_of_sample, linear_melt_forward, valid_window
+from rheofp.fitting.identify import identify
+from rheofp.io.data import load_npz
 
 
 def _rel(a, b):
@@ -74,7 +78,39 @@ def main():
     assert pk_lin < 1 and pk_br < 1, "G'' must stay below Ge"
     print(f"  PASS - branched {s_br/s_lin:.1f}x broader terminal; both physical")
 
-    fig, ax = plt.subplots(1, 2, figsize=(11, 4.4))
+    # --- Validation 4: REAL branched melt - BSW spectrum vs Pivokonsky (2006) ---
+    # The 3-param branched_spectrum cannot represent real LDPE (it bottoms out
+    # at ~0.28-0.32 decades RMS whatever sigma). The 5-param BSW spectrum -
+    # branched's forward model in the classifier - reaches ~0.06-0.07, and
+    # identify() then routes both melts to `branched` (a model-only class, so
+    # the operative output is the Terminal regime).
+    print("\nReal branched melt - BSW vs Pivokonsky (2006) LDPE E and B:")
+    pivo = load_npz("data/pivo2006.npz")
+    bsw_curves = {}
+    for name, s in pivo.items():
+        w, Gp, Gpp = s["omega"], s["Gp"], s["Gpp"]
+
+        old = fit_branched(w, Gp, Gpp, n_restarts=24, seed=2)
+        ogp, ogpp = branched_spectrum(w, old["Ge"], old["tau_b"], old["sigma"])
+        o_rms = np.sqrt(np.mean(np.concatenate([
+            (np.log10(ogp) - np.log10(Gp))**2,
+            (np.log10(ogpp) - np.log10(Gpp))**2])))
+
+        f = fit_bsw(w, Gp, Gpp, n_restarts=48, seed=0)
+        bgp, bgpp = bsw_spectrum(w, f["G_N"], f["tau_max"], f["tau_c"], f["n_e"], f["n_g"])
+        b_rms = np.sqrt(np.mean(np.concatenate([
+            (np.log10(bgp) - np.log10(Gp))**2,
+            (np.log10(bgpp) - np.log10(Gpp))**2])))
+        bsw_curves[name] = (w, Gp, Gpp, bgp, bgpp)
+
+        out = identify(w, Gp, Gpp)
+        print(f"  {name}: old branched RMS {o_rms:.3f} dec -> BSW RMS {b_rms:.3f} dec "
+              f"| n_e={f['n_e']:.2f} n_g={f['n_g']:.2f} | identify -> {out['best']}")
+        assert b_rms < 0.10, f"{name}: BSW RMS {b_rms:.3f} too high"
+        assert out["best"] == "branched", f"{name}: identify -> {out['best']}"
+    print("  PASS - BSW fits real LDPE < 0.10 dec; identify routes both to branched")
+
+    fig, ax = plt.subplots(1, 3, figsize=(16, 4.4))
     ax[0].loglog(omega, Gp_lin, color="#2563eb", lw=2, label="G' linear")
     ax[0].loglog(omega, Gpp_lin, "--", color="#dc2626", lw=2, label="G'' linear")
     ax[0].axhline(Ge, color="k", lw=.5, ls=":", label="$G_e$")
@@ -92,6 +128,16 @@ def main():
     ax[1].set_xlabel(r"$\omega$ [rad/s]")
     ax[1].legend(fontsize=8)
     ax[1].grid(True, which="both", alpha=.3)
+
+    for name, (w, Gp, Gpp, bgp, bgpp) in bsw_curves.items():
+        ax[2].loglog(w, Gp, "o", ms=3, label=f"G' {name}")
+        ax[2].loglog(w, Gpp, "s", ms=3, mfc="none", label=f"G'' {name}")
+        ax[2].loglog(w, bgp, "-", color="k", lw=1, alpha=.6)
+        ax[2].loglog(w, bgpp, "--", color="k", lw=1, alpha=.6)
+    ax[2].set_title("Real LDPE (Pivokonsky 2006) + BSW fit")
+    ax[2].set_xlabel(r"$\omega$ [rad/s]")
+    ax[2].legend(fontsize=7)
+    ax[2].grid(True, which="both", alpha=.3)
 
     plt.tight_layout()
     plt.show()

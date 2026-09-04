@@ -3,7 +3,9 @@ import numpy as np
 from rheofp.models.maxwell import (
     maxwell_spectrum, wlm_spectrum, fit_maxwell, fit_wlm,
     sticky_maxwell_stack, fit_sticky_stack, branched_spectrum, fit_branched,
+    bsw_spectrum, fit_bsw, model_branched, BRANCHED_MODELS,
 )
+from rheofp.io.data import load_npz
 
 OMEGA = np.logspace(-2, 3, int((3 - (-2)) * 12) + 1)
 
@@ -57,3 +59,81 @@ def test_fit_branched_recovers_planted_params_and_reaches_plateau():
     assert _rel(fit["tau_b"], ref["tau_b"]) < 0.15
     assert _rel(fit["sigma"], ref["sigma"]) < 0.15
     assert Gp.max() / ref["Ge"] > 0.9
+
+
+# --- BSW spectrum (branched / LCB melt class) -------------------------------
+
+def test_bsw_spectrum_is_finite_positive_and_broad_in_the_terminal_zone():
+    w = np.logspace(-3, 3, 80)
+    Gp, Gpp = bsw_spectrum(w, 1e5, 10.0, 1e-2, 0.3, 0.6)
+    assert np.all(np.isfinite(Gp)) and np.all(np.isfinite(Gpp))
+    assert np.all(Gp > 0) and np.all(Gpp > 0)
+
+    # The reason BSW exists: a broad relaxation SPECTRUM, not one relaxation
+    # time. Many active modes keep G'' within a factor of ~2 of G' over a wide
+    # frequency range; a single Maxwell mode only does so near its own 1/tau.
+    lw = np.log10(w)
+
+    def decades_loss_dominated(gp, gpp):
+        m = (gpp / gp) > 0.5
+        return np.ptp(lw[m]) if m.sum() > 2 else 0.0
+
+    mx_gp, mx_gpp = maxwell_spectrum(w, [1e5], [10.0])
+    assert decades_loss_dominated(Gp, Gpp) > 2 * decades_loss_dominated(mx_gp, mx_gpp)
+
+
+def test_fit_bsw_recovers_planted_params():
+    ref = dict(G_N=8e4, tau_max=50.0, tau_c=5e-2, n_e=0.30, n_g=0.55)
+    w = np.logspace(-3, 3, 70)
+    Gp, Gpp = bsw_spectrum(w, **ref)
+    fit = fit_bsw(w, Gp, Gpp, n_restarts=48, seed=0)
+    for k in ref:
+        assert _rel(fit[k], ref[k]) < 0.05
+
+
+def test_model_branched_matches_bsw_and_registry_shape():
+    w = np.logspace(-2, 3, 50)
+    theta = [np.log10(5e4), np.log10(20.0), np.log10(1e-3), 0.35, 0.55]
+    a = model_branched(w, theta)
+    b = bsw_spectrum(w, 5e4, 20.0, 1e-3, 0.35, 0.55)
+    assert np.allclose(a[0], b[0]) and np.allclose(a[1], b[1])
+    fwd, p0, bnds, k = BRANCHED_MODELS["branched"]
+    assert k == 5 and len(p0) == 5 and len(bnds) == 5
+
+
+def test_bsw_fits_real_ldpe_far_better_than_the_3param_branched_model():
+    """The reason BSW exists: Pivokonsky (2006) E and B (real LDPE melts) that
+    the 3-parameter branched_spectrum cannot represent."""
+    d = load_npz("data/pivo2006.npz")
+    for name, s in d.items():
+        w, Gp, Gpp = s["omega"], s["Gp"], s["Gpp"]
+
+        old = fit_branched(w, Gp, Gpp, n_restarts=24, seed=2)
+        ogp, ogpp = branched_spectrum(w, old["Ge"], old["tau_b"], old["sigma"])
+        old_rms = np.sqrt(np.mean(np.concatenate([
+            (np.log10(ogp) - np.log10(Gp)) ** 2,
+            (np.log10(ogpp) - np.log10(Gpp)) ** 2])))
+
+        fit = fit_bsw(w, Gp, Gpp, n_restarts=48, seed=0)
+        bgp, bgpp = bsw_spectrum(w, fit["G_N"], fit["tau_max"], fit["tau_c"],
+                                 fit["n_e"], fit["n_g"])
+        bsw_rms = np.sqrt(np.mean(np.concatenate([
+            (np.log10(bgp) - np.log10(Gp)) ** 2,
+            (np.log10(bgpp) - np.log10(Gpp)) ** 2])))
+
+        assert bsw_rms < 0.10, f"{name}: BSW RMS {bsw_rms:.3f} dec"
+        assert bsw_rms < 0.4 * old_rms, (
+            f"{name}: BSW {bsw_rms:.3f} not much better than old {old_rms:.3f}")
+
+
+def test_identify_routes_real_ldpe_to_branched_and_reports_terminal_regime():
+    """End-to-end: identify() now has a branched candidate that wins on the
+    real LDPE melts instead of them defaulting to rouse_screened."""
+    from rheofp.fitting.identify import identify, MODEL_ONLY_CLASSES
+    d = load_npz("data/pivo2006.npz")
+    for name, s in d.items():
+        out = identify(s["omega"], s["Gp"], s["Gpp"])
+        assert out["best"] == "branched", f"{name} -> {out['best']}"
+        assert "branched" in MODEL_ONLY_CLASSES
+        # model-only: the useful output is the regime, and it must be terminal
+        assert out["ranking"][0]["name"] == "branched"

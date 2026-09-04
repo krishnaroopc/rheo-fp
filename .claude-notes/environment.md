@@ -63,6 +63,16 @@ Home PC (2026-09-01): GTX 1660 Ti, ~11 s/epoch at 16k examples.
 - Commit `pyproject.toml`, `uv.lock`, and `requirements.txt` together.
 
 ## History
+- **2026-09-03:** Windows home PC bootstrapped onto this setup for the first
+  time (it predated the uv migration): `winget install astral-sh.uv` -> 0.12.8,
+  same as the Linux box, then `uv sync`. Confirmed the cross-platform lock
+  behaves as designed: **Windows resolves `torch==2.13.0+cpu`** from the same
+  lockfile, because the CUDA extras carry `sys_platform == 'linux'` markers.
+  So `torch.cuda.is_available()` is False on Windows even with an NVIDIA card
+  present (this box has an RTX A1000). That is the intended trade — one lock,
+  every machine — and must not be "fixed" with a per-PC torch variant.
+  Measured cost: ~9 s/epoch on CPU at 16k examples vs ~11 s/epoch on the Linux
+  GTX 1660 Ti, i.e. negligible at this model size.
 - **2026-09-01:** Added `torch` (2.13.0+cu130) for the ML training pipeline.
   Re-locked with `uv add torch`; numpy stayed at 2.5.1 and nothing else moved,
   so no resolver collateral. `requirements.txt` regenerated from the new lock.

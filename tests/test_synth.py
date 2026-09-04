@@ -34,10 +34,12 @@ def test_every_class_produces_a_finite_positive_spectrum(name):
 def test_sampled_parameters_stay_inside_the_fitters_search_space(name):
     """Generated population and fitting bounds must not drift apart."""
     from rheofp.models.solutions import MODELS
-    if name not in MODELS:
-        pytest.skip("network / model-only classes use their own ranges")
+    from rheofp.models.maxwell import BRANCHED_MODELS
+    banks = {**MODELS, **BRANCHED_MODELS}
+    if name not in banks:
+        pytest.skip("network classes use their own ranges (see test_network)")
     rng = np.random.default_rng(1)
-    bounds = MODELS[name][2]
+    bounds = banks[name][2]
     for _ in range(20):
         theta = sample_params(rng, name)
         for v, (lo, hi) in zip(theta, bounds):
@@ -167,6 +169,20 @@ def test_generated_population_round_trips_through_the_identifier():
             w, Gp, Gpp, _ = ex["curves"][0]
             hits += identify(w, Gp, Gpp, n_restarts=6)["best"] == name
             total += 1
+    assert hits / total > 0.6
+
+
+def test_synthetic_branched_population_is_identified_as_branched():
+    """The model-only branched class must route to `branched` through the
+    identifier bank often enough that the ML model has a clean signal - the
+    old 3-param branched_spectrum could not, which is why LDPE failed."""
+    rng = np.random.default_rng(21)
+    hits = total = 0
+    for _ in range(10):
+        ex = make_example(rng, "branched", n_curves=1)
+        w, Gp, Gpp, _ = ex["curves"][0]
+        hits += identify(w, Gp, Gpp, n_restarts=6)["best"] == "branched"
+        total += 1
     assert hits / total > 0.6
 
 

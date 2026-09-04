@@ -8,8 +8,9 @@ Design notes:
   * Labels come from the generating model, not from a fit - this is planted
     ground truth, the same discipline the validation scripts use.
   * Sampling is in log space over the same parameter bounds the fitters use
-    (rheofp.models.solutions.MODELS and the network bank), so the generated
-    population and the fitting search space cannot drift apart.
+    (rheofp.models.solutions.MODELS, the network bank, and
+    rheofp.models.maxwell.BRANCHED_MODELS), so the generated population and
+    the fitting search space cannot drift apart - there is a test for this.
   * Stacks are physically coherent, not independent draws: a temperature stack
     Arrhenius-shifts ONE set of parameters, and a concentration stack applies
     one scaling law. Independent draws per curve would teach the classifier a
@@ -26,7 +27,7 @@ from __future__ import annotations
 import numpy as np
 
 from rheofp.models.maxwell import (
-    maxwell_spectrum, wlm_spectrum, branched_spectrum, arrhenius_shift,
+    maxwell_spectrum, wlm_spectrum, bsw_spectrum, arrhenius_shift,
 )
 from rheofp.models.network import chasset_thirion_spectrum, critical_gel_spectrum
 from rheofp.models.solutions import MODELS as SOLUTION_MODELS
@@ -87,18 +88,19 @@ WLM_LOG_TAU_REP = (-1.0, 3.0)
 WLM_LOG_TAU_BR = (-4.0, 0.0)
 WLM_BETA = (0.2, 1.5)
 
-BRANCHED_LOG_GE = (3.0, 6.0)
-BRANCHED_LOG_TAU_B = (-1.0, 3.0)
-# sigma = breadth of the mode ladder, in decades. The old ceiling of 4.0 made
-# the whole class plateau-dominated (median tan(delta) ~0.32) while real LDPE
-# melts sit near ~1.0 - so no synthetic branched example looked like the one
-# real branched material in data/. Widened after fitting branched_spectrum to
-# Pivokonsky E and B, which drove sigma hard against any ceiling it was given.
-# Note the honest limit recorded in next-actions.md: even at large sigma this
-# 3-parameter form only reaches ~0.2-0.28 decades RMS on that data (a 10-mode
-# Maxwell reaches 0.02), so widening the range makes the class cover realistic
-# breadth - it does not make the forward model adequate for real LDPE.
-BRANCHED_SIGMA = (1.0, 10.0)
+# Branched / long-chain-branched melt (BSW spectrum). Ranges chosen so the
+# synthetic population brackets the real LDPE melts in data/pivo2006.npz:
+# fit_bsw on Pivokonsky E and B lands at G_N ~ 1 kPa (window-limited amplitude,
+# not a true plateau), tau_max ~ 50-90 s, tau_c ~ 20-30 s, n_e ~ 0.55-0.68,
+# n_g ~ 0.53-0.56. The old 3-param branched_spectrum could not reach that data
+# (~0.28 decades RMS whatever sigma); BSW reaches ~0.06.
+BRANCHED_LOG_GN = (2.5, 6.0)        # amplitude scale [log10 Pa]
+BRANCHED_LOG_TAU_MAX = (-1.0, 3.0)  # longest time [log10 s]
+# tau_c is drawn as an offset BELOW tau_max, in decades - so it is always the
+# shorter time and the two never cross.
+BRANCHED_TAU_C_OFFSET_DECADES = (0.2, 4.0)
+BRANCHED_N_E = (0.15, 0.75)         # terminal-wedge exponent
+BRANCHED_N_G = (0.40, 0.70)         # glassy-wedge exponent
 
 
 # ── parameter sampling ────────────────────────────────────────────────────
@@ -120,8 +122,10 @@ def sample_params(rng, name):
         return np.array([_u(rng, WLM_LOG_G0), _u(rng, WLM_LOG_TAU_REP),
                          _u(rng, WLM_LOG_TAU_BR), _u(rng, WLM_BETA)])
     if name == "branched":
-        return np.array([_u(rng, BRANCHED_LOG_GE), _u(rng, BRANCHED_LOG_TAU_B),
-                         _u(rng, BRANCHED_SIGMA)])
+        log_tau_max = _u(rng, BRANCHED_LOG_TAU_MAX)
+        log_tau_c = log_tau_max - _u(rng, BRANCHED_TAU_C_OFFSET_DECADES)
+        return np.array([_u(rng, BRANCHED_LOG_GN), log_tau_max, log_tau_c,
+                         _u(rng, BRANCHED_N_E), _u(rng, BRANCHED_N_G)])
     raise ValueError(f"unknown class {name!r}")
 
 
@@ -147,8 +151,9 @@ def forward(name, w, theta, tau_scale=1.0):
         return wlm_spectrum(w, 10.0**lG0, 10.0**lrep * tau_scale,
                             10.0**lbr * tau_scale, beta)
     if name == "branched":
-        lGe, ltau, sigma = theta
-        return branched_spectrum(w, 10.0**lGe, 10.0**ltau * tau_scale, sigma)
+        lGN, ltau_max, ltau_c, n_e, n_g = theta
+        return bsw_spectrum(w, 10.0**lGN, 10.0**ltau_max * tau_scale,
+                            10.0**ltau_c * tau_scale, n_e, n_g)
     raise ValueError(f"unknown class {name!r}")
 
 

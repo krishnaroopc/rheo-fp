@@ -154,19 +154,55 @@ def test_stack_lifts_the_abstention_on_a_genuine_network():
     assert out["stack"]["verdict"] == "network"
 
 
-def test_stack_overturns_a_network_call_on_a_disguised_melt():
-    """A single curve calls this entangled melt a network class outright.
-
-    The stack contradicts it: the spectrum walks along the frequency axis on
-    heating, which no permanent network does. Head 1 must abstain rather than
-    keep the wrong confident answer.
+def test_stack_confirms_a_broad_melt_identified_as_branched():
+    """A single curve of this broad entangled melt now routes to `branched`
+    (the BSW spectrum in the bank), not to a network class - it is a melt and
+    is identified as one. The stack agrees: the spectrum walks along the
+    frequency axis on heating. Nothing to overturn, and Head 1 must NOT
+    spuriously abstain on a melt it got right.
     """
     w = np.logspace(-1, 2, 40)
     stack = _hidden_terminal_melt_stack(w)
 
     alone = identify(stack[0]["omega"], stack[0]["Gp"], stack[0]["Gpp"])
-    assert alone["best"] in {"cured_elastomer", "critical_gel"}
-    assert alone["abstain"] is False          # confidently wrong
+    assert alone["best"] == "branched"
+    assert alone["abstain"] is False
+
+    out = identify_stack(stack)
+    assert out["stack"]["verdict"] == "melt"
+    assert out["stack"]["shift_decades"] >= SHIFT_DECADES_MIN
+    assert out["best"] == "branched"
+    assert out["abstain"] is False
+
+
+def _disguised_network_melt_stack(w):
+    """Residual disguised-melt case: a dominant slow mode (the plateau) plus a
+    faint fast ladder (the wing), terminal well below the window. The
+    single-curve fit calls this cured_elastomer, not branched - it is flat and
+    loss-poor enough to pass for a crosslinked network."""
+    tau0 = np.concatenate([[50.0], np.logspace(-4, -1, 20)])
+    g = np.concatenate([[1.0e5], np.full(20, 1.0e5 / 400)])
+    return _stack(w, [maxwell_spectrum(w, g, arrhenius_shift(tau0, 90e3, t, T_REF))
+                      for t in T_LIST])
+
+
+def test_stack_overturns_a_network_call_on_a_disguised_melt():
+    """The stack overturn logic still guards the residual case: a melt the
+    single-curve fit calls cured_elastomer. With the stack present,
+    identify_stack passes n_temperatures>=2, which would normally LIFT the
+    melt-vs-rubber abstention - but the stack shows the spectrum shifting with
+    temperature, which no permanent network does, so the abstention must be
+    re-imposed rather than lifted.
+    """
+    w = np.logspace(-1, 2, 40)
+    stack = _disguised_network_melt_stack(w)
+
+    alone = identify(stack[0]["omega"], stack[0]["Gp"], stack[0]["Gpp"])
+    assert alone["best"] == "cured_elastomer"
+
+    # a genuine network at the same n_temperatures would have its abstention lifted
+    net = identify_stack(_network_stack(w))
+    assert net["abstain"] is False
 
     out = identify_stack(stack)
     assert out["stack"]["verdict"] == "melt"
@@ -178,7 +214,7 @@ def test_stack_overturns_a_network_call_on_a_disguised_melt():
 def test_identify_stack_still_emits_a_model_when_head_one_abstains():
     """Head 2 never abstains, per the frozen two-head architecture."""
     w = np.logspace(-1, 2, 40)
-    out = identify_stack(_hidden_terminal_melt_stack(w))
+    out = identify_stack(_disguised_network_melt_stack(w))
     assert out["abstain"] is True
     assert out["best"] in {r["name"] for r in out["ranking"]}
     assert out["best_weight"] > 0

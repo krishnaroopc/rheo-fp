@@ -5,13 +5,15 @@ kept in git so it syncs between the user's home and office PCs. When the user
 says something like "let's continue" / "do the next thing" / "pick up where we
 left off", this is where to look. Update + commit this file as items complete.
 
-Last updated: 2026-09-01 (Linux/home PC).
+Last updated: 2026-09-03 (Windows/home PC).
 
 ## 0. First, on any PC at session start
-- Confirm the env exists: run `uv run pytest` (should be 102 passing, 4 skipped; use
+- Confirm the env exists: run `uv run pytest` (should be 121 passing, 3 skipped; use
   `-m "not slow"` to skip the end-to-end training test). If uv or
   the venv is missing, bootstrap per `.claude-notes/environment.md`
   (install uv, then `uv sync`). Python is pinned to 3.12 — do not change.
+  NOTE: the suite got slower (~3 min full) once `identify()` gained the 5-param
+  BSW candidate — that is expected, not a hang.
 - Skim `.claude-notes/sessions.md` (newest entries) for what changed since.
 - **CHECK FOR `originals/` AND ASK THE USER IF IT'S MISSING.** `originals/` is
   gitignored + per-machine, so it does NOT arrive via `git pull`. It holds the
@@ -297,12 +299,88 @@ on the SYNTHETIC distribution, so it does not detect a material whose true
 class is absent from that distribution. Do not read low abstain_p as evidence
 of a correct answer on out-of-distribution material.
 
+### 1g. Branched forward model replaced with BSW — DONE 2026-09-03
+Closed the §1f blocker (Pivokonsky LDPE misclassified). User chose option (a):
+give the branched class a broader forward model, 5 parameters.
+
+**What changed.** New `bsw_spectrum(w, G_N, tau_max, tau_c, n_e, n_g)` +
+`fit_bsw` in `rheofp/models/maxwell.py` — the Baumgartel-Schausberger-Winter
+relaxation spectrum, two power-law wedges (broad terminal wedge tau^n_e, plus a
+high-frequency wedge tau^-n_g switching on below crossover tau_c), discretized
+onto a log-tau ladder and fed to the canonical Maxwell sum.
+- `model_branched` + `BRANCHED_MODELS` registry (k=5), same
+  (forward, p0, bounds, k) shape as the solution/network banks.
+- **`identify()`'s bank is now 8 candidates**: `ALL_MODELS = MODELS |
+  NETWORK_MODELS | BRANCHED_MODELS`. `MODEL_ONLY_CLASSES` added to identify.py.
+  Pre-filter left permissive — branched has no robust single-curve
+  contraindication, so nothing hard-discards it.
+- `rheofp/data/synth.py` samples BSW params; `BRANCHED_SIGMA` is GONE, replaced
+  by BRANCHED_LOG_GN / LOG_TAU_MAX / TAU_C_OFFSET_DECADES / N_E / N_G. tau_c is
+  drawn as an offset BELOW tau_max so the two can never cross.
+- **`N_PARAMS` 4 -> 5** in `rheofp/ml/dataset.py` (branched is the widest class);
+  `model.py` now imports it rather than hardcoding 4. Model 246,129 params.
+- `branched_spectrum` / `fit_branched` RETAINED — still used by the tube-model
+  context and its tests. Only the classifier's branched forward changed.
+
+**Why BSW and not something else.** The old 3-param hierarchical
+double-reptation is a single power-law mode ladder; it cannot make a spectrum
+broad enough for real LDPE. Measured, before committing to the design:
+  Pivokonsky E: old 0.316 dec RMS -> BSW 0.068     (target was < 0.10)
+  Pivokonsky B: old 0.280 dec RMS -> BSW 0.059
+Checked it does NOT cannibalise the linear-melt class: on planted reptation
+curves, reptation still wins AICc -4522 vs BSW -758, because BSW's
+intrinsically broad spectrum cannot fake a sharp reptation terminal. That
+property is what makes the class safe to add. Planted-param recovery is exact
+and seed-stable (4/5 seeds identical on real data).
+G_N is a window-limited AMPLITUDE scale, not a measured plateau modulus — on a
+terminal-zone sweep it just sets the overall level. Do not report it as G_N^0.
+
+**Results after retrain (16k, 55 epochs, seed 1, CPU ~9 s/epoch):**
+  REAL DATA **6/6** (was 4/6). Pivokonsky E -> branched p=0.92 (abstain 0.04),
+  B -> branched p=0.96 (abstain 0.05). Raw == resampled, invariance holds.
+  Residual probability on both LDPE melts sits on rouse_screened (0.07/0.04) —
+  the old wrong answer, now a minority opinion.
+  Synthetic 0.917 vs **0.700** AICc baseline (baseline itself rose from 0.627
+  because identify() can finally score branched instead of defaulting).
+  merged-pair 0.963; regime 0.999; branched per-class 0.935 (n=277).
+  Zimm<->Rouse is now 55% of ALL error; cured_elastomer<->critical_gel is 0%.
+  Abstain 20% -> 0.972, 30% -> 0.990. Stacks still beat N=1 (0.909 -> 0.932).
+
+**Side effect worth knowing — two stack tests were reframed.** A broad
+entangled melt with terminal below the window used to be called a NETWORK class
+by a single curve, and `test_stack_overturns_a_network_call_on_a_disguised_melt`
+existed to catch that. With BSW in the bank the same curve now correctly routes
+to `branched` (a melt identified as a melt), so there is nothing to overturn.
+The overturn logic is still there and still tested, against a new fixture
+(`_disguised_network_melt_stack`: one dominant slow mode + a faint fast ladder)
+that genuinely still reads as cured_elastomer from one curve. Do not read the
+rename as the feature being dropped.
+
 ## 3. What's genuinely open
-- Real-data coverage is still thin: 4 of 6 curves, from 3 papers, all N=1.
-  Darby + Tixier pass; Pivokonsky needs the branched forward model above.
+- **Real-data coverage is still thin even at 6/6**: six curves, three papers,
+  all N=1, and four of the six are the same material family (cured PDMS).
+  6/6 confirms the BSW work did its job; it is NOT evidence of general
+  real-world accuracy.
 - No temperature stack has ever been tested on real material — the stack
-  resolver and the stack-aware model are both synthetic-only so far.
+  resolver and the stack-aware model are both synthetic-only. This is now the
+  biggest untested claim in the project, since set-based input is the
+  architecture's entire reason for being.
 - Yield-dominated regime has no implemented physics at all (3rd taxonomy
   regime is empty).
-- Optional: Zimm/Rouse tiebreaker; critical-gel AICc tiebreaker via the unused
-  frequency-flat-tan(delta) feature; Villar/Martin tabulated checks.
+- **Open decision: should `branched` be promoted to a fine class?** Discussed
+  2026-09-03, deliberately NOT done. Linear-vs-branched is one of the most
+  useful things SAOS can reveal and the standard diagnostics are all LVE (van
+  Gurp-Palmen shoulder, terminal breadth, TTS failure). Now that the forward
+  model can represent real LDPE this is worth revisiting — but it is a change
+  to the FROZEN taxonomy and needs a deliberate user decision, not a side
+  effect. Evidence to gather first: whether the synthetic reptation and
+  branched populations are cleanly separable (branched per-class is already
+  0.935, and its errors go to zimm/rouse, not reptation — promising).
+- Abstention still cannot flag out-of-distribution material: it is trained
+  against the model's own errors on the SYNTHETIC distribution. Low abstain_p
+  is not evidence of a correct answer on a material whose class is absent from
+  training.
+- Optional: Zimm/Rouse tiebreaker (now 55% of all error, but may be genuinely
+  irreducible from SAOS — the log-slope distributions almost fully overlap);
+  critical-gel AICc tiebreaker via the unused frequency-flat-tan(delta)
+  feature; Villar/Martin tabulated checks.
