@@ -19,10 +19,11 @@ XPP is indistinguishable from a generic multimode Maxwell fit in that regime
 (its q_i/alpha_i/lambda_b/lambda_s are underdetermined by LVE data alone - the
 paper itself needed nonlinear flow curves to pin them down). So this module is
 NOT wired into rheofp.fitting.identify's model bank and is not a classifier
-output class; branched melts are represented for classification purposes via
-rheofp.models.maxwell.branched_spectrum (hierarchical double-reptation)
-instead. This module stays as a validated reference/tool, e.g. for future
-nonlinear-data workflows, not part of the SAOS-only pipeline.
+output class; branched melts are represented for classification purposes by the
+BSW spectrum (rheofp.models.maxwell.bsw_spectrum / model_branched) instead - it
+replaced the older 3-parameter branched_spectrum on 2026-09-03, which could not
+represent real LDPE. This module stays as a validated reference/tool, e.g. for
+future nonlinear-data workflows, not part of the SAOS-only pipeline.
 """
 from __future__ import annotations
 

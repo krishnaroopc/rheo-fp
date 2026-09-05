@@ -4,6 +4,7 @@ from rheofp.models.maxwell import (
     maxwell_spectrum, wlm_spectrum, fit_maxwell, fit_wlm,
     sticky_maxwell_stack, fit_sticky_stack, branched_spectrum, fit_branched,
     bsw_spectrum, fit_bsw, model_branched, BRANCHED_MODELS,
+    model_wormlike_micelle, WLM_MODELS,
 )
 from rheofp.io.data import load_npz
 
@@ -124,6 +125,38 @@ def test_bsw_fits_real_ldpe_far_better_than_the_3param_branched_model():
         assert bsw_rms < 0.10, f"{name}: BSW RMS {bsw_rms:.3f} dec"
         assert bsw_rms < 0.4 * old_rms, (
             f"{name}: BSW {bsw_rms:.3f} not much better than old {old_rms:.3f}")
+
+
+def test_wlm_registry_entry_matches_the_bare_forward_model():
+    w = np.logspace(-2, 3, 50)
+    theta = [np.log10(30.0), np.log10(30.0), np.log10(0.03), 0.8]
+    a = model_wormlike_micelle(w, theta)
+    b = wlm_spectrum(w, 30.0, 30.0, 0.03, 0.8)
+    assert np.allclose(a[0], b[0]) and np.allclose(a[1], b[1])
+    fwd, p0, bnds, k = WLM_MODELS["wormlike_micelle"]
+    assert k == 4 and len(p0) == 4 and len(bnds) == 4
+
+
+def test_identify_can_actually_emit_wormlike_micelle():
+    """Regression guard for the two-bank asymmetry.
+
+    Before wormlike_micelle was registered, identify() answered a planted
+    micellar curve with "branched" at Akaike weight ~1.0 and a ~0.05-decade
+    residual - confidently wrong, and NOT flagged by the FLOOR_CHI2 floor,
+    because BSW genuinely fits a near-single-Maxwell shape. A missing class
+    shows up as a confident wrong answer, never as low confidence.
+    """
+    from rheofp.fitting.identify import identify, MODEL_ONLY_CLASSES
+    from rheofp.data.synth import make_example
+
+    rng = np.random.default_rng(5)
+    hits = 0
+    for _ in range(4):
+        ex = make_example(rng, "wormlike_micelle", n_curves=1)
+        w, Gp, Gpp, _ = ex["curves"][0]
+        hits += identify(w, Gp, Gpp, n_restarts=8)["best"] == "wormlike_micelle"
+    assert hits >= 3, f"only {hits}/4 planted micelles identified"
+    assert "wormlike_micelle" in MODEL_ONLY_CLASSES
 
 
 def test_identify_routes_real_ldpe_to_branched_and_reports_terminal_regime():

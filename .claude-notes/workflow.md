@@ -1,8 +1,14 @@
 # Cross-PC workflow
 
-User works across **three machines**: two Windows PCs (home + office) and a
-Linux box (CachyOS). No need to sync chat transcripts — context travels via
-**git + `CLAUDE.md` + this folder**.
+User works across **four machines**: two Windows PCs (home + main office), a
+Linux box (CachyOS), and a **secondary office PC** (Linux, added 2026-09-04).
+No need to sync chat transcripts — context travels via **git + `CLAUDE.md` +
+this folder**.
+
+**Machine priority.** The secondary office PC is the weak one: no GPU, no
+`originals/`, and the user has said they do not intend to continue work there.
+Anything needing training, a checkpoint, or figure digitizing should wait for
+the main office PC, the home PC (RTX A1000) or the CachyOS box (GTX 1660 Ti).
 
 - **Sync rule:** pull before starting on a machine; commit + push before
   leaving it. Only committed work is visible on the other PC.

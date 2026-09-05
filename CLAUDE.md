@@ -29,10 +29,34 @@ dependency issues, computer-agnostic):
 ## What this is
 An open-source ML classifier for linear rheology. Ingests small-amplitude
 oscillatory shear (SAOS) data — G′(ω), G″(ω) — and outputs (1) material type
-identification and (2) fitted constitutive model parameters. Built in Jupyter
-notebooks (Python / NumPy / SciPy / Matplotlib). Currently a collection of
-validated notebooks; the immediate task is converting this into a professional
-GitHub repository named "rheo-fp".
+identification and (2) fitted constitutive model parameters. Python / NumPy /
+SciPy / PyTorch, shipped as the installable `rheofp` package (the original
+Jupyter notebooks are archived local-only in `originals/` and are no longer the
+working form — see Goals below, all three are complete).
+
+## SCOPE — what "material type" means here (user, 2026-09-04)
+**This classifies MOLECULAR / microstructural architecture, not macroscopic
+material category.** The target distinctions are the ones a person cannot make
+by looking at the sample: linear melt vs long-chain-branched melt; entangled vs
+unentangled; permanently crosslinked elastomer vs dynamically crosslinked
+vitrimer; cured network vs critical gel; good vs theta solvent (Zimm vs Rouse).
+A foam, a paste, a yield-stress emulsion is obvious on sight and is NOT the
+problem this tool is for.
+
+Consequences, which are easy to get wrong:
+- **Do not spend effort detecting macroscopically obvious out-of-scope
+  material.** Time was spent on exactly that on 2026-09-04 before the scope was
+  clarified; see next-actions §1j for the (negative) result so it is not
+  repeated.
+- The out-of-distribution material that DOES matter is molecularly distinct but
+  macroscopically ordinary: **polymer blends, block copolymers, semicrystalline
+  melts, star polymers, filled/nanocomposite melts.** None are in the taxonomy.
+- The **temperature stack is not one open item among several — it is the
+  load-bearing capability**, because it is the ONLY thing that separates a
+  dynamic network (vitrimer) from a permanent one (cured elastomer). See §3.
+- An explanation of WHY a class was chosen is not a nicety here. With a foam a
+  user can referee the answer by looking at the jar; with elastomer-vs-vitrimer
+  they cannot, so the reported evidence has to do the refereeing.
 
 ## Classifier architecture (FROZEN — do not redesign)
 - **Input**: set-based stacks of spectra (multiple curves across temperature
@@ -40,10 +64,19 @@ GitHub repository named "rheo-fp".
   attention pooling. Stacks enable classification from trends across T or c.
 - **Output**: two heads. Head 1 emits material type, with abstention when the
   input lacks discriminating information. Head 2 always emits a best-fit model.
-- **Taxonomy**: 3 regimes (Terminal/liquid-like, Solid/gel-like,
+- **Taxonomy (design)**: 3 regimes (Terminal/liquid-like, Solid/gel-like,
   Yield-dominated); 8 fine classes (4 identifiable from single curves, 4
   requiring stacks); 6 model-only classes (regime-level labels only).
   Wormlike micelles are model-only. Glassy regime was dropped.
+- **Taxonomy (as actually built)**: **9 classes** — 7 fine
+  (zimm, rouse_screened, reptation, sticky_rouse, sticky_reptation,
+  cured_elastomer, critical_gel) + 2 model-only (wormlike_micelle, branched);
+  **2 regimes** (terminal, solid). The Yield-dominated regime has no physics and
+  therefore no training data. Five model-only classes from the design were never
+  built. Do not quote the design numbers as if they were implemented.
+- **"Model-only" is documentation, not behaviour.** Nothing in `identify.py` or
+  `ml/evaluate.py` coerces `branched` / `wormlike_micelle` to a regime-level
+  answer — both are scored as ordinary fine labels today. See §3.
 
 ## Completed & validated work (forward physics, three batches)
 Each model was validated by reproducing published figures and recovering
@@ -110,6 +143,34 @@ class. Now IN `identify()`'s bank as `"branched"` (`BRANCHED_MODELS` in
 tube-model context + tests. G_N is a window-limited amplitude scale, not a
 measured plateau modulus. Refs: Baumgärtel & Winter (1990, 1992).
 
+**Bank-coverage invariant (2026-09-04).** `identify()`'s bank must hold a
+candidate for EVERY class `rheofp/data/synth.py` can generate — now enforced by
+`test_every_generated_class_has_a_candidate_in_the_identifier_bank`. It was
+violated: `wormlike_micelle` was generated, and emitted by the neural head, but
+had no registry entry, so the AICc identifier could not return it at any cost.
+Two lessons. (1) It silently corrupted the physics baseline, which filtered its
+pool by the *neural* class list — a no-op — and was therefore charged for
+questions it could not answer. (2) **A missing class does not surface as low
+confidence.** Handed a micelle, the 8-model bank answered `branched` at Akaike
+weight 1.000 with a 0.05-decade residual, far under `FLOOR_CHI2`; the
+none-of-the-above floor cannot catch a class that isn't in the bank, because
+the most flexible candidate present simply absorbs it. Now registered as
+`WLM_MODELS` in `maxwell.py` (k=4, `beta` linear, not log10). Adding it cost no
+accuracy on the other eight classes and left real data at 6/6.
+
+**Pre-filter principle (2026-09-04) — a hard discard is only sound when it
+rests on a POSITIVE observation.** `terminal_reached` removing the network
+classes is sound: flow was *observed*, and a permanent network cannot flow at
+any temperature. `if not has_shoulder: allowed -= {sticky_rouse,
+sticky_reptation}` is NOT sound: an absent second G″ peak is equally consistent
+with "no exchangeable bonds" and "bond exchange outside my window", which is the
+same missing-evidence fallacy the project already rejected for melt-vs-rubber
+(*"missing evidence, not evidence of absence"*). Measured: 4 of 12 generated
+vitrimer curves had BOTH vitrimer classes struck off before scoring, one landing
+on `cured_elastomer` — a dynamic network reported as a permanent one, which is a
+flagship molecular error under the scope above. Not yet changed; the decision
+and the required measurement are in next-actions §1k.
+
 ## Goals — ALL THREE COMPLETE as of 2026-09-01
 1. DONE. Restructured into the GitHub-ready `rheo-fp` package (rheofp/,
    scripts/, data/, docs/, tests/), README, locked env, .gitignore, LICENSE.
@@ -120,11 +181,17 @@ measured plateau modulus. Refs: Baumgärtel & Winter (1990, 1992).
    Two-head set model (conv encoder -> masked attention pool -> classify +
    regress) with a learned abstention head, on the frozen architecture.
 
-**Current state:** 121 tests pass. On synthetic data the classifier scores
-**0.917 vs 0.700** for the AICc physics baseline (merged-pair 0.963, regime
-0.999); **55% of all remaining error is the physically degenerate Zimm<->Rouse
-pair**, while the equally-nested cured_elastomer<->critical_gel pair now
-contributes zero. Against real measured spectra it scores **6/6 literature
+**Current state:** 126 tests pass (2 skipped). On synthetic data the classifier scores
+**0.917** (merged-pair 0.963, regime 0.999); **55% of all remaining error is
+the physically degenerate Zimm<->Rouse pair**, while the equally-nested
+cured_elastomer<->critical_gel pair now contributes zero. The **0.700 physics
+baseline this used to be quoted against is superseded** — it was measured while
+`wormlike_micelle` was generated but absent from `identify()`'s bank, making
+~1/9 of the baseline's pool unanswerable; over the fixed 9-candidate bank a
+standalone re-measurement gives ~0.82 (n=90), so the real margin is roughly
++0.10, not +0.217. The network's own number is unaffected — the ML pipeline
+only touches `identify()` for the baseline. Re-measure the pair on the next
+training run (next-actions §1h). Against real measured spectra it scores **6/6 literature
 curves correct** (Darby 2022 cured silicones, Tixier 2004 critical gel,
 Pivokonsky 2006 LDPE), up from 4/6 once the branched forward model was replaced
 with BSW. Read that 6/6 carefully: six curves, three papers, all N=1, four of

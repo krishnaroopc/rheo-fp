@@ -85,8 +85,13 @@ python scripts/train_classifier.py -n 16000 --epochs 55
 ```
 
 `train_classifier.py` reports against the AICc physics identifier as a
-baseline; on synthetic data the network scores ~0.92 against ~0.70 for the
-baseline, with abstention lifting accuracy to ~0.97 at 20% coverage dropped.
+baseline; on synthetic data the network scores ~0.92, with abstention lifting
+accuracy to ~0.97 at 20% coverage dropped. The previously published ~0.70 for
+the baseline was measured before `wormlike_micelle` had a candidate in the
+identifier's bank, so ~1/9 of its test pool was unanswerable by construction;
+a standalone re-measurement over the fixed 9-candidate bank puts it near ~0.82
+(n=90). The paired figure will be regenerated on the next training run - see
+`.claude-notes/next-actions.md` §1h.
 Requires PyTorch (a locked dependency); uses CUDA when available, CPU
 otherwise.
 
@@ -103,9 +108,9 @@ python scripts/eval_real_data.py          # trained checkpoint vs the literature
   cured elastomers (Darby et al. 2022, three commercial silicones) and a
   critical gel (Tixier et al. 2004, end-linked PDMS near the sol-gel
   threshold).
-- `rheofp/fitting/identify.py`: AICc identifier over an 8-candidate bank, with
-  single-curve abstention and a temperature-stack resolver for the
-  melt-vs-network ambiguity.
+- `rheofp/fitting/identify.py`: AICc identifier over a 9-candidate bank - one
+  per class the generator can produce - with single-curve abstention and a
+  temperature-stack resolver for the melt-vs-network ambiguity.
 - `rheofp/models/maxwell.py` `bsw_spectrum`: the branched / long-chain-branched
   melt class (Baumgärtel–Schausberger–Winter spectrum, 5 parameters). Validated
   against real LDPE — Pivokonsky et al. (2006) melts E and B, fit to under 0.07
@@ -116,9 +121,9 @@ python scripts/eval_real_data.py          # trained checkpoint vs the literature
 - `rheofp/models/pompom.py`: LVE validated against the real target — Pivokonsky
   et al. (2006) LDPE melts (data/pivo2006.npz). Nonlinear XPP flow prediction
   is out of scope (not digitized). Not a classifier output class either way —
-  branched melts are classified via `branched_spectrum` in `maxwell.py`
-  instead, since XPP is indistinguishable from generic Maxwell in LVE; see
-  module docstring for exact scope.
+  branched melts are classified via the BSW spectrum (`bsw_spectrum` /
+  `model_branched` in `maxwell.py`), since XPP is indistinguishable from generic
+  Maxwell in LVE; see module docstring for exact scope.
 - `rheofp/ml/`: two-head set model (masked attention pooling over a stack) with
   a learned abstention head. **Trained on synthetic data only**, then evaluated
   against the digitized literature sets: currently 6/6 correct. That is six

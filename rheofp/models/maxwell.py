@@ -283,6 +283,32 @@ BRANCHED_MODELS = {
 }
 
 
+def model_wormlike_micelle(w, theta):
+    """params: G0(log10), tau_rep(log10), tau_br(log10), beta.
+
+    The wormlike-micelle class (Cates living polymers), in the same
+    (forward, p0, bounds, k) shape as the other banks so identify() can merge
+    it in. beta is linear, not log10 - it matches the parameterisation
+    rheofp.data.synth samples, so a planted label and a fitted one mean the
+    same vector.
+    """
+    lG0, ltau_rep, ltau_br, beta = theta
+    return wlm_spectrum(w, 10.0**lG0, 10.0**ltau_rep, 10.0**ltau_br, beta)
+
+
+WLM_P0 = [2.0, 1.0, -2.0, 0.8]
+# Absolute (not data-scaled) bounds, like BRANCHED_BNDS, so the merged
+# identify() bank stays a single static registry. They must enclose the
+# synthetic population's WLM_* ranges in rheofp.data.synth (there is a test),
+# with extra headroom on the two times because a temperature stack Arrhenius-
+# shifts them up to ~2.4 decades either way.
+WLM_BNDS = [(-1.0, 5.0), (-3.0, 5.0), (-6.0, 1.0), (0.05, 2.0)]
+
+WLM_MODELS = {
+    "wormlike_micelle": (model_wormlike_micelle, WLM_P0, WLM_BNDS, 4),
+}
+
+
 def fit_branched(omega, Gp_data, Gpp_data, n_restarts=16, seed=0):
     """Fit branched spectrum: params [logGe, logtau_b, sigma]."""
     omega = np.asarray(omega, float)

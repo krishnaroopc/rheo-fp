@@ -6,6 +6,123 @@ the end of each working session (what was discussed, decided, and changed).
 
 ---
 
+## 2026-09-04 — New Linux PC; found + closed a 9-vs-8 class asymmetry between the two "brains"
+
+**Fourth machine** (Linux, `Documents/projects/rheo-fingerprinting/rheo-fp`).
+No uv, no `.venv` — installed uv 0.12.10 via the standalone script to
+`~/.local/bin` (no sudo, per environment.md; do NOT use the distro package
+manager). `uv sync` built the env clean; torch resolved to the **CUDA** build
+as designed on Linux, though this box has no `nvidia-smi` so training would run
+CPU. Baseline confirmed **120 passed / 3 skipped** (`-m "not slow"`) before
+touching anything. `originals/` is ABSENT here; nothing needed it.
+
+**Session was a Q&A walkthrough of the project, and one question found a real
+bug.** While tabulating the material classes I noticed the generator and the
+neural head carry **9** classes while `identify()`'s bank carries **8** —
+`wormlike_micelle` had forward physics and a fitter in `maxwell.py` but no
+`(forward, p0, bounds, k)` registry entry, so the AICc identifier could never
+emit it. Full detail in next-actions.md §1h. The two things it broke:
+- **The published physics baseline was measured wrong.**
+  `physics_baseline_accuracy` filtered its pool by the *neural* class list —
+  a no-op — so ~1/9 of its exam was unanswerable and its ceiling was 0.889.
+  Re-measured on one fixed pool (n=90): 8-model bank **0.711**, 9-model bank
+  **0.822**. The 0.711 reproduces the published 0.700, which is what confirmed
+  the diagnosis. So **"0.917 vs 0.700" overstated the margin — it is nearer
+  +0.10 than +0.217.** The network's own 0.917 is untouched.
+- **A missing class does not look like low confidence.** 12 planted micelles
+  through the old bank: `branched` 11/12, median Akaike weight **1.000**,
+  median residual 0.05 decades, `low_confidence` fired once. BSW fits a
+  near-single-Maxwell shape easily, so `FLOOR_CHI2` never trips. Worth
+  internalising: **the none-of-the-above floor cannot catch an absent class —
+  the most flexible candidate in the bank swallows it.** Same blind spot as the
+  known abstention limitation, arriving down the physics path. It also means
+  the BSW cannibalisation check on 2026-09-03 was necessarily incomplete: it
+  could only test against classes already IN the bank.
+
+**Fixed**, with the cannibalisation check run *before* wiring, as with BSW:
+no existing class lost a correct answer (per-class hits identical 8- vs
+9-model), `wormlike_micelle` 0/5 -> 5/5, real data still **6/6**. Added
+`WLM_MODELS` (k=4; `beta` linear not log10, matching synth's parameterisation),
+merged into `ALL_MODELS`, reconciled `MODEL_ONLY_CLASSES` — which had two
+different values under one name in identify.py and synth.py — and pointed the
+baseline's pool filter at the bank, with a `skipped` count so a future
+divergence shows up in the report instead of in the score. Suite **120 -> 125**
+(`-m "not slow"`), and one previously-skipped bounds-drift parametrisation now
+actually runs (3 skips -> 2), which is the test that would have caught this
+years earlier had the bank been in its `banks` dict.
+
+**Deliberately NOT done:** `MODEL_ONLY_CLASSES` is still not enforced anywhere —
+`branched` and `wormlike_micelle` are scored as ordinary fine labels in both
+identify.py and ml/evaluate.py. That is a FROZEN-taxonomy change and belongs
+with the standing §3 decision about promoting `branched`, not as a side effect
+of a bug fix. Recorded in §3.
+
+**Then the session turned into a design conversation, and two bigger things came
+out of it.**
+
+**1. SCOPE CLARIFIED by the user, and it invalidates a chunk of my afternoon.**
+The product classifies **molecular / microstructural architecture** — linear vs
+branched melt, elastomer vs vitrimer, cured vs critical gel — NOT macroscopic
+category. Their point: *"a soft paste, foam is macroscopic - anyone can see that
+just by looking at it."* I had spent a long stretch trying to build an
+out-of-distribution detector using a soft-glassy paste and a Herschel-Bulkley
+solid as the threat model. Those are the wrong targets. Now recorded at the top
+of CLAUDE.md so nobody repeats it. Note the one on-target probe I happened to
+use — a two-plateau polymer blend — is the one both detectors failed to catch.
+
+**2. OOD detection: two approaches, both failed validation. Full write-up in
+next-actions §1j.** Short version: a residual-structure (runs) test separated
+synthetic cases perfectly but flagged the correctly-classified Pivokonsky melts
+harder than the genuinely foreign material. Diagnosis — the runs statistic is a
+SIGNIFICANCE score growing like sqrt(n), and the scores tracked point count
+(11 pts -> -0.29 ... 90 pts -> -8.90) rather than wrongness. A relative-margin
+variant was better but hit the same wall. **I raised an alarm mid-session that
+`branched` might be a weak explanation of real LDPE, and then retracted it** —
+the deciding experiment showed Darby (also real, also digitized) reaches -0.28,
+so real data CAN give clean residuals and Pivokonsky's flag was a sample-size
+artifact. Lesson worth carrying: do not compare significance scores across
+datasets of different size; use an effect size.
+Two controls did hold and are worth keeping: the machinery is sound when the
+model IS the truth, and **flexibility does not launder a wrong model** (4 -> 20
+free parameters moved the out-of-scope structure score not at all).
+
+**3. Found a live defect at the heart of the molecular scope — next-actions
+§1k, NOT fixed.** `signature_features` strikes BOTH vitrimer classes off the
+ballot whenever no second G″ peak is visible. That is missing-evidence
+reasoning — the same fallacy this project already rejected for melt-vs-rubber —
+and it measured 4 of 12 generated vitrimer curves deleted before scoring, one
+returned as `cured_elastomer`, i.e. a dynamic network reported as permanent.
+The general principle, now in CLAUDE.md: **a hard discard is sound only when it
+rests on a positive observation.** `terminal_reached` qualifies; `has_shoulder`
+does not. Good news: `identify_stack` rescued all 6 vitrimer stacks I threw at
+it, which makes the untested-on-real-material temperature stack the single most
+load-bearing gap in the project.
+
+**User approved a design (built NOTHING — instructions only, deliberately).**
+They accepted that being confidently wrong is tolerable *if the reasoning is
+visible and arguable*, which sidesteps the detector problem entirely and is the
+better product anyway: under the molecular scope a user cannot referee
+"elastomer or vitrimer?" by eye, so the evidence must. Three decisions recorded
+as the ACTIVE TASK at the top of next-actions.md: report pre-filter discards now
+but measure before removing the shoulder rule; put the report in a NEW function
+over `identify()`'s existing (currently discarded) output rather than changing
+its contract; physics explainer first with the neural head as a later second
+column. Design note kept: **whether the two brains agree is a better confidence
+signal than either one's own certainty**, since both self-confidences are known
+to fail on unfamiliar material.
+
+**Housekeeping this session:** purged stale knowledge — CLAUDE.md still said the
+project was "a collection of validated notebooks" awaiting conversion (goal 1
+finished 2026-07-04); README and `pompom.py` still routed branched melts through
+`branched_spectrum` (BSW replaced it 2026-09-03); environment.md still said
+"102 tests"; workflow.md still said three machines. CLAUDE.md now also
+distinguishes the DESIGN taxonomy (8 fine + 6 model-only) from what is actually
+built (7 fine + 2 model-only, 2 regimes), which had been quoted interchangeably.
+
+**Committed and pushed** at the user's request, ending work on this machine.
+
+---
+
 ## 2026-09-03 — Windows PC bootstrapped; BSW replaces the branched forward model; real data 4/6 -> 6/6
 
 **First session on this Windows home PC since the uv migration.** It had no uv

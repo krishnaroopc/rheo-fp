@@ -20,7 +20,7 @@ from rheofp.ml.model import RheoNet, count_parameters
 from rheofp.ml.train import train, make_loaders, compute_loss, evaluate, _auc
 from rheofp.ml.evaluate import (
     confusion_matrix, abstention_curve, accuracy_by_stack_size, predict,
-    summarise,
+    summarise, physics_baseline_accuracy,
 )
 from rheofp.io.data import save_npz
 
@@ -286,6 +286,32 @@ def test_head_two_receives_gradient_from_the_parameter_loss(records):
              if n.startswith("head_params") and p.grad is not None]
     assert grads and max(grads) > 0
     assert parts["params"] > 0
+
+
+def test_physics_baseline_is_scored_only_on_classes_its_bank_can_emit():
+    """The baseline must not be charged for questions it cannot answer.
+
+    It used to filter its pool by the NEURAL head's class list, which is a
+    no-op, so every wormlike_micelle example counted as a miss for a bank that
+    had no micelle candidate - about 1/9 of the pool, dragging the published
+    baseline down by roughly a tenth. The filter now follows the bank, and
+    reports what it dropped instead of absorbing it into the score.
+    """
+    from rheofp.fitting.identify import ALL_MODELS
+    from rheofp.data.synth import ALL_CLASSES
+
+    # the invariant the fix restores: nothing generated is unanswerable
+    assert not set(ALL_CLASSES) - set(ALL_MODELS)
+
+    recs = generate(4, classes=["critical_gel"], seed=4, progress=False)
+    out = physics_baseline_accuracy(recs, n_max=4, n_restarts=4)
+    assert out["skipped"] == 0 and out["n"] == 4
+
+    # an unregistered class is dropped and reported, never scored as a miss
+    orphan = [{**recs[0], "label": "not_in_any_bank"}] + recs
+    out2 = physics_baseline_accuracy(orphan, n_max=4, n_restarts=4)
+    assert out2["skipped"] == 1
+    assert out2["accuracy"] == out["accuracy"]
 
 
 def test_npz_roundtrip_reproduces_records(tmp_path):

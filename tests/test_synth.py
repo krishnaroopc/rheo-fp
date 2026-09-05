@@ -34,8 +34,8 @@ def test_every_class_produces_a_finite_positive_spectrum(name):
 def test_sampled_parameters_stay_inside_the_fitters_search_space(name):
     """Generated population and fitting bounds must not drift apart."""
     from rheofp.models.solutions import MODELS
-    from rheofp.models.maxwell import BRANCHED_MODELS
-    banks = {**MODELS, **BRANCHED_MODELS}
+    from rheofp.models.maxwell import BRANCHED_MODELS, WLM_MODELS
+    banks = {**MODELS, **BRANCHED_MODELS, **WLM_MODELS}
     if name not in banks:
         pytest.skip("network classes use their own ranges (see test_network)")
     rng = np.random.default_rng(1)
@@ -44,6 +44,24 @@ def test_sampled_parameters_stay_inside_the_fitters_search_space(name):
         theta = sample_params(rng, name)
         for v, (lo, hi) in zip(theta, bounds):
             assert lo <= v <= hi
+
+
+def test_every_generated_class_has_a_candidate_in_the_identifier_bank():
+    """The generator and the AICc bank must cover the same classes.
+
+    A class the generator can produce but the bank cannot emit is not merely
+    hard for the identifier - it is unanswerable, and it silently corrupts any
+    accuracy measured against that identifier. wormlike_micelle was in exactly
+    that state: generated, learnable by the neural head, and absent from the
+    bank, so the published physics baseline was scored partly on questions it
+    could not answer. Keep this assertion pointed at ALL_CLASSES, not at the
+    fine classes - model-only classes are scored too.
+    """
+    from rheofp.fitting.identify import ALL_MODELS
+    missing = set(ALL_CLASSES) - set(ALL_MODELS)
+    assert not missing, (
+        f"generated but unreachable by identify(): {sorted(missing)} - "
+        "register a (forward, p0, bounds, k) entry or stop generating it")
 
 
 def test_labels_and_regimes_are_consistent():

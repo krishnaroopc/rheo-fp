@@ -5,10 +5,20 @@ kept in git so it syncs between the user's home and office PCs. When the user
 says something like "let's continue" / "do the next thing" / "pick up where we
 left off", this is where to look. Update + commit this file as items complete.
 
-Last updated: 2026-09-03 (Windows/home PC).
+Last updated: 2026-09-04 (secondary office PC, Linux).
+
+**RESUMING ELSEWHERE — read this first.** The 2026-09-04 session ran on the
+secondary office PC, which the user does not intend to keep working on: no GPU,
+no `originals/`, no checkpoint. Everything from that session is committed and
+pushed, so a `git pull` on the main office PC / home laptop is all that is
+needed. On arrival: `uv sync`, then `uv run pytest` (expect **126 passed, 2
+skipped**, ~1m40s). Then read the ACTIVE TASK immediately below — it is fully
+specified and nothing has been built yet. §1j and §1k hold the evidence behind
+it; CLAUDE.md's new "SCOPE" section is the most important thing to absorb, as it
+narrows what this product is for and retires some earlier assumptions.
 
 ## 0. First, on any PC at session start
-- Confirm the env exists: run `uv run pytest` (should be 121 passing, 3 skipped; use
+- Confirm the env exists: run `uv run pytest` (should be 126 passing, 2 skipped; use
   `-m "not slow"` to skip the end-to-end training test). If uv or
   the venv is missing, bootstrap per `.claude-notes/environment.md`
   (install uv, then `uv sync`). Python is pinned to 3.12 — do not change.
@@ -26,6 +36,94 @@ Last updated: 2026-09-03 (Windows/home PC).
   can proceed without it; only the real-data steps are blocked.
   Quick check: `ls originals/` — expect the pivo, Martin EPDM, Tixier, and
   Darby 2022 (silicone) PDFs + supp + .txt.
+
+## ACTIVE TASK (set 2026-09-04) — build the "why did you say that?" layer
+
+**Nothing below has been implemented.** The three design decisions are APPROVED
+by the user (2026-09-04); they are written down here to be built on a better
+machine. Read §1j and §1k first for the evidence behind them.
+
+**The user's framing, which is the whole point:** it is acceptable for the model
+to be confidently wrong, PROVIDED the user can see the reasoning and argue with
+it. Their words: *"if a person uploads a dataset for material type X, but my
+model says it's Y confidently, I would want an error message like 'don't think
+your model is Y? It may be X or Z or W. Here are the reasons why'."* This is
+worth more than an out-of-distribution detector, and it is achievable — §1j
+shows the detector is not.
+
+Under the molecular scope (CLAUDE.md "SCOPE"), this is not a nicety. A user can
+referee "is my sample a foam?" by looking at it. They cannot referee
+"elastomer or vitrimer?" — so the reported evidence has to do that job.
+
+### DECISION 1 — pre-filter: report now, measure before changing
+- **DO NOW (no behaviour change):** the report must state which candidates were
+  struck off by the pre-filter, which rule struck them, and what measurement
+  would put them back. e.g. *"sticky_rouse and sticky_reptation were not
+  considered, because no second G″ peak appears in your window. If you believe
+  this material has exchangeable bonds, measure at higher temperature or extend
+  to lower frequency."* This alone converts §1k's silent deletion into an
+  actionable instruction, at zero risk.
+- **DO NOT yet remove the `has_shoulder` discard.** It is unsound reasoning
+  (§1k) but the sticky models carry k=4 and may cannibalise simpler classes if
+  freed — the exact risk BSW and WLM were both checked against. Run the same
+  before/after protocol (planted curves, per-class hit counts, real data must
+  stay 6/6) and put the numbers to the user BEFORE changing classifier
+  behaviour.
+
+### DECISION 2 — a new function reading identify()'s output; do NOT change identify()
+- `identify()` is called by tests, the validation scripts, and the ML baseline.
+  Changing its return contract touches all of them for a feature most callers do
+  not want. Build `explain(result, ...)` (new module, e.g. `rheofp/report.py`)
+  plus a thin `scripts/explain.py` wrapper over it.
+- **Everything needed is already returned and currently thrown away**:
+  `ranking` (per candidate: name, k, aicc, delta, weight, rms_log, params),
+  `allowed`, `features`, `abstain`/`abstain_reason`, and `stack` from
+  `identify_stack`. The pre-filter rules are simple and all their inputs are in
+  `features`, so `explain()` can re-derive which rule struck which candidate
+  without touching `signature_features`.
+- **Report contents (worked out 2026-09-04):**
+  1. Winner + its ABSOLUTE fit quality in decades, not only its weight.
+  2. Ranked alternatives by **ΔAICc, not Akaike weight** — the weights collapse
+     to 1.000/0.000 and hide live alternatives. Rule of thumb to print
+     (Burnham & Anderson): Δ<2 substantial support, 4–7 considerably less,
+     >10 essentially none.
+  3. Each alternative's own fit quality. This is what exposes a "least-bad"
+     winner: on an out-of-scope curve the winner fit 0.0819 dec and the whole
+     rest of the field sat at 0.129–0.50, i.e. nothing fitted well — invisible
+     behind a weight of 1.000.
+  4. The measured evidence (`features`) in physical words.
+  5. Pre-filter discards + reason + how to lift them (Decision 1).
+  6. Known-degenerate pairs — `AMBIGUOUS_PAIRS` in `ml/evaluate.py` already
+     names Zimm↔Rouse and cured_elastomer↔critical_gel.
+  7. "What would settle it": for melt-vs-network, a second temperature —
+     `identify_stack` already implements the resolver.
+  8. **"Why not X?" contest mode** — the strongest feature. Given a class the
+     user believes in, fit it, report its ΔAICc, its fit quality, and the
+     specific measured feature that contradicts it.
+- **Two real worked examples to test against** (measured 2026-09-04):
+  - *Tixier gel* — `critical_gel` ΔAICc 0.0 fit 0.0108; `cured_elastomer`
+    ΔAICc 2.4 fit **0.0107**. The runner-up fits BETTER and lost only on
+    parsimony. Correct report: "if you know this is a cured elastomer, nothing
+    in your measurement contradicts that."
+  - *Pivokonsky E* — `branched` ΔAICc 0.0 fit 0.0624; next `zimm` at 79.4.
+    Decisive, and the report should read as decisive.
+
+### DECISION 3 — physics explainer first, neural head as a second column later
+- The AICc side owns the REASONS (physical statements: "G′ low-frequency slope
+  0.99", "loss tangent flat to 0.06 decades"). The neural head owns the better
+  RANKING (0.92/0.07 across classes vs AICc's 1.000/0.000) and the better
+  accuracy (~0.92 vs ~0.82). Build the physics one first; leave a column for the
+  network.
+- Needs a trained checkpoint, so do it on a GPU machine. `checkpoints/` is
+  gitignored and reproducible: `python scripts/train_classifier.py -n 16000
+  --epochs 55` (~12 min on GTX 1660 Ti).
+- **Design note worth keeping:** the two brains are mathematically independent,
+  so **whether they AGREE is a better confidence signal than either one's own
+  certainty.** Both self-confidences are known unreliable on unfamiliar material
+  — the network's abstention is trained only against its own synthetic errors
+  (§3), and AICc's weight hits 1.000 even when the true class is absent from the
+  bank entirely (§1h). Agreement between two independent methods is not subject
+  to either failure. Nothing currently looks at this.
 
 ## 1. ~~ACTIVE TASK~~ — elastomer / rubber + critical-gel module — **COMPLETE 2026-08-31**
 Built, wired into `identify()`, and validated against real data (Darby 2022
@@ -300,6 +398,11 @@ class is absent from that distribution. Do not read low abstain_p as evidence
 of a correct answer on out-of-distribution material.
 
 ### 1g. Branched forward model replaced with BSW — DONE 2026-09-03
+> Numbers below are AS MEASURED on 2026-09-03 and partly superseded by §1h:
+> the bank is now 9 candidates, not 8, and the "0.700 AICc baseline" was
+> measured while `wormlike_micelle` was unreachable. Left unedited as the
+> record of what was known at the time.
+
 Closed the §1f blocker (Pivokonsky LDPE misclassified). User chose option (a):
 give the branched class a broader forward model, 5 parameters.
 
@@ -356,17 +459,191 @@ The overturn logic is still there and still tested, against a new fixture
 that genuinely still reads as cured_elastomer from one curve. Do not read the
 rename as the feature being dropped.
 
+### 1h. Two-brain asymmetry closed — wormlike_micelle registered — DONE 2026-09-04
+The generator made 9 classes and the neural head emitted 9, but `identify()`'s
+bank held only 8: `wormlike_micelle` had `wlm_spectrum` + `fit_wlm` in
+`maxwell.py` and was never given a `(forward, p0, bounds, k)` registry entry.
+So the AICc identifier could not emit it at any cost. Found by auditing the
+class registries against each other, not by a failing test.
+
+**Two consequences, both real.**
+1. *The published physics baseline was measured wrong.*
+   `physics_baseline_accuracy` filtered its pool with
+   `fine = set(ml.dataset.CLASSES)` — the NEURAL 9-class list — which filters
+   nothing. So ~1/9 of the baseline's exam was unanswerable by construction and
+   its ceiling was 0.889, not 1.0. Measured on one fixed pool (n=90,
+   n_restarts=6): **8-model bank 0.711 overall / 0.800 on what it could emit;
+   9-model bank 0.822.** The old 0.711 reproduces the published 0.700 closely,
+   which is the evidence the diagnosis is right. **So the headline
+   "0.917 vs 0.700" overstated the margin: it is closer to +0.10 than +0.217.**
+   The network's 0.917 is untouched — the ML pipeline only calls `identify()`
+   for the baseline.
+2. *A missing class does not present as low confidence.* Handed 12 planted
+   micelles, the 8-model bank said `branched` 11 times at median Akaike weight
+   **1.000**, median residual 0.05 decades — `low_confidence` fired once. BSW's
+   5 parameters fit a near-single-Maxwell shape easily, so `FLOOR_CHI2` never
+   trips. **The none-of-the-above floor cannot detect a class that is not in
+   the bank; the most flexible candidate absorbs it instead.** This is the
+   physics-side twin of the known abstention limitation in §3.
+
+**Cannibalisation check ran BEFORE wiring** (same discipline as BSW, §1g).
+5 planted curves per class, 8-model vs 9-model bank: **no existing class lost a
+single correct answer** (zimm 5->5, reptation 4->4, sticky_rouse 3->3,
+sticky_reptation 3->3, cured 5->5, gel 5->5, branched 5->5). One `reptation`
+curve moved from `branched` to `wormlike_micelle`, i.e. one already-wrong
+answer was redistributed. `wormlike_micelle` went 0/5 -> 5/5. Real data stayed
+**6/6** (Pivokonsky E/B branched, Darby x3 cured_elastomer, Tixier
+critical_gel).
+
+**What changed.** `WLM_MODELS` in `maxwell.py` (`model_wormlike_micelle`, k=4;
+`beta` is LINEAR not log10, matching how synth samples it, so a planted vector
+and a fitted vector mean the same thing). Bounds are absolute like
+`BRANCHED_BNDS` and carry ~2 decades of headroom on both times because a T-stack
+Arrhenius-shifts them. `ALL_MODELS` is 9; `MODEL_ONLY_CLASSES` in identify.py is
+now `BRANCHED_MODELS | WLM_MODELS` (it disagreed with synth.py's constant of the
+same name before). `physics_baseline_accuracy` filters by the BANK and returns
+`skipped`; `print_report` warns loudly if anything was dropped.
+
+**Still open from this.** The paired network-vs-baseline number needs a rerun of
+`scripts/train_classifier.py` through the fixed path — ~0.82 above is a
+standalone measurement at n=90, not the same split the 0.917 came from. Nothing
+else depends on it.
+
+**Note `MODEL_ONLY_CLASSES` is still not enforced anywhere.** Both in identify.py
+and in ml/evaluate.py, `branched` and `wormlike_micelle` are scored as ordinary
+fine labels; the "regime-level only" rule lives in prose and in one unused
+constant. Deliberately left alone — it is a change to the FROZEN taxonomy and
+belongs with the §3 decision on promoting `branched`, not smuggled in here.
+
+### 1j. Out-of-distribution detection — TWO APPROACHES TRIED, BOTH FAILED 2026-09-04
+**Do not re-tread this without reading why.** Goal was a "none of the above"
+signal, since AICc always crowns a winner even when the true class is absent
+(§1h). Both candidate discriminators were validated before use, per house style,
+and both failed validation. Recorded so the ground is not covered twice.
+
+**Context that came late, and matters:** the user clarified mid-session that the
+product classifies MOLECULAR architecture, not macroscopic category (now in
+CLAUDE.md "SCOPE"). Two of the three out-of-scope test materials used below —
+a soft-glassy paste and a Herschel-Bulkley solid — are obvious on sight and are
+NOT a threat model worth engineering against. **The relevant unknowns are
+molecularly distinct but macroscopically ordinary: blends, block copolymers,
+semicrystalline melts, star polymers, filled melts.** Notably the one on-target
+probe (a two-plateau blend) is the one BOTH detectors missed.
+
+**Approach 1 — residual STRUCTURE (Wald-Wolfowitz runs test on log-residuals).**
+Idea: a right-shaped model leaves noise-like residuals (signs flip often); a
+wrong-but-flexible one leaves long same-sign drifts. Measures shape, not size,
+so it is independent of FLOOR_CHI2.
+  - Worked perfectly on synthetic: 3/3 out-of-scope caught, 0/45 false alarms.
+  - **Failed on real data.** Pivokonsky E scored -8.90 and B -8.62 — MORE
+    structured than the out-of-scope materials (-6.08, -5.76) — while being
+    correctly classified.
+  - **Diagnosis: the statistic is a SIGNIFICANCE score, so it grows ~sqrt(n).**
+    Scores tracked point count almost monotonically: Tixier 11 pts -0.29,
+    Darby 16 pts -3.09, planted 27 pts -1.37, out-of-scope 40 pts -6.08,
+    Pivokonsky 85-90 pts -8.6/-8.9. Comparing raw scores across curves of
+    different length is invalid, and that is what the test did.
+  - **If anyone retries this: use an EFFECT SIZE, not a significance score** —
+    e.g. the fraction of residual variance that is systematic, or longest run as
+    a fraction of n. That is the fix, and it is unvalidated.
+
+**Approach 2 — relative margin** (winner's structure minus rivals' median).
+Motivated by the above: real material always carries model error, but that
+applies to every candidate equally. Better, and scale-free:
+  in-taxonomy min 1.32 / median 6.31; out-of-scope -3.91, 0.00, 0.00.
+  But Pivokonsky E/B again land at 0.20/0.21, inside the out-of-scope band.
+
+**The deciding experiment (walk a Maxwell ladder 2->10 modes and watch what
+happens as the fit becomes adequate) — and its verdict.**
+  - Pivokonsky E: rms 0.2538 -> 0.0200 (12.7x better) but structure only
+    -8.90 -> -7.50. Structure barely moves however good the fit gets.
+  - BUT Darby (also real, also digitized, 16 pts) goes -3.09 -> -0.28. So "real
+    data is too smooth for clean residuals" is FALSE in general. The difference
+    is point count, not realness. **Verdict: Pivokonsky's flag was a FALSE
+    ALARM caused by sample size.** An earlier worry in this session that
+    `branched` might be a weak explanation of real LDPE was retracted on this
+    evidence — the LDPE behaves like ordinary representable material.
+  - Two controls that DID hold, worth keeping: (a) planted synthetic branched
+    scored -1.37, i.e. the machinery is sound when the model IS the truth;
+    (b) **flexibility does not launder a wrong model** — on the out-of-scope
+    paste, going from 4 to 20 free parameters moved structure not at all
+    (-6.06 -> -6.08) and the fit hit a wall at ~0.071 dec.
+
+**Byproduct worth remembering — SATURATION of a Prony ladder.** How much a
+generic Maxwell fit improves from 2 to 10 modes: Darby 35x, planted branched
+13x, Pivokonsky E 12.7x, Tixier 11x, Pivokonsky B 9.8x, **out-of-scope paste
+3.2x (hits a wall)**. Scale-free, unlike the runs test. But narrow: it detects
+only material a sum of relaxation modes cannot represent. Herschel-Bulkley
+scored 8.8x (missed) and the two-plateau blend fits exactly at 2 modes
+(undetectable — it IS a Prony series, it is just absent from the bank). Useful
+someday for the empty Yield-dominated regime; not a general detector.
+
+**Conclusion: there is no working OOD detector, and the explanation layer
+(ACTIVE TASK) is the agreed answer instead** — put the reasoning in front of the
+user, who knows what they uploaded, rather than trying to infer it.
+
+### 1k. Vitrimers can be struck off the ballot by the pre-filter — FOUND 2026-09-04, NOT FIXED
+Vitrimers / associating networks route through `sticky_rouse` +
+`sticky_reptation` (CLAUDE.md). `signature_features` contains:
+
+    if not has_shoulder:
+        allowed -= {"sticky_rouse", "sticky_reptation"}
+
+`has_shoulder` needs a SECOND G″ maximum with an interior dip. If the window
+does not span the bond-exchange time, both vitrimer classes are deleted before
+any fitting — unreachable, exactly as `wormlike_micelle` was before §1h.
+
+**Measured: 4 of 12 generated vitrimer curves had both classes struck off**, and
+those landed on `cured_elastomer` (a dynamic network reported as PERMANENT — the
+flagship molecular error under the scope), `reptation` x2, `wormlike_micelle`.
+
+**Why the rule is unsound:** absent evidence, not evidence of absence — the same
+fallacy this project already rejected for melt-vs-rubber. Contrast the sound
+discard, `terminal_reached` removing the network classes: that rests on
+something OBSERVED (flow), which is impossible for a permanent network. General
+principle now in CLAUDE.md: *a hard discard is sound only when grounded in a
+positive observation.*
+
+**The stack rescues it, and this is the good news.** `identify_stack` on 6
+vitrimer temperature stacks: all 6 correctly refused a permanent-network call
+(verdict "melt", shifts 0.56-1.71 decades), 4 of 6 got the exact class right.
+The designed mechanism works — on synthetic data.
+
+**Also flagged, my own due diligence:** 2 of the 12 vitrimer curves came back as
+`wormlike_micelle`, a class added to the bank on 2026-09-04 (§1h). The
+pre-registration check showed no loss on `sticky_rouse` at 5 curves/class, but a
+near-single-Maxwell micelle and a sticky-Rouse network with one dominant slow
+mode are plausibly confusable. **Run a proper sticky-vs-WLM confusion check on
+a bigger sample before trusting the vitrimer classes.**
+
 ## 3. What's genuinely open
 - **Real-data coverage is still thin even at 6/6**: six curves, three papers,
   all N=1, and four of the six are the same material family (cured PDMS).
   6/6 confirms the BSW work did its job; it is NOT evidence of general
   real-world accuracy.
-- No temperature stack has ever been tested on real material — the stack
-  resolver and the stack-aware model are both synthetic-only. This is now the
-  biggest untested claim in the project, since set-based input is the
-  architecture's entire reason for being.
+- **No temperature stack has ever been tested on real material — under the
+  molecular scope this is THE load-bearing gap, not one of several.** The stack
+  is the only thing that separates a dynamic network (vitrimer) from a permanent
+  one (cured elastomer), which is a flagship distinction of the product; it is
+  also what rescues the vitrimer misclassification in §1k. Both the resolver and
+  the stack-aware model are synthetic-only. Getting ONE real temperature series
+  of a vitrimer or a melt would be worth more than any amount of further
+  synthetic work.
 - Yield-dominated regime has no implemented physics at all (3rd taxonomy
-  regime is empty).
+  regime is empty). **Lower priority than it looks** under the molecular scope:
+  yield-stress materials (pastes, foams, emulsions) are macroscopically obvious,
+  so a user does not need a classifier to spot one. Fill it for completeness,
+  not for value. If it is ever built, §1j's saturation byproduct is a ready
+  detector for it.
+- **Molecular unknowns that ARE worth worrying about**, none in the taxonomy and
+  none macroscopically distinguishable: polymer blends / two-phase systems,
+  block copolymers, semicrystalline melts, star and comb architectures,
+  filled/nanocomposite melts. A blend was the one out-of-scope probe both §1j
+  detectors failed to catch.
+- **The "model-only" rule is documentation, not behaviour.** Nothing in
+  identify.py or ml/evaluate.py coerces `branched` / `wormlike_micelle` to a
+  regime-level answer — both are scored as ordinary fine labels today. Decide
+  this together with the promotion question below, in one deliberate pass.
 - **Open decision: should `branched` be promoted to a fine class?** Discussed
   2026-09-03, deliberately NOT done. Linear-vs-branched is one of the most
   useful things SAOS can reveal and the standard diagnostics are all LVE (van

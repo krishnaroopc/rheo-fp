@@ -164,14 +164,24 @@ def summarise(model, loader, device, physics_baseline=None):
 def physics_baseline_accuracy(records, n_max=200, seed=0, n_restarts=6):
     """What the validated AICc identifier scores on the same data.
 
-    The neural model has to beat this to justify existing at all.
-    """
-    from rheofp.fitting.identify import identify
-    from rheofp.ml.dataset import CLASSES as _C
+    The neural model has to beat this to justify existing at all - which only
+    means anything if the comparison is on common ground. The pool is therefore
+    filtered to classes the identifier's bank can actually emit, NOT to the
+    neural head's class list: a class the bank has no candidate for is a
+    guaranteed miss, and scoring it would depress the baseline by roughly its
+    share of the data rather than by any failure of the method.
 
-    fine = set(_C)
+    This filter is a guard, not a no-op. It currently keeps everything, because
+    the bank covers all nine generated classes - and it is what will keep the
+    number honest if a tenth class is ever generated before it is registered.
+    `skipped` reports how many records it had to drop, so a silent divergence
+    between generator and bank shows up in the report instead of in the score.
+    """
+    from rheofp.fitting.identify import identify, ALL_MODELS
+
+    answerable = set(ALL_MODELS)
     rng = np.random.default_rng(seed)
-    pool = [r for r in records if r["label"] in fine]
+    pool = [r for r in records if r["label"] in answerable]
     picks = rng.choice(len(pool), size=min(n_max, len(pool)), replace=False)
     hits = 0
     for i in picks:
@@ -182,7 +192,8 @@ def physics_baseline_accuracy(records, n_max=200, seed=0, n_restarts=6):
         except Exception:
             best = None
         hits += (best == rec["label"])
-    return {"accuracy": hits / len(picks), "n": int(len(picks))}
+    return {"accuracy": hits / len(picks), "n": int(len(picks)),
+            "skipped": int(len(records) - len(pool))}
 
 
 def print_report(report):
@@ -195,6 +206,10 @@ def print_report(report):
         b = report["physics_baseline"]
         print(f"physics baseline {b['accuracy']:.3f}  (AICc identifier, "
               f"n={b['n']}, single curve)")
+        if b.get("skipped"):
+            print(f"  WARNING: {b['skipped']} test records were dropped - their "
+                  "class has no candidate in the identifier's bank, so the two "
+                  "numbers above are NOT measured on the same classes")
 
     print("\nper class:")
     for name, d in report["per_class"].items():

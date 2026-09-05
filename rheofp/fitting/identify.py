@@ -6,17 +6,31 @@ AICc ranking with Akaike weights -> none-of-the-above floor via FLOOR_CHI2.
 Lesson learned in the original notebook: aggressive pre-filter pruning caused
 misclassification; keep the pre-filter permissive and let AICc resolve.
 
-The candidate bank merges three families: the polymer-solution models
+The candidate bank merges four families: the polymer-solution models
 (Zimm/Rouse/reptation and their sticky variants), the crosslinked-network
-models (cured elastomer, critical gel), and the branched / long-chain-branched
-melt model (a BSW spectrum, e.g. for LDPE). A permanent network cannot flow,
-so observing terminal relaxation inside the window is the one robust
-contraindication that hard-discards the network candidates.
+models (cured elastomer, critical gel), the branched / long-chain-branched
+melt model (a BSW spectrum, e.g. for LDPE), and the wormlike micelle. A
+permanent network cannot flow, so observing terminal relaxation inside the
+window is the one robust contraindication that hard-discards the network
+candidates.
 
-"branched" is emitted only at regime level (Terminal/liquid-like) per the
-frozen taxonomy - it is a model-only class. It sits in the bank so AICc can
-actually adjudicate a broad, LCB-like terminal spectrum against the linear
-reptation model instead of always defaulting to rouse_screened.
+The bank must cover EVERY class rheofp.data.synth can generate. It briefly did
+not: wormlike_micelle was generated and learnable by the neural head but had no
+registry entry here, so identify() could not emit it at any cost. Two things
+went wrong as a result, and both are worth not repeating. The physics baseline
+was scored on a pool containing that class, so ~1/9 of its exam was
+unanswerable and its published accuracy was structurally depressed. Worse, a
+wormlike micelle handed to the 8-model bank came back as "branched" at Akaike
+weight 1.000 with a 0.05-decade residual - BSW's five parameters fit a
+near-single-Maxwell shape comfortably, so the FLOOR_CHI2 none-of-the-above
+floor never fired. A missing class does not present as low confidence; it
+presents as a confident wrong answer from whichever candidate is most flexible.
+
+"branched" and "wormlike_micelle" are emitted only at regime level
+(Terminal/liquid-like) per the frozen taxonomy - they are model-only classes.
+They sit in the bank so AICc can actually adjudicate a broad LCB-like or a
+narrow micellar terminal spectrum instead of defaulting to whatever fits least
+badly.
 
 Abstention: a cured elastomer and a high-Mw entangled melt are genuinely
 indistinguishable from a single SAOS curve whose terminal relaxation lies
@@ -38,7 +52,7 @@ import numpy as np
 
 from rheofp.models.solutions import MODELS
 from rheofp.models.network import NETWORK_MODELS, tan_delta_spread
-from rheofp.models.maxwell import BRANCHED_MODELS
+from rheofp.models.maxwell import BRANCHED_MODELS, WLM_MODELS
 from rheofp.fitting.optimize import multi_restart_fit
 
 N_RESTARTS = 12
@@ -46,13 +60,15 @@ FLOOR_CHI2 = 0.15  # normalized RMS log-residual above which we flag low confide
 RNG_SEED = 0
 
 # Full candidate bank: solution family + crosslinked-network family +
-# branched / LCB melt.
-ALL_MODELS = {**MODELS, **NETWORK_MODELS, **BRANCHED_MODELS}
+# branched / LCB melt + wormlike micelle. This must stay in step with
+# rheofp.data.synth.ALL_CLASSES - a class the generator can produce but the
+# bank cannot emit is unanswerable, not merely hard (there is a test).
+ALL_MODELS = {**MODELS, **NETWORK_MODELS, **BRANCHED_MODELS, **WLM_MODELS}
 
 # Names belonging to the Solid/gel-like regime, for regime-level reporting.
 NETWORK_CLASSES = frozenset(NETWORK_MODELS)
 # Model-only classes: emitted at regime level only, never as a fine label.
-MODEL_ONLY_CLASSES = frozenset(BRANCHED_MODELS)
+MODEL_ONLY_CLASSES = frozenset(BRANCHED_MODELS) | frozenset(WLM_MODELS)
 
 # --- abstention thresholds (melt-vs-rubber) ---
 # |dlog10 G'/dlog10 w| below this counts as "flat" when measuring plateau width.

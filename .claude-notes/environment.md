@@ -38,7 +38,7 @@ Always go through `uv run`; never `python` directly.
 
 ## Daily use
 ```bash
-uv run pytest                                # 102 tests
+uv run pytest                                # 126 passed, 2 skipped (~1m40s)
 uv run pytest -m "not slow"                  # skip end-to-end training tests
 uv run python scripts/validate_maxwell.py    # a validation script
 uv run python scripts/train_classifier.py    # train the classifier (~12 min)
@@ -63,6 +63,17 @@ Home PC (2026-09-01): GTX 1660 Ti, ~11 s/epoch at 16k examples.
 - Commit `pyproject.toml`, `uv.lock`, and `requirements.txt` together.
 
 ## History
+- **2026-09-04:** A **fourth machine** added — the **secondary office PC**
+  (Linux), repo at `~/Documents/projects/rheo-fingerprinting/rheo-fp`. uv 0.12.10
+  via the standalone installer to `~/.local/bin` (no sudo needed; not the distro
+  package manager). `uv sync` reproduced the env first try and torch resolved to
+  the CUDA build per the `sys_platform == 'linux'` markers — but this box has
+  **no usable GPU** (`nvidia-smi` is absent), so `torch.cuda.is_available()` is
+  False and training falls back to CPU via `device_auto()`. Nothing about the
+  lock needed changing, which is the setup working as intended.
+  **This is a low-priority machine — the user does not intend to continue work
+  here.** No `originals/`, no GPU, no checkpoint. Prefer the main office PC or
+  the home laptop/PC for anything that needs training or real-data digitizing.
 - **2026-09-03:** Windows home PC bootstrapped onto this setup for the first
   time (it predated the uv migration): `winget install astral-sh.uv` -> 0.12.8,
   same as the Linux box, then `uv sync`. Confirmed the cross-platform lock
