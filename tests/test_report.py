@@ -195,3 +195,71 @@ def test_every_bank_class_is_contestable():
         c = contest(w, Gp, Gpp, name, result=out, n_restarts=4)
         assert np.isfinite(c["rms_log"])
         assert isinstance(format_contest(c), str)
+
+
+# --- the always-on challenge -------------------------------------------------
+
+def test_challenge_is_present_even_for_a_confident_correct_answer():
+    """The whole point of making it unconditional.
+
+    Pivokonsky E is real data, correctly classified, decisive on delta AICc.
+    It still gets a full "don't think it's branched?" section - because a
+    caveat that appeared only when something looked wrong would teach the
+    reader that a quiet report means a sure answer, and that inference is
+    false: most of this classifier's errors are GOOD fits of the WRONG class.
+    """
+    s = load_npz("data/pivo2006.npz")["E"]
+    rep = explain(identify(s["omega"], s["Gp"], s["Gpp"]))
+    assert rep["winner"] == "branched"
+    assert not rep["field_all_poor"]          # nothing is wrong here...
+    assert rep["challenge"]                   # ...and it is challenged anyway
+
+    text = format_report(rep)
+    assert "DON'T THINK IT'S BRANCHED? THIS MAY BE WHY" in text
+    # and it must say why it is always printed, so the reader does not read
+    # its presence as a warning sign
+    assert "printed for every result" in text
+
+
+def test_challenge_states_absolute_fit_in_both_directions():
+    """A good fit is reported as good - with the caveat that a good fit only
+    shows the model CAN produce the data, not that nothing else could."""
+    s = load_npz("data/pivo2006.npz")["E"]
+    kinds = {c["kind"] for c in explain(
+        identify(s["omega"], s["Gp"], s["Gpp"]))["challenge"]}
+    assert "fit" in kinds and "nothing_fits" not in kinds
+
+    w, Gp, Gpp = _blend()
+    kinds = {c["kind"] for c in explain(identify(w, Gp, Gpp))["challenge"]}
+    assert "nothing_fits" in kinds and "fit" not in kinds
+
+
+def test_challenge_names_a_live_alternative_with_its_numbers():
+    s = list(load_npz("data/tixier2004.npz").values())[0]
+    rep = explain(identify(s["omega"], s["Gp"], s["Gpp"]))
+    alts = [c for c in rep["challenge"] if c["kind"] == "alternative"]
+    assert alts, "a delta-2.4 runner-up must be named"
+    assert alts[0]["name"] == "cured_elastomer"
+    assert "BETTER than the winner" in alts[0]["text"]
+
+
+def test_challenge_does_not_name_hopeless_alternatives():
+    """Naming every class would be noise. Only alternatives within delta 10 -
+    the band where the data genuinely does not separate them - are raised."""
+    s = load_npz("data/pivo2006.npz")["E"]
+    rep = explain(identify(s["omega"], s["Gp"], s["Gpp"]))
+    assert rep["alternatives"][0]["delta_aicc"] > 10      # nothing is close
+    assert not [c for c in rep["challenge"] if c["kind"] == "alternative"]
+
+
+def test_challenge_always_states_the_out_of_taxonomy_limit():
+    """No result can escape the fact that only nine classes exist, so this
+    item is unconditional - including on the classifier's best day."""
+    for path, sample in (("data/pivo2006.npz", "E"),
+                         ("data/darby2022.npz", None),
+                         ("data/tixier2004.npz", None)):
+        d = load_npz(path)
+        s = d[sample] if sample else list(d.values())[0]
+        rep = explain(identify(s["omega"], s["Gp"], s["Gpp"], n_restarts=6))
+        kinds = [c["kind"] for c in rep["challenge"]]
+        assert "out_of_taxonomy" in kinds, path

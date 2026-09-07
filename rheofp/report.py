@@ -264,6 +264,103 @@ def contest(w, Gp, Gpp, candidate, result=None, **kw):
     }
 
 
+def challenge(result, max_named=3):
+    """"Don't think it's X? Here's why it might not be." Always produced.
+
+    Deliberately unconditional - it is printed for a confident correct answer
+    exactly as for a doubtful one. The reason is that the alternative, showing
+    a caveat only when some internal test trips, teaches the reader that a
+    QUIET report means a SURE answer. That inference is false here and known
+    to be false: most of this classifier's errors are good fits of the wrong
+    class (a Zimm curve read as Rouse fits beautifully - that is why they are
+    confusable), and no available signal flags them. A caveat that is always
+    present carries no such implication, and a reader who knows their own
+    sample can act on the specific reasons named below.
+
+    Returns a list of dicts: `text` plus `kind` for anything that wants to
+    style them.
+    """
+    ranking = result["ranking"]
+    winner = ranking[0]
+    feats = result["features"]
+    items = []
+
+    # 1. Absolute fit of the winner - stated every time, in both directions.
+    if all(r["rms_log"] > FLOOR_CHI2 for r in ranking):
+        items.append({
+            "kind": "nothing_fits",
+            "text": (
+                f"No model in the bank fits this data well - the best is "
+                f"{winner['name']} at {winner['rms_log']:.3f} decades, which "
+                "is poor in absolute terms. A material outside the nine "
+                "classes looks exactly like this. Treat the label as a guess."),
+        })
+    else:
+        items.append({
+            "kind": "fit",
+            "text": (
+                f"{winner['name']} reproduces your curve to "
+                f"{winner['rms_log']:.4f} decades, which is a genuinely good "
+                "fit - but a good fit only means this model CAN produce your "
+                "data, never that no other explanation could."),
+        })
+
+    # 2. The live alternatives, named, with what separates them.
+    for a in ranking[1:1 + max_named]:
+        if a["delta"] > 10:
+            break
+        note = DEGENERATE_PAIRS.get(frozenset({a["name"], winner["name"]}))
+        better = a["rms_log"] < winner["rms_log"]
+        txt = (f"It could be {a['name']} instead (delta AICc "
+               f"{a['delta']:.1f}, {delta_verdict(a['delta'])}; fits your data "
+               f"to {a['rms_log']:.4f} decades")
+        txt += (", which is actually BETTER than the winner - it lost only "
+                "because it spends more parameters to get there)."
+                if better else ").")
+        if note:
+            txt += " " + note
+        items.append({"kind": "alternative", "name": a["name"], "text": txt})
+
+    # 3. Classes that were never fitted at all.
+    for d in explain_discards(result):
+        items.append({
+            "kind": "discarded",
+            "text": (f"{', '.join(d['classes'])} was never fitted, "
+                     f"because {d['because']}. {d['reasoning']}"),
+        })
+
+    # 4. The standing limits of the method, which no single result can escape.
+    items.append({
+        "kind": "out_of_taxonomy",
+        "text": (
+            "Only nine classes exist in this bank. Polymer blends, block "
+            "copolymers, star and comb architectures, semicrystalline and "
+            "filled melts are NOT among them, and none of them are visible "
+            "by eye either. If your sample is one of those, the classifier "
+            "will still return one of its nine - and if the wrong class "
+            "happens to fit well, nothing here will say so."),
+    })
+    if not feats["terminal_reached"]:
+        items.append({
+            "kind": "window",
+            "text": (
+                "Your window does not reach terminal flow, so the longest "
+                "relaxation in this material was never measured - it lies at "
+                "or below your lowest frequency. Anything distinguished by "
+                "that relaxation cannot be settled by this measurement."),
+        })
+    if not feats["has_shoulder"]:
+        items.append({
+            "kind": "window",
+            "text": (
+                "No bond-exchange shoulder is visible. That does not rule out "
+                "exchangeable bonds (a vitrimer) - the exchange time may "
+                "simply sit outside your window. Both sticker classes were "
+                "fitted and ranked here regardless."),
+        })
+    return items
+
+
 def explain(result, w=None, Gp=None, Gpp=None, max_alternatives=4):
     """Build the full structured explanation of an identify() result.
 
@@ -322,6 +419,7 @@ def explain(result, w=None, Gp=None, Gpp=None, max_alternatives=4):
         "n_considered": len(ranking),
         "n_total": len(ALL_MODELS),
         "field_all_poor": field_poor,
+        "challenge": challenge(result),
         "low_confidence": bool(result["low_confidence"]),
         "abstain": bool(result.get("abstain")),
         "abstain_reason": result.get("abstain_reason"),
@@ -416,8 +514,24 @@ def format_report(rep, width=76):
                 L.append(("  - " if i == 0 else "    ") + chunk)
 
     L.append("")
-    L.append("Disagree? Ask 'why not X?' - contest(w, Gp, Gpp, 'X') fits your")
-    L.append("candidate on this same data and reports its case in full.")
+    L.append(f"DON'T THINK IT'S {rep['winner'].upper()}? THIS MAY BE WHY")
+    L.append("-" * width)
+    for c in rep["challenge"]:
+        for i, chunk in enumerate(_wrap(c["text"], width - 4)):
+            L.append(("  - " if i == 0 else "    ") + chunk)
+    L.append("")
+    for chunk in _wrap(
+            "This section is printed for every result, including confident "
+            "and correct ones. A caveat that appeared only when something "
+            "looked wrong would imply that a quiet report means a sure "
+            "answer - and that is not true here: most errors this classifier "
+            "makes are GOOD fits of the WRONG class, and nothing flags them.",
+            width - 2):
+        L.append(f"  {chunk}")
+
+    L.append("")
+    L.append("Still disagree? Ask 'why not X?' - contest(w, Gp, Gpp, 'X') fits")
+    L.append("your candidate on this same data and reports its case in full.")
     L.append(rule)
     return "\n".join(L)
 

@@ -98,6 +98,20 @@ Small correction carried into the notes: "weights collapse to 1.000/0.000" is a
 tendency, not a law (the Tixier winner is 0.766). It is why the report ranks on
 delta AICc and absolute residuals rather than weight.
 
+**Then the user improved the design.** After I explained that the misfit flag
+only catches out-of-taxonomy material that fits BADLY - and that the dominant
+error mode (a good fit of the wrong class) gets no warning at all - they
+instructed: *"just give the warning for all matches by default - good, bad,
+false positive whatever."* Implemented as `challenge()`, printed
+unconditionally under "DON'T THINK IT'S X? THIS MAY BE WHY". The reasoning is
+sound and worth keeping: **a caveat that appears only when a test trips teaches
+the reader that a quiet report means a sure answer**, which is precisely the
+inference this classifier cannot support. The section carries a footer saying
+it is always printed, so its presence is not misread as a warning. Content is
+per-measurement, not boilerplate: absolute fit in both directions, named live
+alternatives within delta 10 with their numbers, unfitted classes, window
+limits, and the standing nine-class limit. Suite **141 -> 146**.
+
 **Next:** the neural head as a second column in the report, and the real
 temperature stack when the user is happy with the framework.
 

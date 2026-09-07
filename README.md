@@ -101,6 +101,16 @@ a single confident label hides:
   out-of-taxonomy material looks like. The report says so outright rather than
   reporting a confident class.
 
+Every report ends with **"Don't think it's X? This may be why"** - printed
+unconditionally, including for confident and correct answers. That is
+deliberate: a caveat shown only when some internal test trips would teach the
+reader that a quiet report means a sure answer, and that is false here. Most of
+this classifier's errors are GOOD fits of the WRONG class (a Zimm curve read as
+Rouse fits beautifully - that is exactly why they are confusable), and no
+available signal flags them. An always-present challenge carries no such
+implication, and it names the specific alternatives, the unfitted classes, the
+window limits, and the out-of-taxonomy risk that apply to THIS measurement.
+
 `--why-not X` / `contest()` makes the case for a class you believe in: it fits
 that class on your data - even one the pre-filter struck off - and reports its
 delta, its fit, and whether anything measured actually contradicts it.

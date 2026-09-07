@@ -59,6 +59,22 @@ Correction worth carrying: the notes' "weights collapse to 1.000/0.000" is a
 tendency, not a law — the Tixier gel's winner sits at 0.766. Another reason
 the report leans on delta AICc and absolute residuals instead.
 
+**Design change, user instruction 2026-09-07 (implemented):** the challenge is
+**unconditional**. The user's words: *"just give the warning for all matches by
+default - good, bad, false positive whatever... even then - give the message:
+'dont think its a melt? this maybe why'"*. Their reasoning is better than what
+was first built: a caveat that fires only on a tripped test teaches the reader
+that silence means certainty, and silence here means nothing of the kind. The
+preceding exchange established why - the misfit flag catches out-of-taxonomy
+material that fits BADLY, but the classifier's dominant error mode is a GOOD
+fit of the WRONG class (Zimm<->Rouse, elastomer<->gel), which no signal flags.
+`challenge()` therefore always emits: absolute fit (stated in both directions),
+named live alternatives within delta 10 with their own numbers, unfitted
+classes and how to lift them, the standing out-of-taxonomy limit, and any
+window limits (no terminal flow / no shoulder). Rendered as "DON'T THINK IT'S
+X? THIS MAY BE WHY", with a footer explaining why it is always present so its
+appearance is not misread as a warning.
+
 **Still to do here:** the neural head as a second column (needs a checkpoint;
 `identify()`'s reasons + the network's better ranking, and their AGREEMENT as
 the confidence signal neither self-confidence can provide).
