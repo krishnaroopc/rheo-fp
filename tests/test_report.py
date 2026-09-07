@@ -1,0 +1,197 @@
+"""The explanation layer.
+
+What matters is that the report tells the truth about the evidence: that it
+ranks by delta AICc rather than the collapsed Akaike weight, that it exposes a
+runner-up which fits BETTER than the winner, that it says so plainly when
+nothing in the bank fits at all, and that contesting a class the pre-filter
+struck off still fits it and reports its numbers.
+"""
+import numpy as np
+import pytest
+
+from rheofp.fitting.identify import identify, identify_stack, ALL_MODELS
+from rheofp.io.data import load_npz
+from rheofp.report import (
+    explain, format_report, contest, format_contest,
+    delta_verdict, fit_verdict, DEGENERATE_PAIRS,
+)
+
+
+def _blend(n=60):
+    """A two-plateau blend: out of scope for every model in the bank.
+
+    This is the probe both out-of-distribution detectors in next-actions 1j
+    failed to catch, which is why it is the one used here.
+    """
+    w = np.logspace(-3, 3, n)
+
+    def mx(g, t):
+        x = (w * t) ** 2
+        return g * x / (1 + x), g * (w * t) / (1 + x)
+
+    a, b = mx(1e5, 1e-2), mx(1e3, 1e2)
+    return w, a[0] + b[0], a[1] + b[1]
+
+
+def test_report_exposes_a_runner_up_that_fits_better_than_the_winner():
+    """The standing worked example: the Tixier critical gel.
+
+    critical_gel wins, but cured_elastomer sits at delta ~2.4 and fits
+    MARGINALLY BETTER (0.0107 vs 0.0108 decades), losing only on parsimony.
+    A user shown the winner alone would believe the question settled; the
+    report has to say it is not.
+
+    (Note the weight here is ~0.77, not the 1.000 the notes describe as
+    typical - which is itself the point. The weight is not a reliable readout
+    either way, so the report leans on delta AICc and absolute fit instead.)
+    """
+    s = list(load_npz("data/tixier2004.npz").values())[0]
+    out = identify(s["omega"], s["Gp"], s["Gpp"])
+    rep = explain(out)
+
+    assert rep["winner"] == "critical_gel"
+    runner = rep["alternatives"][0]
+    assert runner["name"] == "cured_elastomer"
+    assert runner["delta_aicc"] < 5                # a live alternative
+    assert runner["fits_better"]                   # ...and it fits better
+    assert runner["degeneracy_note"]               # nested pair, flagged
+
+    text = format_report(rep)
+    assert "fits better" in text
+    assert "NESTED" in text
+
+
+def test_contest_says_nothing_contradicts_a_better_fitting_alternative():
+    s = list(load_npz("data/tixier2004.npz").values())[0]
+    c = contest(s["omega"], s["Gp"], s["Gpp"], "cured_elastomer")
+    assert c["fits_better_than_winner"]
+    assert "nothing in your measurement contradicts" in format_contest(c)
+
+
+def test_report_reads_as_decisive_when_the_evidence_is_decisive():
+    """Pivokonsky LDPE: branched at delta 0, nothing else within ~50."""
+    s = load_npz("data/pivo2006.npz")["E"]
+    rep = explain(identify(s["omega"], s["Gp"], s["Gpp"]))
+    assert rep["winner"] == "branched"
+    assert rep["alternatives"][0]["delta_aicc"] > 10
+    assert not rep["field_all_poor"]
+    assert all(not a["fits_better"] for a in rep["alternatives"])
+
+
+def test_out_of_scope_material_is_flagged_as_a_least_bad_winner():
+    """A high Akaike weight hides the case where NOTHING fits.
+
+    Both OOD detectors tried in next-actions 1j failed on this exact probe.
+    The report does not need to identify the blend - it needs to refuse to
+    pretend the winner is trustworthy.
+    """
+    w, Gp, Gpp = _blend()
+    out = identify(w, Gp, Gpp)
+    rep = explain(out)
+
+    assert out["best_weight"] > 0.9        # confident...
+    assert rep["field_all_poor"]           # ...but nothing fits
+    assert rep["winner_fit_verdict"] == "does not fit"
+    assert "NOTHING IN THE BANK FITS" in format_report(rep)
+
+
+def test_contest_fits_a_class_the_prefilter_struck_off():
+    """A discard is a claim, and it owes the user its numbers on request."""
+    s = load_npz("data/pivo2006.npz")["E"]
+    out = identify(s["omega"], s["Gp"], s["Gpp"])
+    assert "reptation" not in out["allowed"]      # struck off, never fitted
+
+    c = contest(s["omega"], s["Gp"], s["Gpp"], "reptation", result=out)
+    assert not c["was_on_ballot"]
+    assert np.isfinite(c["delta_aicc"]) and c["delta_aicc"] > 0
+    assert np.isfinite(c["rms_log"])
+    assert c["contradicted_by"]                   # and it says which rule
+    assert "struck off by the pre-filter" in format_contest(c)
+
+
+def test_discards_are_reported_with_a_way_to_lift_them():
+    s = load_npz("data/pivo2006.npz")["E"]
+    rep = explain(identify(s["omega"], s["Gp"], s["Gpp"]))
+    assert rep["discards"]
+    d = rep["discards"][0]
+    assert "reptation" in d["classes"]
+    assert d["because"] and d["reasoning"]
+    # Never a bare "a pre-filter rule excluded them" - that is the fallback
+    # for an unrecognised rule and means this table has drifted.
+    assert "a pre-filter rule excluded them" not in d["because"]
+
+
+def test_vitrimer_absence_is_reported_as_a_fitted_result_not_a_deletion():
+    """After the 2026-09-07 has_shoulder fix the sticker classes are always
+    fitted. The report must not tell a user they were excluded."""
+    s = load_npz("data/pivo2006.npz")["E"]
+    out = identify(s["omega"], s["Gp"], s["Gpp"])
+    rep = explain(out)
+    assert "sticky_rouse" in out["allowed"]
+    assert "sticky_reptation" in out["allowed"]
+    for d in rep["discards"]:
+        assert "sticky_rouse" not in d["classes"]
+        assert "sticky_reptation" not in d["classes"]
+    assert "not a pre-filter deletion" in format_report(rep)
+
+
+def test_stack_verdict_reaches_the_report():
+    from rheofp.data.synth import make_example
+    rng = np.random.default_rng(4)
+    ex = make_example(rng, "sticky_reptation", n_curves=4)
+    stack = [dict(omega=w, Gp=gp, Gpp=gpp, T_K=T)
+             for w, gp, gpp, T in ex["curves"]]
+    rep = explain(identify_stack(stack, n_restarts=6))
+    assert rep["stack"]
+    assert rep["stack"]["verdict"] in ("melt", "network", "ambiguous")
+    assert "TEMPERATURE STACK" in format_report(rep)
+
+
+def test_abstention_is_surfaced_with_what_would_settle_it():
+    """A cured elastomer from a single curve abstains; the report must both
+    say so and name the measurement that resolves it."""
+    from rheofp.data.synth import make_example
+    rng = np.random.default_rng(5)
+    for _ in range(8):
+        ex = make_example(rng, "cured_elastomer", n_curves=1)
+        w, Gp, Gpp, _ = ex["curves"][0]
+        out = identify(w, Gp, Gpp, n_restarts=6)
+        if out["abstain"]:
+            rep = explain(out)
+            text = format_report(rep)
+            assert "ABSTAINING" in text
+            assert rep["what_would_settle_it"]
+            assert "temperature" in " ".join(rep["what_would_settle_it"]).lower()
+            return
+    pytest.skip("no abstention drawn in this sample")
+
+
+def test_contest_rejects_an_unknown_class():
+    w, Gp, Gpp = _blend(20)
+    with pytest.raises(KeyError):
+        contest(w, Gp, Gpp, "not_a_real_class")
+
+
+def test_verdict_bands_are_monotonic_and_cover_the_range():
+    ds = [0.0, 1.9, 2.1, 5.0, 8.0, 50.0]
+    assert len({delta_verdict(d) for d in ds}) >= 4
+    assert delta_verdict(0.0) != delta_verdict(50.0)
+    assert fit_verdict(0.005) == "excellent"
+    assert fit_verdict(10.0) == "does not fit"
+
+
+def test_degenerate_pairs_match_the_ml_evaluator():
+    """This module duplicates AMBIGUOUS_PAIRS to avoid a torch dependency;
+    the two must not drift apart."""
+    from rheofp.ml.evaluate import AMBIGUOUS_PAIRS
+    assert {frozenset(p) for p in AMBIGUOUS_PAIRS} == set(DEGENERATE_PAIRS)
+
+
+def test_every_bank_class_is_contestable():
+    """contest() must work for anything identify() could be asked about."""
+    w, Gp, Gpp = _blend(30)
+    out = identify(w, Gp, Gpp, n_restarts=4)
+    for name in ALL_MODELS:
+        c = contest(w, Gp, Gpp, name, result=out, n_restarts=4)
+        assert np.isfinite(c["rms_log"])
+        assert isinstance(format_contest(c), str)

@@ -76,6 +76,35 @@ python scripts/validate_network.py       # cured elastomer + critical gel, incl.
 python scripts/validate_stack.py         # melt-vs-network resolution across a T stack
 ```
 
+## Explaining a result
+
+`identify()` answers *what*; `rheofp/report.py` answers *why*, so a user can
+argue with the answer instead of taking it on trust.
+
+```
+python scripts/explain.py data/tixier2004.npz
+python scripts/explain.py data/pivo2006.npz --sample E --why-not reptation
+python scripts/explain.py data/darby2022.npz --stack
+```
+
+The report ranks alternatives by **delta AICc, not Akaike weight** (weights
+collapse and hide live alternatives), prints every candidate's **absolute** fit
+quality in decades, states the measured evidence in physical terms, says which
+candidates the pre-filter never fitted and what measurement would put them
+back, and flags known-degenerate pairs. Two things it is designed to catch that
+a single confident label hides:
+
+- A runner-up that fits **better** than the winner and lost only on parsimony
+  (the Tixier gel: `cured_elastomer` at 0.0107 decades vs `critical_gel` at
+  0.0108, delta 2.4 - not a settled question).
+- A winner that is merely **least-bad of a poor field**, which is what
+  out-of-taxonomy material looks like. The report says so outright rather than
+  reporting a confident class.
+
+`--why-not X` / `contest()` makes the case for a class you believe in: it fits
+that class on your data - even one the pre-filter struck off - and reports its
+delta, its fit, and whether anything measured actually contradicts it.
+
 ## Generating data and training the classifier
 
 ```

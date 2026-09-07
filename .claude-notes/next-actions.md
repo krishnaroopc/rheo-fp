@@ -37,7 +37,33 @@ narrows what this product is for and retires some earlier assumptions.
   Quick check: `ls originals/` — expect the pivo, Martin EPDM, Tixier, and
   Darby 2022 (silicone) PDFs + supp + .txt.
 
-## ACTIVE TASK — build the "why did you say that?" explanation layer
+## ~~ACTIVE TASK~~ — explanation layer BUILT 2026-09-07
+
+`rheofp/report.py` + `scripts/explain.py` + `tests/test_report.py` (13 tests).
+All three design decisions honoured: a NEW module reading identify()'s existing
+output (its contract untouched); ranking by delta AICc with absolute fit
+quality alongside; physics explainer only, neural column still to come.
+Verified against both worked examples — Tixier gel reproduces delta 2.4 with
+`cured_elastomer` fitting better (0.0107 vs 0.0108) and the report says
+"nothing in your measurement contradicts that"; Pivokonsky E reproduces
+delta 79.3 and reads decisive.
+
+**Unplanned win: the least-bad-winner flag catches the two-plateau blend** —
+the one out-of-scope probe BOTH detectors in §1j failed on. It does not
+identify the blend (nothing in the bank can); it refuses to pretend the winner
+is trustworthy, printing "NOTHING IN THE BANK FITS THIS DATA WELL" where the
+Akaike weight alone said 0.9+. That is the OOD problem answered from the
+reporting side rather than the detection side, exactly as the design argued.
+
+Correction worth carrying: the notes' "weights collapse to 1.000/0.000" is a
+tendency, not a law — the Tixier gel's winner sits at 0.766. Another reason
+the report leans on delta AICc and absolute residuals instead.
+
+**Still to do here:** the neural head as a second column (needs a checkpoint;
+`identify()`'s reasons + the network's better ranking, and their AGREEMENT as
+the confidence signal neither self-confidence can provide).
+
+### original brief (kept for reference)
 
 **~~STEP 1: fix `has_shoulder`~~ — DONE 2026-09-07.** The user considered
 cutting the vitrimer classes from scope instead and decided to keep them and fix

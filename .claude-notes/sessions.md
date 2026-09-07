@@ -79,8 +79,27 @@ Worth noting the earlier full-window noiseless measurement (39/40 struck)
 OVERSTATED the problem; on the realistic cropped+noisy path it was 11/30. Cost
 is latency: ~1.9 s/curve, suite 2m21s -> 4m30s. Two regression tests added.
 
-**Next:** `explain()` — now unblocked, and standing on trustworthy deltas after
-the NaN fix.
+**Then built `explain()` (same session).** `rheofp/report.py`,
+`scripts/explain.py`, `tests/test_report.py` (13 tests). Suite **126 -> 141**.
+Both worked examples reproduce: Tixier gel delta 2.4 with `cured_elastomer`
+fitting BETTER (0.0107 vs 0.0108) and the report saying "nothing in your
+measurement contradicts that"; Pivokonsky E delta 79.3, reads decisive.
+`--why-not X` fits a class the user believes in — including one the pre-filter
+struck off — and reports its case.
+
+**The unplanned win: the least-bad-winner flag catches the two-plateau blend,**
+the single out-of-scope probe BOTH §1j detectors failed on. It cannot identify
+the blend, but it prints "NOTHING IN THE BANK FITS THIS DATA WELL" where the
+Akaike weight said 0.9+ confident. The OOD problem answered from the reporting
+side instead of the detection side — which is what the design predicted and is
+now demonstrated rather than argued.
+
+Small correction carried into the notes: "weights collapse to 1.000/0.000" is a
+tendency, not a law (the Tixier winner is 0.766). It is why the report ranks on
+delta AICc and absolute residuals rather than weight.
+
+**Next:** the neural head as a second column in the report, and the real
+temperature stack when the user is happy with the framework.
 
 ---
 
