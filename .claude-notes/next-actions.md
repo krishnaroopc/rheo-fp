@@ -5,7 +5,7 @@ kept in git so it syncs between the user's home and office PCs. When the user
 says something like "let's continue" / "do the next thing" / "pick up where we
 left off", this is where to look. Update + commit this file as items complete.
 
-Last updated: 2026-09-04 (secondary office PC, Linux).
+Last updated: 2026-09-07 (home PC).
 
 **RESUMING ELSEWHERE — read this first.** The 2026-09-04 session ran on the
 secondary office PC, which the user does not intend to keep working on: no GPU,
@@ -37,7 +37,19 @@ narrows what this product is for and retires some earlier assumptions.
   Quick check: `ls originals/` — expect the pivo, Martin EPDM, Tixier, and
   Darby 2022 (silicone) PDFs + supp + .txt.
 
-## ACTIVE TASK (set 2026-09-04) — build the "why did you say that?" layer
+## ACTIVE TASK — 1) fix the has_shoulder pre-filter, then 2) the explanation layer
+
+**STEP 1, APPROVED 2026-09-07: fix `has_shoulder`, keeping vitrimer.** The user
+considered cutting the vitrimer classes from scope instead and decided against
+it. Measured 2026-09-07 on full-window noiseless curves: `sticky_rouse` is
+struck off the ballot in **39/40**, `sticky_reptation` in **21/40**; planted
+`sticky_rouse` then lands on `reptation` 58%, `branched` 15%,
+`cured_elastomer` 8%. Follow the pre-registered protocol below (Decision 1) —
+per-class hit counts before and after, real data must stay 6/6 — and put the
+numbers to the user BEFORE the change is final, because freeing two k=4 models
+risks cannibalising simpler classes.
+
+**STEP 2 — build the "why did you say that?" layer**
 
 **Nothing below has been implemented.** The three design decisions are APPROVED
 by the user (2026-09-04); they are written down here to be built on a better

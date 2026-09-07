@@ -6,6 +6,70 @@ the end of each working session (what was discussed, decided, and changed).
 
 ---
 
+## 2026-09-07 — Promoted branched + wormlike_micelle; framework sweep; latent NaN found
+
+Home PC (RTX A1000, `originals/` present). Session began as a walkthrough of the
+2026-09-04 commit and turned into two decisions and a cleanup pass.
+
+**Explained "MODEL_ONLY_CLASSES is documentation, not behaviour" to the user,
+and it led to a decision.** Demonstrated it concretely: a planted `branched`
+curve returns `best='branched'` at weight 1.000 — the constant was defined in
+two modules, read by nothing but two test assertions, and never coerced anything
+to regime level. **User decided: promote.** Their words — *"i am happy with
+saying 'your sample is branched'"*. Asked about `wormlike_micelle` separately
+rather than sweeping it along; user promoted it too. That empties the tier, so
+`MODEL_ONLY_CLASSES` is deleted outright and `ALL_CLASSES == FINE_CLASSES`
+(**9 fine classes**). No behaviour changed and no accuracy number moved — the
+docs now match the code instead of describing an intent nobody built.
+
+Evidence gathered before promoting, not after: BSW fits real LDPE ~0.06 dec with
+errors landing on zimm/rouse rather than reptation; `wormlike_micelle` measured
+**40/40 self-correct** at mean weight 1.000, stealing no correct answers from any
+other class (n=40/class). That also closes the 2026-09-04 "run a proper
+sticky-vs-WLM confusion check" item — the suspicion came from 2 of 12 vitrimer
+curves landing on WLM, but that traffic is the `has_shoulder` pre-filter deleting
+the sticky classes (§1k), not WLM being greedy. Two bugs, one symptom.
+
+**Measured §1k properly while answering a user question about it.** The user
+asked whether a wormlike micelle could be confused with a vitrimer. It cannot —
+WLM is 40/40 — but the mirror image is bad: `signature_features` strikes the
+sticky classes off the ballot in **39/40 (sticky_rouse)** and **21/40
+(sticky_reptation)** on full-window noiseless curves. Downstream, planted
+`sticky_rouse` lands on `reptation` 58%, `branched` 15%, `cured_elastomer` 8%
+(a dynamic network called permanent). Sharper than the notes' earlier
+"4 of 12". User asked whether deleting vitrimer would make the problem go away;
+verified the rule touches only those two classes and no other class's accuracy
+depends on them (7-class sweep, all top-answer-correct), so the cut would be
+clean — but **user chose to keep vitrimer and fix the rule instead.**
+
+**Framework-wide sweep for obsolete/redundant code (user asked).** AST pass:
+only 3 of 89 public functions unreferenced, 2 of those legitimate public API
+(`G_of_t` documented for plotting, `fit_linear_melt` the LM fitter). Archived
+rather than deleted, with a README in each archive dir saying what superseded
+what: 7 orphaned npz files from the original restructure and the notebook-era
+`prep_interpolate.py` (superseded by `resample_log_grid`). Removed
+`pompom.load_samples`, a narrower duplicate of `io.data.load_xlsx`.
+Confirmed `branched_spectrum`/`fit_branched` are NOT dead — they are the live
+negative control proving BSW was needed. 24 MB `synthetic_train.npz` is
+correctly gitignored.
+
+**The sweep found a real latent bug.** An exact fit on a noiseless synthetic
+curve gives `sse == 0` -> `aicc = -inf` -> the winner's delta is
+`inf - inf = NaN` -> **every Akaike weight is NaN**, while the winning name
+still looks right because it sorts first. Measured pre-fix on a planted zimm
+curve: `best_weight nan`, deltas `[nan, inf, inf, inf]`. Real/noisy data never
+reach zero residual so it stayed hidden — but **the planned `explain()` layer is
+built entirely on these deltas and would have been reading garbage.** Fixed with
+`SSE_FLOOR = 1e-30` in `fit_model`; regression test added. Lesson: the numbers a
+feature will depend on are worth checking before building on them.
+
+Suite **125 -> 126 passed / 2 skipped**. Real data still **6/6** on both raw and
+resampled. Two commits, not yet pushed at time of writing.
+
+**Next:** the `has_shoulder` fix (approved, vitrimer kept), then `explain()`.
+
+---
+
 ## 2026-09-04 — New Linux PC; found + closed a 9-vs-8 class asymmetry between the two "brains"
 
 **Fourth machine** (Linux, `Documents/projects/rheo-fingerprinting/rheo-fp`).
