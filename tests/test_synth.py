@@ -214,3 +214,22 @@ def test_noise_is_applied_and_is_small():
     resid = np.abs(np.log10(Gp) - np.log10(ref_p))
     assert resid.max() > 0            # noise really was applied
     assert np.median(resid) < 0.1     # ...and stayed small
+
+
+def test_exact_fit_does_not_produce_nan_weights():
+    """A noiseless synthetic curve can be fitted exactly, giving sse == 0.
+
+    log(0) then makes aicc -inf, the winner's delta becomes inf - inf = NaN,
+    and every Akaike weight follows it - the ranking is destroyed while the
+    winning NAME still looks right because it sorts first. Real data never
+    reaches zero residual, so this stayed latent until the explanation layer
+    needed trustworthy deltas. Guarded by SSE_FLOOR in fit_model.
+    """
+    rng = np.random.default_rng(0)
+    w = np.logspace(-2, 2, 40)
+    theta = sample_params(rng, "zimm")
+    Gp, Gpp = forward("zimm", w, theta)      # exact, no noise applied
+    out = identify(w, Gp, Gpp, n_restarts=6)
+    assert np.isfinite(out["best_weight"]), "Akaike weight went non-finite"
+    assert all(np.isfinite(r["delta"]) for r in out["ranking"])
+    assert all(np.isfinite(r["aicc"]) for r in out["ranking"])

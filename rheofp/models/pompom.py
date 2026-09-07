@@ -8,7 +8,9 @@ recovers both melts' measured G'/G'' to < 0.02 decades mean log10 error.
 Scope: only the linear regime is validated (XPP reduces exactly to multimode
 Maxwell in LVE, so forward/fit logic reuses rheofp.models.maxwell rather than
 the notebook's local maxwell_Gstar/fit_maxwell duplicates - confirmed
-identical formula by diff). The paper's nonlinear parameters (q_i,
+identical formula by diff). The notebook's local load_samples() was likewise
+dropped on 2026-09-07 - it was a narrower duplicate of rheofp.io.data.load_xlsx
+(no T_K/conc, no non-finite row handling) and nothing imported it. The paper's nonlinear parameters (q_i,
 lambda_b/lambda_s, alpha_i) were fit against nonlinear flow data
 (extensional/shear viscosity, normal stress coefficients) that this repo does
 not have digitized; build_xpp_table() assembles them from the paper's Tables
@@ -28,32 +30,6 @@ future nonlinear-data workflows, not part of the SAOS-only pipeline.
 from __future__ import annotations
 
 import numpy as np
-import pandas as pd
-
-
-def load_samples(filepath, sheet, samples, omega_hz=False):
-    """Load {sample: dict(omega, Gp, Gpp)} from an xlsx sheet.
-
-    Column 0 = omega (rad/s, or s^-1 if omega_hz=False per this notebook's
-    original convention); columns matched by substring "<sample> G'" /
-    "<sample> G''".
-    """
-    df = pd.read_excel(filepath, sheet_name=sheet, header=0)
-    cols = list(df.columns)
-    omega_raw = df.iloc[:, 0].dropna().to_numpy(float)
-    omega_col = omega_raw * (2 * np.pi if omega_hz else 1.0)
-    data = {}
-    for sname in samples:
-        gp_col = next((c for c in cols if sname in str(c)
-                       and "G'" in str(c) and "''" not in str(c)), None)
-        gpp_col = next((c for c in cols if sname in str(c) and "G''" in str(c)), None)
-        if gp_col is None or gpp_col is None:
-            continue
-        gp = df[gp_col].dropna().to_numpy(float)
-        gpp = df[gpp_col].dropna().to_numpy(float)
-        n = min(len(omega_col), len(gp), len(gpp))
-        data[sname] = dict(omega=omega_col[:n], Gp=gp[:n], Gpp=gpp[:n])
-    return data
 
 
 def build_xpp_table(sname, g_fit, tau_fit, nonlinear_params=None,

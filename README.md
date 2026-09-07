@@ -74,7 +74,6 @@ python scripts/validate_solutions.py     # Zimm/Rouse/reptation regime identifie
 python scripts/validate_pompom.py        # XPP pom-pom fit (LVE only - see module docstring)
 python scripts/validate_network.py       # cured elastomer + critical gel, incl. real data
 python scripts/validate_stack.py         # melt-vs-network resolution across a T stack
-python scripts/prep_interpolate.py       # common-omega-grid interpolation utility
 ```
 
 ## Generating data and training the classifier

@@ -59,6 +59,11 @@ from rheofp.fitting.optimize import multi_restart_fit
 N_RESTARTS = 12
 FLOOR_CHI2 = 0.15  # normalized RMS log-residual above which we flag low confidence
 RNG_SEED = 0
+# Smallest sum-of-squared log-residuals treated as distinguishable from zero.
+# Guards log(sse) in the AICc; see fit_model. 1e-30 in log10 units is ~1e-15
+# per point, i.e. double-precision round-off - orders of magnitude below any
+# real measurement, so it never perturbs ranking on actual data.
+SSE_FLOOR = 1e-30
 
 # Full candidate bank: solution family + crosslinked-network family +
 # branched / LCB melt + wormlike micelle. This must stay in step with
@@ -392,7 +397,14 @@ def fit_model(name, w, Gp, Gpp, seed=RNG_SEED, n_restarts=N_RESTARTS):
         bnds, n_restarts, seed=seed, x0_first=p0,
     )
     n_data = 2 * len(w)
-    sse = best.fun
+    # A model that reproduces a noiseless synthetic curve exactly gives
+    # sse == 0, and log(0) = -inf makes aicc -inf; the delta of the winner
+    # against itself is then inf - inf = NaN, which propagates into every
+    # Akaike weight and destroys the whole ranking (the winner survives only
+    # because it sorts first). Real and noisy data never reach zero, so this
+    # stayed latent. Floor sse at the double-precision noise level - far below
+    # any measurement, so ranking against real data is unaffected.
+    sse = max(float(best.fun), SSE_FLOOR)
     aic = n_data * np.log(sse / n_data) + 2 * k
     bic = n_data * np.log(sse / n_data) + k * np.log(n_data)
     aicc = aic + (2 * k * (k + 1)) / max(1, (n_data - k - 1))
