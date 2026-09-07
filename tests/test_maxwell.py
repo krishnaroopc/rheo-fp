@@ -146,7 +146,7 @@ def test_identify_can_actually_emit_wormlike_micelle():
     because BSW genuinely fits a near-single-Maxwell shape. A missing class
     shows up as a confident wrong answer, never as low confidence.
     """
-    from rheofp.fitting.identify import identify, MODEL_ONLY_CLASSES
+    from rheofp.fitting.identify import identify
     from rheofp.data.synth import make_example
 
     rng = np.random.default_rng(5)
@@ -156,17 +156,14 @@ def test_identify_can_actually_emit_wormlike_micelle():
         w, Gp, Gpp, _ = ex["curves"][0]
         hits += identify(w, Gp, Gpp, n_restarts=8)["best"] == "wormlike_micelle"
     assert hits >= 3, f"only {hits}/4 planted micelles identified"
-    assert "wormlike_micelle" in MODEL_ONLY_CLASSES
 
 
-def test_identify_routes_real_ldpe_to_branched_and_reports_terminal_regime():
+def test_identify_routes_real_ldpe_to_branched():
     """End-to-end: identify() now has a branched candidate that wins on the
     real LDPE melts instead of them defaulting to rouse_screened."""
-    from rheofp.fitting.identify import identify, MODEL_ONLY_CLASSES
+    from rheofp.fitting.identify import identify
     d = load_npz("data/pivo2006.npz")
     for name, s in d.items():
         out = identify(s["omega"], s["Gp"], s["Gpp"])
         assert out["best"] == "branched", f"{name} -> {out['best']}"
-        assert "branched" in MODEL_ONLY_CLASSES
-        # model-only: the useful output is the regime, and it must be terminal
         assert out["ranking"][0]["name"] == "branched"

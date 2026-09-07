@@ -26,11 +26,12 @@ near-single-Maxwell shape comfortably, so the FLOOR_CHI2 none-of-the-above
 floor never fired. A missing class does not present as low confidence; it
 presents as a confident wrong answer from whichever candidate is most flexible.
 
-"branched" and "wormlike_micelle" are emitted only at regime level
-(Terminal/liquid-like) per the frozen taxonomy - they are model-only classes.
-They sit in the bank so AICc can actually adjudicate a broad LCB-like or a
-narrow micellar terminal spectrum instead of defaulting to whatever fits least
-badly.
+"branched" and "wormlike_micelle" are ordinary fine labels (promoted from
+model-only status 2026-09-07: BSW fits real LDPE to ~0.06 decades with errors
+landing on physically adjacent classes, and wormlike_micelle tested cleanly
+separable from the sticky classes it was suspected of confusing with). They
+sit in the bank so AICc can actually adjudicate a broad LCB-like or a narrow
+micellar terminal spectrum instead of defaulting to whatever fits least badly.
 
 Abstention: a cured elastomer and a high-Mw entangled melt are genuinely
 indistinguishable from a single SAOS curve whose terminal relaxation lies
@@ -67,8 +68,6 @@ ALL_MODELS = {**MODELS, **NETWORK_MODELS, **BRANCHED_MODELS, **WLM_MODELS}
 
 # Names belonging to the Solid/gel-like regime, for regime-level reporting.
 NETWORK_CLASSES = frozenset(NETWORK_MODELS)
-# Model-only classes: emitted at regime level only, never as a fine label.
-MODEL_ONLY_CLASSES = frozenset(BRANCHED_MODELS) | frozenset(WLM_MODELS)
 
 # --- abstention thresholds (melt-vs-rubber) ---
 # |dlog10 G'/dlog10 w| below this counts as "flat" when measuring plateau width.

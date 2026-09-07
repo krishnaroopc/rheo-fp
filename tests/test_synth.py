@@ -11,7 +11,7 @@ import pytest
 
 from rheofp.data.synth import (
     make_example, generate, to_npz_dataset, class_counts, sample_params,
-    forward, ALL_CLASSES, FINE_CLASSES, MODEL_ONLY_CLASSES, CLASS_REGIME,
+    forward, ALL_CLASSES, FINE_CLASSES, CLASS_REGIME,
     T_REF, N_OMEGA, N_OMEGA_RANGE,
 )
 from rheofp.fitting.identify import identify
@@ -54,8 +54,7 @@ def test_every_generated_class_has_a_candidate_in_the_identifier_bank():
     accuracy measured against that identifier. wormlike_micelle was in exactly
     that state: generated, learnable by the neural head, and absent from the
     bank, so the published physics baseline was scored partly on questions it
-    could not answer. Keep this assertion pointed at ALL_CLASSES, not at the
-    fine classes - model-only classes are scored too.
+    could not answer.
     """
     from rheofp.fitting.identify import ALL_MODELS
     missing = set(ALL_CLASSES) - set(ALL_MODELS)
@@ -70,7 +69,7 @@ def test_labels_and_regimes_are_consistent():
         ex = make_example(rng, name, n_curves=1)
         assert ex["label"] == name
         assert ex["regime"] == CLASS_REGIME[name]
-    assert set(FINE_CLASSES).isdisjoint(MODEL_ONLY_CLASSES)
+    assert set(FINE_CLASSES) == set(ALL_CLASSES)
 
 
 # --- stack coherence ---------------------------------------------------------
@@ -191,9 +190,9 @@ def test_generated_population_round_trips_through_the_identifier():
 
 
 def test_synthetic_branched_population_is_identified_as_branched():
-    """The model-only branched class must route to `branched` through the
-    identifier bank often enough that the ML model has a clean signal - the
-    old 3-param branched_spectrum could not, which is why LDPE failed."""
+    """The branched class must route to `branched` through the identifier
+    bank often enough that the ML model has a clean signal - the old 3-param
+    branched_spectrum could not, which is why LDPE failed."""
     rng = np.random.default_rng(21)
     hits = total = 0
     for _ in range(10):

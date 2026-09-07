@@ -67,16 +67,23 @@ Consequences, which are easy to get wrong:
 - **Taxonomy (design)**: 3 regimes (Terminal/liquid-like, Solid/gel-like,
   Yield-dominated); 8 fine classes (4 identifiable from single curves, 4
   requiring stacks); 6 model-only classes (regime-level labels only).
-  Wormlike micelles are model-only. Glassy regime was dropped.
-- **Taxonomy (as actually built)**: **9 classes** — 7 fine
-  (zimm, rouse_screened, reptation, sticky_rouse, sticky_reptation,
-  cured_elastomer, critical_gel) + 2 model-only (wormlike_micelle, branched);
-  **2 regimes** (terminal, solid). The Yield-dominated regime has no physics and
-  therefore no training data. Five model-only classes from the design were never
-  built. Do not quote the design numbers as if they were implemented.
-- **"Model-only" is documentation, not behaviour.** Nothing in `identify.py` or
-  `ml/evaluate.py` coerces `branched` / `wormlike_micelle` to a regime-level
-  answer — both are scored as ordinary fine labels today. See §3.
+  Glassy regime was dropped.
+- **Taxonomy (as actually built)**: **9 fine classes** (zimm, rouse_screened,
+  reptation, sticky_rouse, sticky_reptation, cured_elastomer, critical_gel,
+  wormlike_micelle, branched); **2 regimes** (terminal, solid). The
+  Yield-dominated regime has no physics and therefore no training data. Five
+  model-only classes from the design were never built. Do not quote the design
+  numbers as if they were implemented.
+- **The model-only tier no longer exists (retired 2026-09-07, user decision).**
+  `wormlike_micelle` and `branched` were the only two, they were never actually
+  coerced to regime level by any code, and both now stand as ordinary fine
+  labels — the classifier says "your sample is branched". Evidence: BSW fits
+  real LDPE to ~0.06 decades with errors landing on physically adjacent classes
+  (zimm/rouse, not reptation); wormlike_micelle measured 40/40 self-correct and
+  drew no wrong answers from any other class (n=40/class, 2026-09-07).
+  Linear-vs-branched is a standard LVE diagnostic, so reporting it is within
+  what SAOS supports. `MODEL_ONLY_CLASSES` is deleted from both `synth.py` and
+  `identify.py`; `ALL_CLASSES == FINE_CLASSES`.
 
 ## Completed & validated work (forward physics, three batches)
 Each model was validated by reproducing published figures and recovering
@@ -129,8 +136,8 @@ wired into `fitting/identify.py`'s model bank and stays as a validated
 reference/tool, not part of the SAOS-only pipeline.
 
 **Branched / LCB melt class — BSW forward model (2026-09-03).** The branched
-class (model-only, regime = Terminal) is a **5-parameter Baumgärtel–
-Schausberger–Winter spectrum**: `bsw_spectrum(w, G_N, tau_max, tau_c, n_e,
+class (fine class since 2026-09-07, regime = Terminal) is a **5-parameter
+Baumgärtel–Schausberger–Winter spectrum**: `bsw_spectrum(w, G_N, tau_max, tau_c, n_e,
 n_g)` in `maxwell.py` — two power-law wedges (broad terminal wedge tau^n_e, a
 high-frequency wedge tau^-n_g below crossover tau_c), discretized onto a mode
 ladder. It replaced the old 3-param `branched_spectrum` (hierarchical

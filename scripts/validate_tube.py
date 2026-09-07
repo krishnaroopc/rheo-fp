@@ -82,8 +82,7 @@ def main():
     # The 3-param branched_spectrum cannot represent real LDPE (it bottoms out
     # at ~0.28-0.32 decades RMS whatever sigma). The 5-param BSW spectrum -
     # branched's forward model in the classifier - reaches ~0.06-0.07, and
-    # identify() then routes both melts to `branched` (a model-only class, so
-    # the operative output is the Terminal regime).
+    # identify() then routes both melts to `branched` (an ordinary fine class).
     print("\nReal branched melt - BSW vs Pivokonsky (2006) LDPE E and B:")
     pivo = load_npz("data/pivo2006.npz")
     bsw_curves = {}

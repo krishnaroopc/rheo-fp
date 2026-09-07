@@ -119,8 +119,8 @@ def pair_confusions(cm, pairs=AMBIGUOUS_PAIRS):
 
 
 def regime_accuracy_from_fine(pred, true):
-    """Even a wrong fine class can land in the right regime - worth knowing,
-    since the taxonomy reports regime-level labels for model-only classes."""
+    """Even a wrong fine class can land in the right regime - worth knowing
+    as a coarser view of the same errors."""
     r = {c: CLASS_REGIME[c] for c in CLASSES}
     pr = np.array([r[CLASSES[i]] for i in pred])
     tr = np.array([r[CLASSES[i]] for i in true])

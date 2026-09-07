@@ -69,12 +69,17 @@ CLASS_REGIME = {
     "wormlike_micelle": "terminal",
     "branched": "terminal",
 }
-# Classes the identifier can emit as a fine label; the rest are model-only
-# (they exist in the population but are labelled at regime level).
+# Classes the identifier can emit as a fine label. wormlike_micelle and
+# branched were model-only (regime-level-only) until 2026-09-07: BSW fits
+# real LDPE to ~0.06 decades and its errors land on physically adjacent
+# classes (zimm/rouse), and wormlike_micelle tested 100% self-correct against
+# the sticky classes it was suspected of being confused with (measured
+# 2026-09-07, n=40/class) - both promoted to ordinary fine labels by user
+# decision. See CLAUDE.md and .claude-notes/next-actions.md.
 FINE_CLASSES = ("zimm", "rouse_screened", "reptation", "sticky_rouse",
-                "sticky_reptation", "cured_elastomer", "critical_gel")
-MODEL_ONLY_CLASSES = ("wormlike_micelle", "branched")
-ALL_CLASSES = FINE_CLASSES + MODEL_ONLY_CLASSES
+                "sticky_reptation", "cured_elastomer", "critical_gel",
+                "wormlike_micelle", "branched")
+ALL_CLASSES = FINE_CLASSES
 
 # Network-family sampling ranges (log10 Pa where noted).
 CURED_LOG_GINF = (3.0, 6.5)

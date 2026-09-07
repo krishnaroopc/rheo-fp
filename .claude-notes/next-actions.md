@@ -640,19 +640,19 @@ a bigger sample before trusting the vitrimer classes.**
   block copolymers, semicrystalline melts, star and comb architectures,
   filled/nanocomposite melts. A blend was the one out-of-scope probe both §1j
   detectors failed to catch.
-- **The "model-only" rule is documentation, not behaviour.** Nothing in
-  identify.py or ml/evaluate.py coerces `branched` / `wormlike_micelle` to a
-  regime-level answer — both are scored as ordinary fine labels today. Decide
-  this together with the promotion question below, in one deliberate pass.
-- **Open decision: should `branched` be promoted to a fine class?** Discussed
-  2026-09-03, deliberately NOT done. Linear-vs-branched is one of the most
-  useful things SAOS can reveal and the standard diagnostics are all LVE (van
-  Gurp-Palmen shoulder, terminal breadth, TTS failure). Now that the forward
-  model can represent real LDPE this is worth revisiting — but it is a change
-  to the FROZEN taxonomy and needs a deliberate user decision, not a side
-  effect. Evidence to gather first: whether the synthetic reptation and
-  branched populations are cleanly separable (branched per-class is already
-  0.935, and its errors go to zimm/rouse, not reptation — promising).
+- ~~**The "model-only" rule is documentation, not behaviour**~~ and
+  ~~**should `branched` be promoted?**~~ — **BOTH DECIDED 2026-09-07 (user):
+  promote, and retire the model-only tier entirely.** The user's words: *"i am
+  happy with saying 'your sample is branched'"*, then approved promoting
+  `wormlike_micelle` in the same pass. `MODEL_ONLY_CLASSES` deleted from
+  synth.py and identify.py; `ALL_CLASSES == FINE_CLASSES` (9 fine classes);
+  stale docstrings in ml/evaluate.py, scripts/validate_tube.py and the tests
+  cleaned up. Suite still 125 passed / 2 skipped. Evidence behind it: BSW fits
+  real LDPE ~0.06 dec with errors going to zimm/rouse not reptation;
+  `wormlike_micelle` measured **40/40 self-correct** and stole no correct
+  answers from any other class (n=40/class, seeds 42/7). Note the promotion
+  changed no classifier behaviour — the tier was never enforced — so no
+  accuracy number moves; what changed is that the docs now match the code.
 - Abstention still cannot flag out-of-distribution material: it is trained
   against the model's own errors on the SYNTHETIC distribution. Low abstain_p
   is not evidence of a correct answer on a material whose class is absent from
