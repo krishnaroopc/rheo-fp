@@ -37,17 +37,30 @@ narrows what this product is for and retires some earlier assumptions.
   Quick check: `ls originals/` — expect the pivo, Martin EPDM, Tixier, and
   Darby 2022 (silicone) PDFs + supp + .txt.
 
-## ACTIVE TASK — 1) fix the has_shoulder pre-filter, then 2) the explanation layer
+## ACTIVE TASK — build the "why did you say that?" explanation layer
 
-**STEP 1, APPROVED 2026-09-07: fix `has_shoulder`, keeping vitrimer.** The user
-considered cutting the vitrimer classes from scope instead and decided against
-it. Measured 2026-09-07 on full-window noiseless curves: `sticky_rouse` is
-struck off the ballot in **39/40**, `sticky_reptation` in **21/40**; planted
-`sticky_rouse` then lands on `reptation` 58%, `branched` 15%,
-`cured_elastomer` 8%. Follow the pre-registered protocol below (Decision 1) —
-per-class hit counts before and after, real data must stay 6/6 — and put the
-numbers to the user BEFORE the change is final, because freeing two k=4 models
-risks cannibalising simpler classes.
+**~~STEP 1: fix `has_shoulder`~~ — DONE 2026-09-07.** The user considered
+cutting the vitrimer classes from scope instead and decided to keep them and fix
+the rule. The discard is removed; both sticker classes are always on the ballot
+and AICc adjudicates them. Pre-registered before/after, planted CROPPED NOISY
+curves (n=30/class, identical seeds — note full-window noiseless curves
+overstated the strike rate at 39/40, the realistic path was 11/30):
+
+| class | before | after |
+|---|---|---|
+| sticky_rouse | 18/30 (struck 11/30) | **29/30** (struck 0/30) |
+| sticky_reptation | 26/30 (struck 2/30) | **28/30** (struck 0/30) |
+| all 7 others | — | **byte-identical** |
+| overall | 0.837 | **0.885** |
+| real data | 6/6 | **6/6** |
+
+No cannibalisation: the diff of the per-class table is exactly two lines. The
+flagship error — a vitrimer reported as a PERMANENT network — went **0/120**.
+Cost: two extra candidates fit per call, `identify()` ~1.9 s/curve, suite
+~4.5 min. Two regression tests added. **A merge of sticky_rouse +
+sticky_reptation into one "vitrimer" class was considered and REJECTED by the
+user** — entangled-vs-unentangled is real recoverable information, unlike the
+genuinely degenerate Zimm/Rouse pair.
 
 **STEP 2 — build the "why did you say that?" layer**
 

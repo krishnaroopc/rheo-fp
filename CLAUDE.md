@@ -172,11 +172,19 @@ any temperature. `if not has_shoulder: allowed -= {sticky_rouse,
 sticky_reptation}` is NOT sound: an absent second G″ peak is equally consistent
 with "no exchangeable bonds" and "bond exchange outside my window", which is the
 same missing-evidence fallacy the project already rejected for melt-vs-rubber
-(*"missing evidence, not evidence of absence"*). Measured: 4 of 12 generated
-vitrimer curves had BOTH vitrimer classes struck off before scoring, one landing
-on `cured_elastomer` — a dynamic network reported as a permanent one, which is a
-flagship molecular error under the scope above. Not yet changed; the decision
-and the required measurement are in next-actions §1k.
+(*"missing evidence, not evidence of absence"*).
+
+**FIXED 2026-09-07 — the `has_shoulder` discard is REMOVED.** Both sticker
+classes are now always on the ballot and AICc adjudicates them; the shoulder
+survives as a reported *feature*, never as a discard. Pre-registered
+before/after on planted cropped noisy curves (n=30/class, identical seeds):
+`sticky_rouse` **18/30 → 29/30**, `sticky_reptation` **26/30 → 28/30**, overall
+**0.837 → 0.885**, and **every other class byte-identical** — the two k=4
+models cannibalised nothing. Real data stayed **6/6**. The flagship error is
+gone: vitrimer reported as a permanent network went **0/120**. Cost: two more
+candidates fit per call, so `identify()` is ~1.9 s/curve (suite ~4.5 min).
+The two remaining discards are both sound-by-observation (`terminal_reached`
+removing the network classes; `wide_plateau` gating reptation).
 
 ## Goals — ALL THREE COMPLETE as of 2026-09-01
 1. DONE. Restructured into the GitHub-ready `rheo-fp` package (rheofp/,

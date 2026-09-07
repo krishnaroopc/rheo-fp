@@ -66,7 +66,21 @@ feature will depend on are worth checking before building on them.
 Suite **125 -> 126 passed / 2 skipped**. Real data still **6/6** on both raw and
 resampled. Two commits, not yet pushed at time of writing.
 
-**Next:** the `has_shoulder` fix (approved, vitrimer kept), then `explain()`.
+**Then fixed `has_shoulder` (same session).** User rejected merging
+sticky_rouse + sticky_reptation into one "vitrimer" class — entangled vs
+unentangled is real recoverable information, unlike the degenerate Zimm/Rouse
+pair — and asked for the fix instead. Removed the discard; both sticker classes
+are always on the ballot now. Pre-registered before/after, planted cropped noisy
+curves, n=30/class, identical seeds: `sticky_rouse` **18/30 -> 29/30**,
+`sticky_reptation` **26/30 -> 28/30**, overall **0.837 -> 0.885**, real data
+**6/6 -> 6/6**, and the per-class table diff is exactly two lines — the two k=4
+models cannibalised nothing. Vitrimer-reported-as-permanent-network: **0/120**.
+Worth noting the earlier full-window noiseless measurement (39/40 struck)
+OVERSTATED the problem; on the realistic cropped+noisy path it was 11/30. Cost
+is latency: ~1.9 s/curve, suite 2m21s -> 4m30s. Two regression tests added.
+
+**Next:** `explain()` — now unblocked, and standing on trustworthy deltas after
+the NaN fix.
 
 ---
 

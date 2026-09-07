@@ -193,11 +193,24 @@ def signature_features(w, Gp, Gpp):
         allowed -= {"zimm", "rouse_screened"}
     if not wide_plateau:
         allowed.discard("reptation")
-    if not has_shoulder:
-        allowed -= {"sticky_rouse", "sticky_reptation"}
+    # NOTE: `if not has_shoulder: allowed -= {sticky_rouse, sticky_reptation}`
+    # used to sit here and was REMOVED on 2026-09-07. It was missing-evidence
+    # reasoning - an absent second G" peak is equally consistent with "no
+    # stickers" and with "stickers whose exchange time lies outside this
+    # window", and a vitrimer measured over a narrow window has no shoulder to
+    # show. It deleted the correct class before any fitting, so the sticker
+    # classes were unreachable exactly as wormlike_micelle once was, and the
+    # error was silent: a dynamic network came back as `cured_elastomer`, i.e.
+    # PERMANENT. Both classes are now always on the ballot and AICc adjudicates
+    # them, which is what the permissive-pre-filter principle asks for. The
+    # positive-evidence direction is kept below as a REPORTED feature, not a
+    # discard - see has_shoulder in `feats`.
+    #
     # A permanently crosslinked network cannot flow: terminal relaxation inside
-    # the window rules out both network classes. This is the only robust
-    # contraindication for them - everything else is left to AICc.
+    # the window rules out both network classes. Unlike the shoulder rule this
+    # rests on something OBSERVED (flow, which a permanent network cannot do),
+    # so it stays. That is the general principle: a hard discard is sound only
+    # when grounded in a positive observation.
     if terminal_reached:
         allowed -= NETWORK_CLASSES
     if not allowed:

@@ -233,3 +233,37 @@ def test_exact_fit_does_not_produce_nan_weights():
     assert np.isfinite(out["best_weight"]), "Akaike weight went non-finite"
     assert all(np.isfinite(r["delta"]) for r in out["ranking"])
     assert all(np.isfinite(r["aicc"]) for r in out["ranking"])
+
+
+def test_vitrimer_classes_are_never_struck_off_the_ballot():
+    """The sticker classes must always be available for AICc to adjudicate.
+
+    `if not has_shoulder: allowed -= {sticky_rouse, sticky_reptation}` was
+    missing-evidence reasoning: an absent second G" peak is equally consistent
+    with "no stickers" and with "stickers outside this window". It deleted the
+    correct class before any fitting, and the failure was silent - a dynamic
+    network came back as cured_elastomer, i.e. PERMANENT. Removed 2026-09-07.
+    """
+    from rheofp.fitting.identify import signature_features
+    rng = np.random.default_rng(1234)
+    for cls in ("sticky_rouse", "sticky_reptation"):
+        for _ in range(12):
+            ex = make_example(rng, cls, n_curves=1)
+            w, Gp, Gpp, _ = ex["curves"][0]
+            _, allowed = signature_features(w, Gp, Gpp)
+            assert cls in allowed, f"{cls} struck off before fitting"
+
+
+def test_a_vitrimer_is_never_reported_as_a_permanent_network():
+    """The flagship molecular error under the SCOPE section: calling a dynamic,
+    bond-exchanging network permanently crosslinked. Measured 0/120 after the
+    has_shoulder removal; this guards a sample of that.
+    """
+    rng = np.random.default_rng(99)
+    for cls in ("sticky_rouse", "sticky_reptation"):
+        for _ in range(6):
+            ex = make_example(rng, cls, n_curves=1)
+            w, Gp, Gpp, _ = ex["curves"][0]
+            got = identify(w, Gp, Gpp, n_restarts=8)["best"]
+            assert got not in ("cured_elastomer", "critical_gel"), (
+                f"{cls} reported as permanent network ({got})")
