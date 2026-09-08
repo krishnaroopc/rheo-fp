@@ -200,9 +200,44 @@ classes are not recovered from real vitrimer data. The `has_shoulder` fix
 earlier today was necessary but is clearly not sufficient — it put the sticker
 classes on the ballot, and they lost on merit.
 
-**Next:** investigate whether the sticky forward models can represent a real
-dioxaborolane vitrimer at all (the Ricarte curves are the target); then the
-neural head as the report's second column.
+**Investigated it immediately (§2b), and it is ANSWERED.**
+`scripts/diagnose_sticky_models.py`. Tested fitter / bounds / functional form
+in that order on Ricarte 120 C:
+- Fitter: NO (12 vs 200 restarts agree to 4 dp).
+- Bounds: PARTLY — freeing the mode ceilings gives sticky_rouse 0.203->0.161
+  and sticky_reptation 0.390->0.131, but both plateau far above BSW's 0.046,
+  and sticky_reptation's `Z` runs to ANY ceiling (197/590/1968/7870) with RMS
+  frozen at 0.1305. A runaway nuisance parameter.
+- **Functional form: YES.** All models fit G' fine; the ENTIRE failure is G''
+  (sticky 0.18-0.23 vs BSW 0.065).
+
+**Physics:** the real curve has G' flat to 0.019 dec and G'' RISING as omega
+falls (low-w slope **-0.70**); a terminal zone needs +1. It is a power-law
+wing, which the paper independently states ("rubbery plateau into a power law
+regime", true terminal outside the window). Both sticky models are a few
+discrete Maxwell modes about one tau_s, so they produce a G'' PEAK that must
+fall away either side — they cannot rise monotonically for 4 decades. Piling up
+modes is the only escape, hence the pinned Nst/Z. BSW wins because its wedges
+ARE a broad continuous spectrum.
+
+**I made a claim mid-investigation and corrected it.** I first concluded the
+synthetic training population was the wrong shape. It is not — synthetic
+sticky_rouse's low-w G'' slope is -0.71 vs the real -0.70, and identify()
+recovers synthetic sticky curves 9/10. The real difference is G' span: 0.019
+dec real vs ~0.26 synthetic, **~10x flatter**. The models work on the
+population they were built from; this material sits at an extreme edge of it.
+Widening the synthetic G' range would make training more representative but
+would NOT close the 0.16-vs-0.046 gap — that is the forward model's.
+
+**Left as an explicit user decision, deliberately NOT chosen:** (a) give the
+sticker classes a broad-spectrum forward model — risk being that it converges
+on BSW and stops being distinguishable from `branched`, worse than an honest
+failure; or (b) accept the limit and make it explicit in the challenge section,
+naming the measurement that would separate them. (b) follows the melt-vs-rubber
+precedent. Cheap and safe either way: widen SR_BNDS/SREP_BNDS, which
+demonstrably bind.
+
+**Next:** that decision, then the neural head as the report's second column.
 
 ---
 

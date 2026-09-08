@@ -710,7 +710,55 @@ a bigger sample before trusting the vitrimer classes.**
   forward-model problem, not a ranking one. Caveat: that file's G' is one
   shared trace across temperatures (see prep_ricarte.py).
 
-## 2b. NEW ACTIVE QUESTION — can the sticky models represent a real vitrimer?
+## 2b. ANSWERED 2026-09-07 — no, not over a power-law window. Forward-model limit.
+`scripts/diagnose_sticky_models.py` reproduces the whole argument. Tested the
+three candidate causes in order on Ricarte PB-v-4 at 120 C:
+- **Fitter? NO.** 12 vs 200 restarts agree to 4 decimals.
+- **Bounds? PARTLY, and they should be widened regardless.** Freeing the mode
+  ceilings improves sticky_rouse 0.203 -> 0.161 and sticky_reptation
+  0.390 -> 0.131 dec. But both plateau far above BSW's 0.046, and
+  sticky_reptation's `Z` runs to ANY ceiling offered (197/590/1968/7870) with
+  RMS frozen at 0.1305 — a runaway nuisance parameter buying nothing.
+- **Functional form? YES.** Every model fits G' well (0.004-0.030); the ENTIRE
+  failure is in G'' (sticky 0.18-0.23 vs BSW 0.065).
+
+**The physics.** The real curve has G' flat to 0.019 decades and G'' RISING as
+omega falls (low-w log-slope **-0.70**). A terminal zone needs G'' ~ w^+1. This
+is a power-law wing, and the paper says so independently: the modulus
+"transitions from a rubbery plateau into a power law regime", with the true
+terminal relaxation OUTSIDE the 0.01-100 rad/s window. Both sticky models are a
+few discrete Maxwell modes around one sticker time tau_s, so they make a G''
+PEAK at 1/tau_s that must fall away on both sides — they cannot rise
+monotonically for four decades. Piling up modes is the only escape, which is
+exactly why Nst and Z pin. BSW wins because its power-law wedges ARE a broad
+continuous spectrum.
+
+**Corrected mid-investigation, worth keeping:** I first wrote that the
+synthetic training population was the wrong shape. It is not. Synthetic
+sticky_rouse's low-w G'' slope is -0.71, matching the real -0.70 almost
+exactly, and identify() recovers synthetic sticky curves 9/10. The real
+difference is G' span: **0.019 dec real vs ~0.26 synthetic, ~10x flatter**. The
+models work on the population they were built from; this real material sits at
+an extreme EDGE of it. Widening the synthetic G' range toward flatness would
+make training more representative but would NOT close the 0.16-vs-0.046 gap —
+that gap is the forward model's, not the sampler's.
+
+**Two directions, neither chosen — this is a user decision:**
+- (a) Give the sticker classes a broad-spectrum forward model (BSW-like or a
+  fractional/springpot wing anchored to a sticker time). **Risk: it converges
+  on BSW's shape and stops being distinguishable from `branched`**, which is
+  worse than an honest failure.
+- (b) Accept the limit and make it explicit — report Terminal/`branched` for
+  such curves, and have the challenge section state that a vitrimer measured in
+  its power-law regime is not separable from a broad branched spectrum by LVE
+  shape alone, naming the measurement that would separate them (reach the
+  sticker peak; widen the window). This is the melt-vs-rubber precedent —
+  abstain rather than guess — applied to a newly measured degeneracy.
+
+Cheap and safe regardless of that choice: **widen SR_BNDS / SREP_BNDS**, since
+they demonstrably bind. Do it under the usual cannibalisation protocol.
+
+## 2c. (superseded framing) original question as first posed
 Two real stacks now agree that they cannot. `sticky_rouse` /
 `sticky_reptation` in `solutions.py` were validated against PLANTED synthetic
 parameters only; neither has ever been fitted to a real measured vitrimer.
