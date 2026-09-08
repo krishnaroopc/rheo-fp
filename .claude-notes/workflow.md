@@ -49,9 +49,11 @@ the main office PC, the home PC (RTX A1000) or the CachyOS box (GTX 1660 Ti).
   `torch.cuda.is_available() == False`. Do NOT "fix" this with a per-PC torch
   variant — one lock for every machine is the whole guarantee. At this model
   size it barely matters: ~9 s/epoch CPU vs ~11 s/epoch on the Linux GTX 1660 Ti.
-- **Full test suite is ~3 minutes** since `identify()` gained the 5-param BSW
-  candidate (8 models × multi-restart fits). Use `-m "not slow"` (~2 min) to
-  skip the end-to-end training test. Not a hang.
+- **Full test suite is ~8+ minutes** as of 2026-09-07 — first the 5-param BSW
+  candidate, then the `has_shoulder` pre-filter removal put two more k=4
+  sticker models on every ballot (`identify()` ~1.9 s/curve). Use
+  `-m "not slow"` (~7-8 min) to skip the end-to-end training test. Not a hang;
+  both costs were accepted deliberately for correctness fixes.
 
 ## Preferences
 - User does **not** need the same chat across PCs — shared *context* is enough.

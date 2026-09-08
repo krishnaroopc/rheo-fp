@@ -196,25 +196,49 @@ removing the network classes; `wide_plateau` gating reptation).
    Two-head set model (conv encoder -> masked attention pool -> classify +
    regress) with a learned abstention head, on the frozen architecture.
 
-**Current state:** 126 tests pass (2 skipped). On synthetic data the classifier scores
-**0.917** (merged-pair 0.963, regime 0.999); **55% of all remaining error is
-the physically degenerate Zimm<->Rouse pair**, while the equally-nested
-cured_elastomer<->critical_gel pair now contributes zero. The **0.700 physics
-baseline this used to be quoted against is superseded** — it was measured while
-`wormlike_micelle` was generated but absent from `identify()`'s bank, making
-~1/9 of the baseline's pool unanswerable; over the fixed 9-candidate bank a
-standalone re-measurement gives ~0.82 (n=90), so the real margin is roughly
-+0.10, not +0.217. The network's own number is unaffected — the ML pipeline
-only touches `identify()` for the baseline. Re-measure the pair on the next
-training run (next-actions §1h). Against real measured spectra it scores **6/6 literature
-curves correct** (Darby 2022 cured silicones, Tixier 2004 critical gel,
-Pivokonsky 2006 LDPE), up from 4/6 once the branched forward model was replaced
-with BSW. Read that 6/6 carefully: six curves, three papers, all N=1, four of
-them the same material family — it confirms the BSW fix worked, it is not
-evidence of general real-world accuracy. **Abstention still cannot flag
-out-of-distribution material**: it is trained against the model's own errors on
-the synthetic distribution, so a low abstain_p is not evidence of a correct
-answer on a material whose class is absent from training.
+**Current state (2026-09-07):** 151 tests pass (2 skipped). On synthetic data
+the classifier scores **0.917** (merged-pair 0.963, regime 0.999); **55% of all
+remaining error is the physically degenerate Zimm<->Rouse pair**, while the
+equally-nested cured_elastomer<->critical_gel pair now contributes zero. The
+**0.700 physics baseline this used to be quoted against is superseded** — it
+was measured while `wormlike_micelle` was generated but absent from
+`identify()`'s bank, making ~1/9 of the baseline's pool unanswerable; over the
+fixed 9-candidate bank a standalone re-measurement gives ~0.82 (n=90), so the
+real margin is roughly +0.10, not +0.217. The network's own number is
+unaffected — the ML pipeline only touches `identify()` for the baseline.
+Re-measure the pair on the next training run (next-actions §1h). Against real
+single-curve spectra it scores **6/6 literature curves correct** (Darby 2022
+cured silicones, Tixier 2004 critical gel, Pivokonsky 2006 LDPE). Read that 6/6
+carefully: six curves, three papers, all N=1, four of them the same material
+family — it confirms the BSW fix worked, it is not evidence of general
+real-world accuracy.
+
+**Both real temperature stacks tested so far (Edera 2024, Ricarte 2023 —
+vitrimers) confirm the STACK MECHANISM but fail the FINE CLASS.**
+`resolve_melt_vs_network` correctly refuses a permanent-network call on real
+dynamic-network data in both cases (Edera: 2.50 dec shift; Ricarte: residuals
+0.001-0.02, Arrhenius R^2=0.99). But every curve in both datasets is identified
+as `branched`, not a sticker class — diagnosed as a genuine forward-model limit
+(`scripts/diagnose_sticky_models.py`): the sticky models are a few discrete
+Maxwell modes about one sticker time and cannot reproduce a real vitrimer's
+power-law G'' wing (rising monotonically as omega falls), which BSW's broad
+spectrum fits well. **User decision: keep the sticky models as-is; report the
+ambiguity instead of replacing the forward models** —
+`branched_vitrimer_contradiction()` in `rheofp/report.py` names this
+specific, measured contradiction whenever a `branched` winner shows the
+vitrimer power-law signature (calibrated: 0 false positives across 31 mixed
+synthetic `branched` winners and both real Pivokonsky LDPE curves).
+
+**Abstention still cannot flag out-of-distribution material**: it is trained
+against the model's own errors on the synthetic distribution, so a low
+abstain_p is not evidence of a correct answer on a material whose class is
+absent from training. The explanation layer (`rheofp/report.py`,
+`scripts/explain.py`) exists precisely because that detector problem has no
+general solution: it reports the winner's absolute fit quality, ranks
+alternatives by delta AICc (not the misleading Akaike weight), and prints an
+UNCONDITIONAL "don't think it's X? this may be why" section on every result —
+including confident, correct ones — because most of this classifier's errors
+are GOOD fits of the WRONG class, which no confidence score flags.
 
 **Uploads are density-agnostic by construction**: any point count and any
 frequency range are resampled onto a fixed internal log-omega grid in

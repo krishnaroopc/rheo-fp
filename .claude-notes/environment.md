@@ -38,7 +38,7 @@ Always go through `uv run`; never `python` directly.
 
 ## Daily use
 ```bash
-uv run pytest                                # 126 passed, 2 skipped (~1m40s)
+uv run pytest                                # 151 passed, 2 skipped (~8+ min)
 uv run pytest -m "not slow"                  # skip end-to-end training tests
 uv run python scripts/validate_maxwell.py    # a validation script
 uv run python scripts/train_classifier.py    # train the classifier (~12 min)

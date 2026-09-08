@@ -5,25 +5,33 @@ kept in git so it syncs between the user's home and office PCs. When the user
 says something like "let's continue" / "do the next thing" / "pick up where we
 left off", this is where to look. Update + commit this file as items complete.
 
-Last updated: 2026-09-07 (home PC).
+Last updated: 2026-09-07 (home PC, end of session).
 
-**RESUMING ELSEWHERE — read this first.** The 2026-09-04 session ran on the
-secondary office PC, which the user does not intend to keep working on: no GPU,
-no `originals/`, no checkpoint. Everything from that session is committed and
-pushed, so a `git pull` on the main office PC / home laptop is all that is
-needed. On arrival: `uv sync`, then `uv run pytest` (expect **126 passed, 2
-skipped**, ~1m40s). Then read the ACTIVE TASK immediately below — it is fully
-specified and nothing has been built yet. §1j and §1k hold the evidence behind
-it; CLAUDE.md's new "SCOPE" section is the most important thing to absorb, as it
-narrows what this product is for and retires some earlier assumptions.
+**RESUMING ELSEWHERE — read this first.** The 2026-09-07 session (home PC, RTX
+A1000) closed the model-only tier, fixed a latent NaN in the AICc ranking,
+fixed the `has_shoulder` pre-filter bug, built the whole explanation layer
+(`rheofp/report.py`), validated the temperature stack against TWO real
+vitrimer datasets for the first time, diagnosed why the sticky models fail on
+real vitrimer data, and reported that failure explicitly in the challenge
+section. Everything is committed and pushed. On arrival: `git pull`, `uv sync`,
+then `uv run pytest -m "not slow"` (expect **151 passed, 2 skipped**, ~7-8 min —
+slower now that `has_shoulder` no longer prunes the ballot, see §0 note below).
+Then read the ACTIVE TASK immediately below.
+
+**`originals/` note for this task specifically:** the star-polymer work is
+BLOCKED until the Milner-McLeish (1997) PDF is in `originals/` — see the task.
+That file has never been supplied on any machine, so do not assume it travels
+with the rest of `originals/`.
 
 ## 0. First, on any PC at session start
-- Confirm the env exists: run `uv run pytest` (should be 126 passing, 2 skipped; use
-  `-m "not slow"` to skip the end-to-end training test). If uv or
-  the venv is missing, bootstrap per `.claude-notes/environment.md`
-  (install uv, then `uv sync`). Python is pinned to 3.12 — do not change.
-  NOTE: the suite got slower (~3 min full) once `identify()` gained the 5-param
-  BSW candidate — that is expected, not a hang.
+- Confirm the env exists: run `uv run pytest -m "not slow"` (should be **151
+  passing, 2 skipped**, ~7-8 min). If uv or the venv is missing, bootstrap per
+  `.claude-notes/environment.md` (install uv, then `uv sync`). Python is
+  pinned to 3.12 — do not change.
+  NOTE: the suite is now noticeably slower than earlier sessions recorded —
+  first the 5-param BSW candidate, then the 2026-09-07 `has_shoulder` removal
+  put two more k=4 models on every ballot (`identify()` ~1.9 s/curve). Both are
+  expected costs of correctness fixes, not a hang.
 - Skim `.claude-notes/sessions.md` (newest entries) for what changed since.
 - **CHECK FOR `originals/` AND ASK THE USER IF IT'S MISSING.** `originals/` is
   gitignored + per-machine, so it does NOT arrive via `git pull`. It holds the
@@ -34,8 +42,75 @@ narrows what this product is for and retires some earlier assumptions.
   the `originals/` folder over** (USB/cloud) before attempting any digitizing
   or real-data validation. The forward-model code + planted-parameter tests
   can proceed without it; only the real-data steps are blocked.
-  Quick check: `ls originals/` — expect the pivo, Martin EPDM, Tixier, and
-  Darby 2022 (silicone) PDFs + supp + .txt.
+  Quick check: `ls originals/` — expect the pivo, Martin EPDM, Tixier, Darby
+  2022 (silicone), Edera 2024, and Ricarte 2023 PDFs/xlsx + supp + .txt. The
+  Milner-McLeish (1997) star-polymer PDF is NOT yet among these — see the
+  ACTIVE TASK below, which is blocked on it.
+
+## ACTIVE TASK (set 2026-09-07) — add a star-polymer (Milner-McLeish) class
+
+**BLOCKED on the user supplying the paper.** Nothing is built. User asked
+"am I forgetting common [molecular] models?" (explicitly NOT macroscopic
+material categories — that filter was established 2026-09-04). Audited the
+existing taxonomy plus `docs/rheology_models.md` (which is mostly macroscopic
+categories, rightly out of scope) and found **star polymers are missing
+entirely and were not even on the wishlist.**
+
+**Why this matters, not just "another class":** `branched` (the 5-param BSW
+empirical spectrum) will silently absorb a star melt today. That is the same
+"good fit of the wrong class" failure mode just found and reported for
+vitrimers this session (see §2b) — but for a different molecular architecture,
+undetected, with no real data ever tested. Linear-vs-branched-vs-star is
+exactly the kind of molecular distinction this product exists to make.
+
+**Theory: Milner-McLeish (1997), Macromolecules 30, 2159.** Parameter-free
+given `tau_e`/`G_N` (already available from the Likhtman-McLeish work in
+`tube.py`). Arm retraction against an entropic potential U(x), exponential in
+retraction depth x (hence a very broad spectrum); dynamic dilution Phi(t)^alpha
+as outer arm segments relax and act as solvent for the unrelaxed inner ones;
+G*(omega) assembled by integrating over x in [0,1]. Real finding worth keeping
+even before building: **the number of arms f barely affects LVE** — this
+model can identify "star", not "how many arms", and that limit should be
+stated in the eventual class docstring, not discovered later.
+
+**STEP 1 (blocking everything else): get the actual 1997 paper.** I could not
+retrieve it — it is paywalled, and the open reviews I could reach (checked
+PMC6572337) analyse Milner-McLeish rather than derive its equations.
+Transcribing tube theory from memory is exactly what this project's
+validation-first rule exists to prevent. **Ask the user for the PDF into
+`originals/` before writing any forward-model code.**
+
+**STEP 2, once the paper is in hand — build in the established order:**
+forward physics (planted-parameter round-trip, no data needed) → inverse
+recovery → cannibalisation check against `branched` (same protocol as BSW/WLM/
+has_shoulder: per-class hit counts before/after, **real data must stay 6/6**,
+report the numbers before the class is wired into `identify()`'s bank) →
+real-data validation.
+
+**Real data is abundant, unlike the vitrimer case** — star melts are a classic
+tube-theory model system:
+- Four-arm polyisoprene stars, arm Mw 17k-105k (the original MM validation set,
+  "excellent" agreement quoted across all arm lengths).
+- Roovers' star polybutadienes (the canonical dataset).
+- Santangelo & Roland, star polyisobutylene — free PDF at
+  http://polymerphysics.net/pdf/Macromolecules_32_1972_99.pdf (my fetcher hit
+  an outdated-SSL error on this host; fetch it in a browser instead).
+- Several papers show linear AND star analogues side by side — ideal for a
+  discriminating pair, since it directly tests what `branched` currently means.
+
+**Two risks flagged in advance, so they are not discovered mid-build:**
+1. **May not beat BSW on AICc even with a correct implementation** — a star's
+   spectrum is broad, same shape family as BSW's empirical wedges. Mitigating
+   factor: MM is ~2 effective free parameters (Z_arm + a modulus scale) against
+   BSW's 5, so parsimony should favour a correct star identification even at
+   comparable fit quality. This is exactly the kind of claim the
+   cannibalisation check exists to verify rather than assume.
+2. **Reuse candidates, don't rebuild:** `rheofp.models.maxwell.maxwell_spectrum`
+   for the final mode summation, `rheofp.fitting.optimize.multi_restart_fit`
+   for fitting, and the `(forward, p0, bounds, k)` registry pattern already
+   used throughout `maxwell.py`/`network.py`/`solutions.py`. New code is
+   realistically ~100-150 lines (comparable to `network.py`'s 178) — this is
+   an addition to the existing architecture, not a new subsystem.
 
 ## ~~ACTIVE TASK~~ — explanation layer BUILT 2026-09-07
 

@@ -251,6 +251,54 @@ rather than touch identify()'s contract. 5 new tests, suite 146 -> 151.
 demonstrably bind per §2b, cheap and safe, not yet done); then the neural head
 as the report's second column.
 
+**End-of-session: audited the taxonomy for missing MOLECULAR architectures
+(user request), scoped star polymers as the next addition.** User asked
+"am I forgetting common models?" with the molecular-not-macroscopic filter
+already established. Audit against the existing `docs/rheology_models.md`
+wishlist plus the frozen taxonomy found the wishlist is mostly macroscopic
+material categories (bitumen, food, cement — rightly out of scope), but
+**star polymers are missing entirely and aren't even on the wishlist.** This
+matters because `branched` (BSW, an empirical broad spectrum) will silently
+absorb a star melt today — the same "good fit of the wrong class" failure
+just found for vitrimers, on a different molecular architecture. Also flagged,
+lower priority: comb/H-polymers (same family), block copolymers (ordered
+microphase-separated melts show a power-law plateau and would likely be
+misread as `critical_gel` — a real cross-class error, not a near-miss),
+bidisperse/polydisperse blends (double reptation — already the one probe both
+§1j OOD detectors missed), filled/nanocomposite melts. Recommended stars
+first: same theoretical family as the already-validated Likhtman-McLeish work,
+real data is abundant (four-arm PI stars, Roovers PB stars, Santangelo-Roland
+star PIB), and it's a direct test of what `branched` actually means.
+
+**Scoped, not built.** Theory is Milner-McLeish (1997, Macromolecules 30,
+2159) — parameter-free given `tau_e`/`G_N` (already have both from
+Likhtman-McLeish), arm retraction against an entropic potential U(x)
+(exponential in retraction depth x, hence the very broad spectrum), dynamic
+dilution Phi(t)^alpha as outer segments relax and act as solvent for inner
+ones, G*(omega) assembled by integrating over x in [0,1]. Real finding worth
+keeping: **arm number f barely affects LVE** — this would identify "star" but
+not "how many arms". Most machinery is reusable (`maxwell_spectrum`,
+`multi_restart_fit`, the `(forward,p0,bounds,k)` registry pattern); new code
+is realistically ~100-150 lines, comparable to `network.py`.
+
+**Two real risks flagged before any building starts:**
+1. **Could not obtain the actual 1997 paper** — it's paywalled and open
+   reviews (checked PMC6572337) analyse MM rather than derive its equations.
+   Transcribing tube theory from memory is exactly what the validation-first
+   rule exists to prevent. **BLOCKED on the user supplying the PDF** into
+   `originals/` before any code is written.
+2. **May not beat BSW on AICc** even with the paper in hand — a star's
+   spectrum is broad, same shape family as BSW's empirical wedges. The
+   mitigating factor: MM is ~2 effective params (Z_arm + modulus scale) vs
+   BSW's 5, so parsimony should favour a correct star identification if the
+   fit is even comparable. Must run the same before/after cannibalisation
+   check against `branched` as every other addition this session, and the
+   informative result either way is what happens to `branched`'s accuracy on
+   the real Pivokonsky LDPE curves.
+
+**User: proceed tomorrow.** Nothing built. Journal, next-actions and the
+cross-PC docs updated and pushed to close out this machine's session.
+
 ---
 
 ## 2026-09-04 — New Linux PC; found + closed a 9-vs-8 class asymmetry between the two "brains"
