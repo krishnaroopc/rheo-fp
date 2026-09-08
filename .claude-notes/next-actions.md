@@ -688,8 +688,25 @@ a bigger sample before trusting the vitrimer classes.**
   all N=1, and four of the six are the same material family (cured PDMS).
   6/6 confirms the BSW work did its job; it is NOT evidence of general
   real-world accuracy.
-- **No temperature stack has ever been tested on real material — under the
-  molecular scope this is THE load-bearing gap, not one of several.** The stack
+- ~~**No temperature stack has ever been tested on real material**~~ — **DONE
+  2026-09-07, Edera (2024) epoxy vitrimer, `data/edera2024.npz`.** The
+  MECHANISM is now validated on real material: `resolve_melt_vs_network`
+  returns "melt" (2.50 decades) and refuses to call a dynamic network
+  permanent, and `identify_stack` overturns its own single-curve
+  `critical_gel` call and abstains. The FINE CLASS fails (no curve identified
+  as a vitrimer) but the dataset is deliberately hostile — the paper's own
+  central claim is that time-temperature equivalence FAILS for this material,
+  2 of 4 curves are glassy/near-glassy (out of taxonomy), and only the 180C
+  curve is squarely in the bond-exchange regime. Run
+  `scripts/eval_edera_stack.py`; the caveats are printed with the result.
+  **Still open: a FAIR test of the fine vitrimer class** on a well-behaved
+  vitrimer measured across its rubbery plateau. Best candidate: Ricarte,
+  Shanbhag et al. (2023), polybutadiene/dioxaborolane, Macromolecules 56,
+  6806 (10.1021/acs.macromol.3c00883; free preprint on ChemRxiv) — TTS works
+  for that system, but I could not verify it publishes UNSHIFTED isotherms
+  rather than only a master curve. That is the one thing to check before
+  asking the user to digitize it.
+- **Old framing, kept because the reasoning still applies to the fine class:** The stack
   is the only thing that separates a dynamic network (vitrimer) from a permanent
   one (cured elastomer), which is a flagship distinction of the product; it is
   also what rescues the vitrimer misclassification in §1k. Both the resolver and

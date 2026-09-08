@@ -112,8 +112,54 @@ per-measurement, not boilerplate: absolute fit in both directions, named live
 alternatives within delta 10 with their numbers, unfitted classes, window
 limits, and the standing nine-class limit. Suite **141 -> 146**.
 
-**Next:** the neural head as a second column in the report, and the real
-temperature stack when the user is happy with the framework.
+**FIRST REAL TEMPERATURE STACK (same session).** User supplied
+`originals/rheo_fingerprinting/edera2024.xlsx` — digitized Fig. 3a-d of Edera,
+Chappuis, Cloitre & Tournilhac (2024, Polymer; preprint arXiv:2401.10569),
+an epoxy/Zn(acac)2 transesterification vitrimer. This paper was chosen from a
+search because it publishes RAW UNSHIFTED per-temperature sweeps, which almost
+every vitrimer paper omits in favour of a master curve alone. `prep_edera.py`
+-> `data/edera2024.npz` (4 temperatures, T_K attached); `eval_edera_stack.py`
+runs the evaluation. Panel->temperature was ambiguous (the caption orders
+CURVES right-to-left, not panel labels) so I asked rather than guessed; user
+confirmed a=180C, b=85C, c=75C, d=30C, which is also what the moduli require
+(G' rises monotonically as T falls, tan_d peaks in b at the alpha-relaxation).
+Columns are ragged (a and d carry one point fewer) — dropna per column, never
+per row, or the longer panels get truncated.
+
+**Result, split cleanly in two:**
+- **The mechanism WORKS on real material.** `resolve_melt_vs_network` returns
+  verdict **"melt"** across the stack (2.50 decades of shift) — i.e. it
+  correctly refuses to call a dynamic network permanent, which is the single
+  distinction the temperature stack exists to make and the flagship molecular
+  claim of the product. `identify_stack` then overturns its own
+  single-curve `critical_gel` call and abstains. **This closes the
+  longest-standing gap in the project: the stack was synthetic-only until now.**
+- **The fine class FAILS.** No curve is identified as a vitrimer; three of four
+  land on critical_gel, one on cured_elastomer (the 85C curve does abstain).
+
+**But this dataset is deliberately hostile and the failure must not be
+overread.** I chose the paper *because* the material is thermo-rheologically
+complex — its central claim is that time-temperature EQUIVALENCE fails (two
+relaxations, ~680 and ~130 kJ/mol). Measured that independently: the log10
+tan_delta VALUE ranges of the four curves mostly do not overlap AT ALL, and a
+horizontal shift cannot move a curve vertically, so those alignment residuals
+(1.04, 2.40) are irreducible by construction, not a bug. Also 2 of 4 curves are
+glassy or near-glassy — a regime deliberately dropped from the taxonomy, so
+out-of-scope material — and only the 180C curve sits squarely in the rubbery
+bond-exchange regime the sticker models describe. One curve is not a stack.
+
+**Live test of the new challenge layer, mixed result worth keeping:** the 75C
+curve trips `nothing_fits` (0.168 dec), but the genuinely out-of-scope GLASSY
+30C curve does NOT (0.136 dec, "poor" but under FLOOR_CHI2) — it is reported as
+critical_gel without the strongest warning. Confirms the caveat already written
+into the layer: the misfit flag catches out-of-taxonomy material only when it
+fits badly ENOUGH, and 0.15 decades is a threshold, not a truth.
+
+**Next:** a fair test of the fine vitrimer class needs a well-behaved vitrimer
+measured across its rubbery plateau — Ricarte et al. (2023) polybutadiene /
+dioxaborolane (Macromolecules 56, 6806) is the obvious candidate, TTS works for
+it, but I could not verify it publishes unshifted isotherms. Then the neural
+head as the report's second column.
 
 ---
 
