@@ -123,6 +123,80 @@ _DISCARD_RULES = {
 # wording above rather than a claim about exactly which test tripped.)
 _INVERTED_RULES = frozenset({"has_plateau"})
 
+# --- branched-vs-vitrimer-power-law-regime contradiction (2026-09-07) ------
+# Investigated in scripts/diagnose_sticky_models.py, next-actions 2b: on two
+# real dioxaborolane-vitrimer temperature stacks (Ricarte 2023), every curve
+# was called `branched`, at GOOD absolute fit (0.047-0.084 dec), so no misfit
+# flag fired. Root cause is a forward-model limit, decided by the user
+# (2026-09-07) to leave as-is rather than replace: the sticky models are a
+# few discrete Maxwell modes about one sticker time, so they produce a G''
+# PEAK that must fall on both sides and cannot rise monotonically across a
+# power-law regime, which is exactly the real vitrimer's shape (G'' RISES as
+# omega falls; log-slope -0.70) with G' essentially flat (0.019 decades). BSW's
+# two power-law wedges fit that shape well, so `branched` wins on genuine
+# merit - not a ranking bug - and nothing else in the report catches it,
+# because the fit really is good.
+#
+# This is therefore reported as a NAMED, ALWAYS-CHECKED contradiction on a
+# `branched` winner specifically, following the melt-vs-rubber abstention
+# precedent (report the ambiguity rather than resolve it silently either way).
+# It is not a class-conditional feature and is not added to
+# signature_features() / identify()'s pre-filter - identify()'s contract and
+# accuracy are deliberately untouched; this is reporting only.
+#
+# Thresholds chosen from measurement, not asserted: checked against 31
+# curves the classifier genuinely called `branched` from a mixed synthetic
+# population (branched, reptation, zimm, rouse_screened) - ZERO false
+# positives - and against both real Pivokonsky LDPE curves (also correctly
+# unflagged, slopes +0.73/+0.81, G' span 3.3-3.4 decades). Real vitrimer data
+# is the only case observed to trip both conditions at once.
+VITRIMER_POWERLAW_SLOPE_MAX = 0.0   # G'' low-w log-slope must be negative
+VITRIMER_POWERLAW_GP_SPAN_MAX = 0.3  # decades - real branched melts span 1-5
+
+
+def _gpp_low_freq_slope(w, Gpp, frac=0.3):
+    lw = np.log10(w)
+    n = max(4, int(len(w) * frac))
+    return float(np.polyfit(lw[:n], np.log10(Gpp[:n]), 1)[0])
+
+
+def branched_vitrimer_contradiction(winner_name, w, Gp, Gpp):
+    """Does a `branched` winner actually look like an unreachable vitrimer?
+
+    Returns a dict if the contradiction fires, else None. Needs the raw curve
+    (not just identify()'s features), so it is computed here rather than in
+    signature_features.
+    """
+    if winner_name != "branched" or w is None:
+        return None
+    slope = _gpp_low_freq_slope(w, Gpp)
+    gp_span = float(np.ptp(np.log10(np.clip(Gp, 1e-30, None))))
+    if slope < VITRIMER_POWERLAW_SLOPE_MAX and gp_span < VITRIMER_POWERLAW_GP_SPAN_MAX:
+        return {
+            "slope": slope,
+            "gp_span": gp_span,
+            "text": (
+                f"Your G\" RISES as frequency falls (low-frequency log-slope "
+                f"{slope:.2f}) while G' stays essentially flat "
+                f"({gp_span:.3f} decades of span). A genuine branched melt "
+                "does the opposite - G\" turns over and G' spans several "
+                "decades as the terminal zone is approached (measured on "
+                "real LDPE: slopes +0.73/+0.81, G' span 3.3-3.4 decades). "
+                "This shape is instead the signature of a POWER-LAW regime, "
+                "the kind a vitrimer shows between its rubbery plateau and "
+                "an exchange-controlled terminal relaxation that lies "
+                "outside your measured window. rheofp's sticky_rouse and "
+                "sticky_reptation models cannot currently reproduce this "
+                "shape (they are built from a handful of Maxwell modes "
+                "around one sticker time, which makes a G\" PEAK, not a "
+                "rising power-law wing) - so `branched` wins here on "
+                "genuine fit quality, not by ruling out a vitrimer. If you "
+                "suspect exchangeable bonds, this measurement cannot settle "
+                "it either way; reaching the sticker peak (a higher "
+                "temperature or a wider window) is what would."),
+        }
+    return None
+
 
 def _band(value, bands, beyond):
     for edge, label in bands:
@@ -264,7 +338,7 @@ def contest(w, Gp, Gpp, candidate, result=None, **kw):
     }
 
 
-def challenge(result, max_named=3):
+def challenge(result, max_named=3, w=None, Gp=None, Gpp=None):
     """"Don't think it's X? Here's why it might not be." Always produced.
 
     Deliberately unconditional - it is printed for a confident correct answer
@@ -321,6 +395,12 @@ def challenge(result, max_named=3):
             txt += " " + note
         items.append({"kind": "alternative", "name": a["name"], "text": txt})
 
+    # 2b. A `branched` winner that actually looks like an unreachable
+    # vitrimer power-law regime - see branched_vitrimer_contradiction().
+    contradiction = branched_vitrimer_contradiction(winner["name"], w, Gp, Gpp)
+    if contradiction:
+        items.append({"kind": "vitrimer_powerlaw", "text": contradiction["text"]})
+
     # 3. Classes that were never fitted at all.
     for d in explain_discards(result):
         items.append({
@@ -366,6 +446,11 @@ def explain(result, w=None, Gp=None, Gpp=None, max_alternatives=4):
 
     Returns a dict; render it with format_report(). Kept structured so the
     same content can feed a UI, a notebook, or the text report.
+
+    Pass w, Gp, Gpp (the same curve given to identify()) to enable the
+    branched-vs-vitrimer-power-law-regime check in challenge(), which needs
+    the raw curve rather than identify()'s summary features. Omitting them
+    only skips that one check; everything else is unaffected.
     """
     ranking = result["ranking"]
     winner = ranking[0]
@@ -419,7 +504,7 @@ def explain(result, w=None, Gp=None, Gpp=None, max_alternatives=4):
         "n_considered": len(ranking),
         "n_total": len(ALL_MODELS),
         "field_all_poor": field_poor,
-        "challenge": challenge(result),
+        "challenge": challenge(result, w=w, Gp=Gp, Gpp=Gpp),
         "low_confidence": bool(result["low_confidence"]),
         "abstain": bool(result.get("abstain")),
         "abstain_reason": result.get("abstain_reason"),

@@ -237,7 +237,19 @@ naming the measurement that would separate them. (b) follows the melt-vs-rubber
 precedent. Cheap and safe either way: widen SR_BNDS/SREP_BNDS, which
 demonstrably bind.
 
-**Next:** that decision, then the neural head as the report's second column.
+**User decided: option (b).** Keep the sticky models, make the ambiguity
+explicit instead. Implemented `branched_vitrimer_contradiction()` in
+`report.py` — fires when the winner is `branched` and the curve shows both a
+NEGATIVE low-w G'' slope (power-law wing) and a near-flat G' (<0.3 dec span).
+Calibrated against measurement, not asserted: 0 false positives across 31
+synthetic `branched` winners (mixed truth), both real Pivokonsky LDPE curves
+pass clean, only real vitrimer data trips it. Threaded `w, Gp, Gpp` as optional
+params through `explain()`/`challenge()` (default None, check silently skipped)
+rather than touch identify()'s contract. 5 new tests, suite 146 -> 151.
+
+**Next:** widen SR_BNDS/SREP_BNDS under the cannibalisation protocol (they
+demonstrably bind per §2b, cheap and safe, not yet done); then the neural head
+as the report's second column.
 
 ---
 

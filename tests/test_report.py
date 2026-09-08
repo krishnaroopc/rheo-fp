@@ -263,3 +263,89 @@ def test_challenge_always_states_the_out_of_taxonomy_limit():
         rep = explain(identify(s["omega"], s["Gp"], s["Gpp"], n_restarts=6))
         kinds = [c["kind"] for c in rep["challenge"]]
         assert "out_of_taxonomy" in kinds, path
+
+
+# --- branched-vs-vitrimer-power-law contradiction (2026-09-07) --------------
+
+def test_real_vitrimer_called_branched_trips_the_contradiction():
+    """The concrete case this check exists for: Ricarte (2023) PB-v-4 at
+    120 C is a real dioxaborolane vitrimer that identify() calls `branched`
+    at a genuinely good fit (see scripts/diagnose_sticky_models.py for why -
+    a forward-model limit, not a ranking bug). User decision 2026-09-07: keep
+    the sticky models as they are and make the ambiguity explicit instead of
+    replacing them."""
+    from rheofp.report import branched_vitrimer_contradiction
+    v = load_npz("data/ricarte2023.npz")["Ricarte2023_PBv4_120C"]
+    out = identify(v["omega"], v["Gp"], v["Gpp"])
+    assert out["best"] == "branched"
+
+    c = branched_vitrimer_contradiction("branched", v["omega"], v["Gp"], v["Gpp"])
+    assert c is not None
+    assert c["slope"] < 0
+    assert c["gp_span"] < 0.3
+
+    rep = explain(out, w=v["omega"], Gp=v["Gp"], Gpp=v["Gpp"])
+    kinds = [ch["kind"] for ch in rep["challenge"]]
+    assert "vitrimer_powerlaw" in kinds
+    text = format_report(rep)
+    assert "POWER-LAW regime" in text
+    assert "sticky_rouse" in text
+
+
+def test_real_branched_melt_does_not_trip_the_contradiction():
+    """Must not false-positive on the classifier's actual working case -
+    Pivokonsky (2006) real LDPE, correctly identified as branched."""
+    from rheofp.report import branched_vitrimer_contradiction
+    for name, s in load_npz("data/pivo2006.npz").items():
+        out = identify(s["omega"], s["Gp"], s["Gpp"])
+        assert out["best"] == "branched"
+        c = branched_vitrimer_contradiction(
+            "branched", s["omega"], s["Gp"], s["Gpp"])
+        assert c is None, f"{name}: false positive"
+
+        rep = explain(out, w=s["omega"], Gp=s["Gp"], Gpp=s["Gpp"])
+        kinds = [ch["kind"] for ch in rep["challenge"]]
+        assert "vitrimer_powerlaw" not in kinds
+
+
+def test_contradiction_only_fires_for_a_branched_winner():
+    """The check is specific to `branched` - it says nothing about a
+    sticker-class or any other winner, by construction."""
+    from rheofp.report import branched_vitrimer_contradiction
+    v = load_npz("data/ricarte2023.npz")["Ricarte2023_PBv4_120C"]
+    c = branched_vitrimer_contradiction(
+        "sticky_rouse", v["omega"], v["Gp"], v["Gpp"])
+    assert c is None
+
+
+def test_contradiction_is_skipped_without_the_raw_curve():
+    """explain() must not crash or silently misbehave when the caller does
+    not have the raw curve to pass - it only omits this one check."""
+    s = load_npz("data/pivo2006.npz")["E"]
+    out = identify(s["omega"], s["Gp"], s["Gpp"])
+    rep = explain(out)                      # no w/Gp/Gpp passed
+    kinds = [ch["kind"] for ch in rep["challenge"]]
+    assert "vitrimer_powerlaw" not in kinds
+    assert rep["winner"] == "branched"      # rest of the report still works
+
+
+def test_contradiction_has_zero_false_positives_on_a_mixed_population():
+    """Measured guard for the threshold choice: among curves the classifier
+    genuinely calls `branched` from a mixed synthetic population, none should
+    trip this check - it is calibrated to real vitrimer data specifically,
+    not to ordinary branched variability."""
+    from rheofp.data.synth import make_example
+    from rheofp.report import branched_vitrimer_contradiction
+    rng = np.random.default_rng(9)
+    checked = flagged = 0
+    for cls in ("branched", "reptation", "zimm", "rouse_screened"):
+        for _ in range(15):
+            ex = make_example(rng, cls, n_curves=1)
+            w, gp, gpp, _ = ex["curves"][0]
+            out = identify(w, gp, gpp, n_restarts=6)
+            if out["best"] == "branched":
+                checked += 1
+                if branched_vitrimer_contradiction("branched", w, gp, gpp):
+                    flagged += 1
+    assert checked > 10, "test did not exercise enough branched winners"
+    assert flagged == 0

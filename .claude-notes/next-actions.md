@@ -743,20 +743,35 @@ an extreme EDGE of it. Widening the synthetic G' range toward flatness would
 make training more representative but would NOT close the 0.16-vs-0.046 gap —
 that gap is the forward model's, not the sampler's.
 
-**Two directions, neither chosen — this is a user decision:**
-- (a) Give the sticker classes a broad-spectrum forward model (BSW-like or a
-  fractional/springpot wing anchored to a sticker time). **Risk: it converges
-  on BSW's shape and stops being distinguishable from `branched`**, which is
-  worse than an honest failure.
-- (b) Accept the limit and make it explicit — report Terminal/`branched` for
-  such curves, and have the challenge section state that a vitrimer measured in
-  its power-law regime is not separable from a broad branched spectrum by LVE
-  shape alone, naming the measurement that would separate them (reach the
-  sticker peak; widen the window). This is the melt-vs-rubber precedent —
-  abstain rather than guess — applied to a newly measured degeneracy.
+**DECIDED 2026-09-07 (user): option (b).** Keep the sticky models as they
+are; make the ambiguity explicit in the report rather than replacing the
+forward models. Implemented same session:
 
-Cheap and safe regardless of that choice: **widen SR_BNDS / SREP_BNDS**, since
-they demonstrably bind. Do it under the usual cannibalisation protocol.
+`rheofp/report.py` gains `branched_vitrimer_contradiction(winner_name, w, Gp,
+Gpp)` — a NAMED, ALWAYS-CHECKED item in `challenge()` that fires specifically
+when the winner is `branched` AND the curve shows a negative low-frequency G''
+slope (< 0, a power-law wing) AND a near-flat G' (< 0.3 dec span). Both
+thresholds are measured, not asserted: **zero false positives** among 31
+curves the classifier genuinely called `branched` from a mixed synthetic
+population (branched/reptation/zimm/rouse_screened), and both real Pivokonsky
+LDPE curves pass cleanly (slopes +0.73/+0.81, G' span 3.3-3.4 dec) — only real
+vitrimer data (slope -0.70, span 0.019 dec) has been observed to trip it. The
+message states the physical signature, names WHY the sticky models can't
+reach it (built from a handful of Maxwell modes around one sticker time -> a
+G'' PEAK, not a rising wing), and names the measurement that would settle it
+(reach the sticker peak: higher T or a wider window). This is the
+melt-vs-rubber abstention precedent applied to a newly measured degeneracy.
+
+Needs the raw curve, which identify()'s contract does not carry, so `explain()`
+and `challenge()` gained optional `w, Gp, Gpp` params (default None -> check
+silently skipped, everything else unaffected) rather than touching
+identify()'s return shape. `scripts/explain.py` passes them through.
+5 new tests (test_report.py), suite 146 -> 151.
+
+Cheap and safe, NOT yet done, still worth doing separately: **widen SR_BNDS /
+SREP_BNDS**, since diagnose_sticky_models.py showed they demonstrably bind
+(freeing them improves fit but plateaus well short of BSW - see §2b). Run
+under the usual cannibalisation protocol before changing them.
 
 ## 2c. (superseded framing) original question as first posed
 Two real stacks now agree that they cannot. `sticky_rouse` /

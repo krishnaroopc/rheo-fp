@@ -73,7 +73,7 @@ def main(argv=None):
 
     print(f"\n{label}   ({len(w)} points, "
           f"{np.log10(w.max() / w.min()):.1f} decades)\n")
-    print(format_report(explain(out)))
+    print(format_report(explain(out, w=w, Gp=Gp, Gpp=Gpp)))
 
     if args.why_not:
         print()
