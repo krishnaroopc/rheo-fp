@@ -155,11 +155,54 @@ critical_gel without the strongest warning. Confirms the caveat already written
 into the layer: the misfit flag catches out-of-taxonomy material only when it
 fits badly ENOUGH, and 0.15 decades is a threshold, not a truth.
 
-**Next:** a fair test of the fine vitrimer class needs a well-behaved vitrimer
-measured across its rubbery plateau — Ricarte et al. (2023) polybutadiene /
-dioxaborolane (Macromolecules 56, 6806) is the obvious candidate, TTS works for
-it, but I could not verify it publishes unshifted isotherms. Then the neural
-head as the report's second column.
+**SECOND REAL STACK, the FAIR test — Ricarte (2023), same session.** User
+supplied `ma3c00883.pdf` + SI and then `ricarte2023.xlsx` (Fig. 3A only).
+Confirmed from the SI that Figs. 3A/S14A/S15A/S16A are captioned "SAOS **as
+measured**" with the shifted version beside them in panel B — the arrangement
+we wanted. PB-v-4, dioxaborolane-metathesis polybutadiene, 5 temperatures
+(80-160 C), omega 0.01-100 rad/s. `prep_ricarte.py` -> `data/ricarte2023.npz`,
+`eval_ricarte_stack.py` for the evaluation.
+
+**Data limitation found before trusting it, user informed and chose to
+proceed:** G' is BYTE-IDENTICAL across all five temperatures — one traced curve
+copied into five columns. The paper does say G' is "approximately constant", so
+this is a small distortion rather than a wrong one, but per-T G' scatter and any
+vertical b_T signal are absent BY CONSTRUCTION and no result may be read as
+evidence about them. Temperature information lives entirely in G''.
+
+**This is the fair test Edera could not be** — TTS demonstrably works for this
+system, all five curves are in the rubbery/bond-exchange regime, five
+temperatures is a real stack. None of the Edera excuses apply.
+
+- **Mechanism: WORKS, second real confirmation.** Alignment residuals
+  **0.0012-0.018** (vs Edera's 1.04-2.40 — these spectra genuinely superpose).
+  Verdict **"melt"**, correctly refusing a permanent-network call. Our
+  independently measured shifts are Arrhenius to **R^2 = 0.9922**. Magnitude
+  36.7 kJ/mol vs the paper's 15.1 — recorded as a ~2x discrepancy, NOT claimed
+  as agreement; different windows and the shared-G' artifact both bear on it.
+  The linearity is the real result.
+- **Fine class: FAILS, and this one counts.** All five temperatures return
+  **`branched`**, never a sticker class, at fits of **0.047-0.084 decades** —
+  i.e. GOOD fits, so no misfit flag fires. Exactly the failure mode the report
+  layer was built to expose and explicitly cannot repair: a good fit of the
+  wrong class.
+- **Contest mode did its job diagnostically.** At 120 C: `sticky_rouse` dAICc
+  167 at **0.203 dec**, `sticky_reptation` dAICc 246 at **0.399 dec**, against
+  branched's 0.047. The sticker models are not narrowly losing on parsimony —
+  they cannot reproduce this curve at all. A broad BSW spectrum simply
+  describes a nearly-flat G' with slowly-rising G'' better than they do. That
+  is a FORWARD-MODEL finding, not a ranking bug, and it is the most actionable
+  thing to come out of either real stack.
+
+**Honest overall position after two real stacks:** the regime-level answer and
+the dynamic-vs-permanent call are right on real material; the fine sticker
+classes are not recovered from real vitrimer data. The `has_shoulder` fix
+earlier today was necessary but is clearly not sufficient — it put the sticker
+classes on the ballot, and they lost on merit.
+
+**Next:** investigate whether the sticky forward models can represent a real
+dioxaborolane vitrimer at all (the Ricarte curves are the target); then the
+neural head as the report's second column.
 
 ---
 

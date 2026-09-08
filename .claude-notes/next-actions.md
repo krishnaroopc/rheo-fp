@@ -699,13 +699,30 @@ a bigger sample before trusting the vitrimer classes.**
   2 of 4 curves are glassy/near-glassy (out of taxonomy), and only the 180C
   curve is squarely in the bond-exchange regime. Run
   `scripts/eval_edera_stack.py`; the caveats are printed with the result.
-  **Still open: a FAIR test of the fine vitrimer class** on a well-behaved
-  vitrimer measured across its rubbery plateau. Best candidate: Ricarte,
-  Shanbhag et al. (2023), polybutadiene/dioxaborolane, Macromolecules 56,
-  6806 (10.1021/acs.macromol.3c00883; free preprint on ChemRxiv) — TTS works
-  for that system, but I could not verify it publishes UNSHIFTED isotherms
-  rather than only a master curve. That is the one thing to check before
-  asking the user to digitize it.
+  **The FAIR test was then run — Ricarte (2023), `data/ricarte2023.npz`,
+  `scripts/eval_ricarte_stack.py`.** PB-v-4, 5 temperatures 80-160 C, all in
+  the rubbery/bond-exchange regime, TTS works for the system. Mechanism
+  confirmed a second time (residuals 0.0012-0.018, Arrhenius R^2 0.9922,
+  verdict "melt"). **Fine class FAILS: all five curves return `branched` at
+  0.047-0.084 dec — good fits, so nothing flags them.** Contest at 120 C:
+  sticky_rouse dAICc 167 at 0.203 dec, sticky_reptation dAICc 246 at 0.399
+  dec. The sticker models cannot reproduce the curve; this is a
+  forward-model problem, not a ranking one. Caveat: that file's G' is one
+  shared trace across temperatures (see prep_ricarte.py).
+
+## 2b. NEW ACTIVE QUESTION — can the sticky models represent a real vitrimer?
+Two real stacks now agree that they cannot. `sticky_rouse` /
+`sticky_reptation` in `solutions.py` were validated against PLANTED synthetic
+parameters only; neither has ever been fitted to a real measured vitrimer.
+Ricarte PB-v-4 is the target and is now in the repo. The question to answer
+before any more classifier work on vitrimers: is the failure in the models'
+functional form (a real dioxaborolane vitrimer's near-flat G' with slowly
+rising G'' may simply not be in their reachable set), in the parameter bounds,
+or in the fitter? Protocol: fit each sticker model to the 120 C curve directly
+with generous restarts and bounds, plot residuals, and compare against BSW's
+0.047. If the models genuinely cannot reach it, that is a forward-model
+replacement job of the same kind as branched_spectrum -> BSW on 2026-09-03,
+and it has a precedent to follow.
 - **Old framing, kept because the reasoning still applies to the fine class:** The stack
   is the only thing that separates a dynamic network (vitrimer) from a permanent
   one (cured elastomer), which is a flagship distinction of the product; it is
