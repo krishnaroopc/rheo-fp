@@ -2,7 +2,7 @@
 
 Reference: S. T. Milner & T. C. B. McLeish, "Parameter-Free Theory for Stress
 Relaxation in Star Polymer Melts", Macromolecules 1997, 30, 2159-2166.
-Source PDF: originals/ma961559f.pdf (text: originals/milner_mcleish1997.txt).
+Source PDF: originals/milner_mcleish1997_star.pdf.
 Equation numbers in the comments below are that paper's.
 
 A star polymer cannot reptate - the branch point pins the molecule - so stress

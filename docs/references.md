@@ -100,18 +100,18 @@ repository - citations only, below.
   alpha = 4/3, early-Rouse branch (eq 13), first-passage time with prefactor
   (eq 29), eq-22 crossover, eq-26 modulus integral. `rheofp/models/star.py`
   (`star_spectrum` / `fit_star` / `model_star`). Source PDF
-  `originals/ma961559f.pdf`.
+  `originals/milner_mcleish1997_star.pdf`.
 
 - Ball, R. C., & McLeish, T. C. B. (1989). Dynamic dilution and the viscosity
   of star polymer melts. *Macromolecules*, 22(4), 1911-1913. — ref 2 of the
   above and the origin of eqs 18-21. Its eq 8 states the activated time as
   t(s) = t_0 exp[U(s)] with t_0 "the Rouse time for an entanglement length",
   which is the O(1) anchor that fixes Milner-McLeish's eq-29 prefactor.
-  `originals/ma00194a066.pdf`.
+  `originals/ball_mcleish1989.pdf`.
 
 - Pearson, D. S., & Helfand, E. (1984). Viscoelastic properties of star-shaped
   polymers. *Macromolecules*, 17(4), 888-895. — ref 1 of the above; the
   un-diluted arm-retraction barrier (whose 15N/8Ne gives the quoted
   log(tau(1)/tau_0) = 13.8) and the first-passage formulation, including
   eqs 1.9/1.10 defining the diffusive time on the tube FLUCTUATION length
-  rather than the full primitive path. `originals/ma00134a060.pdf`.
+  rather than the full primitive path. `originals/pearson_helfand1984.pdf`.

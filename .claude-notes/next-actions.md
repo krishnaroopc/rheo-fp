@@ -36,13 +36,12 @@ first time, and diagnosed why the sticky models fail on real vitrimer data.
 same path on every Windows PC — one copy, no more per-machine redundancy). Set
 up per `.claude-notes/environment.md` on a fresh Windows PC (`mklink /J`, no
 admin needed). Files are FLAT in `originals/` now — the nested
-`originals/rheo_fingerprinting/` layout is retired. Still gitignored; derived
-`data/*.npz` stay committed so tests don't need it.
-**The three star-polymer papers (`ma961559f.pdf` Milner-McLeish 1997,
-`ma00194a066.pdf` Ball-McLeish 1989, `ma00134a060.pdf` Pearson-Helfand 1984)
-were supplied on the LAPTOP and are NOT in OneDrive** — ask the user to drop
-them into the OneDrive `originals/` folder if the star forward model ever needs
-re-verifying (the code itself is done + validated).
+`originals/rheo_fingerprinting/` layout is retired. Paper PDFs were renamed to
+`firstauthor+year` form and outdated material moved to `originals/archive/`
+(2026-09-09; see that dir's README). Still gitignored; derived `data/*.npz`
+stay committed so tests don't need it. All three star-polymer papers are
+present (`milner_mcleish1997_star.pdf`, `ball_mcleish1989.pdf`,
+`pearson_helfand1984.pdf`).
 
 ## 0. First, on any PC at session start
 - Confirm the env exists: run `uv run pytest -m "not slow"` (should be **180
@@ -74,21 +73,25 @@ re-verifying (the code itself is done + validated).
   no admin). Still gitignored; derived `data/*.npz` are committed so tests /
   planted-parameter validation run without it — only re-digitizing or a
   `prep_*.py` rerun needs the raw files.
-  Quick check: `ls originals/` — expect pivo, Tixier, Darby 2022, Edera 2024,
-  Ricarte 2023 (ma3c00883), the elastomer lit-review PDFs, + `.txt` extracts.
-  **MISSING from OneDrive: the three star-polymer papers** (`ma961559f.pdf`
-  Milner-McLeish 1997, `ma00194a066.pdf` Ball-McLeish 1989, `ma00134a060.pdf`
-  Pearson-Helfand 1984) — they were supplied on the laptop only. Ask the user
-  to add them to OneDrive if the star forward model needs re-checking.
+  **Cleaned + renamed 2026-09-09:** paper PDFs now have legible names
+  (`milner_mcleish1997_star.pdf`, `tixier2004_pdms_gel.pdf`, `curro_pincus1983.pdf`,
+  …); the digitized-data xlsx keep their npz-matching names (`pivo2006.xlsx`,
+  `edera2024.xlsx`, `ricarte2023.xlsx`, `likhtman_mcleish2002.xlsx`). Outdated
+  material (dropped-XPP papers, notebook-era artifacts, `garbage/`) moved to
+  `originals/archive/` with a README explaining each. All three star-polymer
+  papers ARE present (earlier note that they were missing was wrong).
+  Still absent on this PC: the Darby 2022 digitize inputs (`darby.ods/.xlsx`,
+  `darby2022-*.txt`) and `tixier.xlsx` — pre-existing gap, `data/darby2022.npz`
+  + `data/tixier2004.npz` are committed so nothing is blocked.
 
 ## ACTIVE TASK — star-polymer (Milner-McLeish) class
 
 **UNBLOCKED 2026-09-09. Steps 1 and 2 DONE; step 3 (cannibalisation) is next.**
 
-The user supplied all three papers into `originals/`:
-`ma961559f.pdf` (Milner-McLeish 1997), `ma00194a066.pdf` (Ball-McLeish 1989,
-ref 2), `ma00134a060.pdf` (Pearson-Helfand 1984, ref 1). Extracted text sits
-alongside each as `.txt`.
+The user supplied all three papers into `originals/` (renamed 2026-09-09):
+`milner_mcleish1997_star.pdf` (Milner-McLeish 1997), `ball_mcleish1989.pdf`
+(Ball-McLeish 1989, ref 2), `pearson_helfand1984.pdf` (Pearson-Helfand 1984,
+ref 1).
 
 **Built:** `rheofp/models/star.py` (forward + `fit_star` + `STAR_MODELS`
 registry, k=3), `tests/test_star.py` (27 tests, ~10 s),

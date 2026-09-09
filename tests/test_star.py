@@ -7,9 +7,9 @@ and the eq-22 handoff location. Several of these caught real transcription
 errors while the module was being written, so they are regression tests in the
 strict sense, not decoration.
 
-Reference: Macromolecules 1997, 30, 2159 (originals/ma961559f.pdf), with
-Ball & McLeish 1989 (ma00194a066.pdf) and Pearson & Helfand 1984
-(ma00134a060.pdf) as the two precursors it builds on.
+Reference: Macromolecules 1997, 30, 2159 (originals/milner_mcleish1997_star.pdf),
+with Ball & McLeish 1989 (ball_mcleish1989.pdf) and Pearson & Helfand 1984
+(pearson_helfand1984.pdf) as the two precursors it builds on.
 """
 import numpy as np
 import pytest

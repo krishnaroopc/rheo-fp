@@ -76,6 +76,17 @@ real-data digitizing is blocked). Files are flat in `originals/` — the older
 nested `originals/rheo_fingerprinting/` layout is gone (`prep_edera.py` /
 `prep_ricarte.py` updated 2026-09-09).
 
+**Naming (cleaned 2026-09-09):** paper PDFs use `firstauthor+year` names
+(`milner_mcleish1997_star.pdf`, `tixier2004_pdms_gel.pdf`, `curro_pincus1983.pdf`,
+`winter_chambon1986_gelpoint.pdf`, `bonfanti_fractional_ve.pdf`,
+`likhtman_mcleish2002.pdf`, `pivokonsky2006_ldpe.pdf`, `ricarte2023_vitrimer.pdf`,
+`martin2008_epdm.pdf`, `villar2001_pdms_networks.pdf`, `ball_mcleish1989.pdf`,
+`pearson_helfand1984.pdf`). The **hand-digitized data** xlsx keep names that
+match their `data/*.npz` outputs (`pivo2006.xlsx`, `edera2024.xlsx`,
+`ricarte2023.xlsx`, `likhtman_mcleish2002.xlsx`) — don't rename those without
+also renaming the npz. Outdated material is in `originals/archive/` (see its
+README): the dropped-XPP papers, notebook-era artifacts, `garbage/`.
+
 ## Changing dependencies
 - Add/remove a package: edit `[project].dependencies` in `pyproject.toml`, then
   `uv lock` (updates `uv.lock`) and `uv sync`.

@@ -218,7 +218,7 @@ cm0343507 damping-elastomer PDMS (both likely also time-domain / relaxation).
 Goal: a SECOND real material reporting native G'(omega)/G''(omega) frequency
 sweeps (route b), to not rest validation on EPDM alone. Ranked:
 
-1. **OBTAINED (originals/39_1_online.pdf) — Tixier, Tordjeman, Cohen-Solal &
+1. **OBTAINED (originals/tixier2004_pdms_gel.pdf) — Tixier, Tordjeman, Cohen-Solal &
    Mutin, "Structural effects on the viscoelasticity of PDMS networks close to
    the sol-gel threshold," J. Rheol. 48(1), 39 (2004).** End-linked PDMS,
    controlled structure (3 crosslinkers, functionality/Mn in Table I; critical
