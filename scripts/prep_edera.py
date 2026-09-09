@@ -51,7 +51,7 @@ import pandas as pd
 
 from rheofp.io.data import save_npz
 
-SRC = "originals/rheo_fingerprinting/edera2024.xlsx"
+SRC = "originals/edera2024.xlsx"
 OUT = "data/edera2024.npz"
 
 # panel -> (temperature in C, short note). Confirmed against the moduli.

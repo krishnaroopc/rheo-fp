@@ -30,11 +30,19 @@ pre-filter bug, built the whole explanation layer (`rheofp/report.py`),
 validated the temperature stack against TWO real vitrimer datasets for the
 first time, and diagnosed why the sticky models fail on real vitrimer data.
 
-**`originals/` note:** all three star-polymer papers are now supplied —
-`ma961559f.pdf` (Milner-McLeish 1997), `ma00194a066.pdf` (Ball-McLeish 1989),
-`ma00134a060.pdf` (Pearson-Helfand 1984), each with extracted `.txt`. As
-always `originals/` is gitignored and per-machine, so it does NOT arrive via
-`git pull` — on a fresh PC ask the user to copy it over.
+**`originals/` note (setup changed 2026-09-09):** `originals/` is now a
+**junction** into OneDrive
+(`C:\Users\krish\OneDrive - UCB-O365\CUB\ML\rheo_fingerprinting\originals\`,
+same path on every Windows PC — one copy, no more per-machine redundancy). Set
+up per `.claude-notes/environment.md` on a fresh Windows PC (`mklink /J`, no
+admin needed). Files are FLAT in `originals/` now — the nested
+`originals/rheo_fingerprinting/` layout is retired. Still gitignored; derived
+`data/*.npz` stay committed so tests don't need it.
+**The three star-polymer papers (`ma961559f.pdf` Milner-McLeish 1997,
+`ma00194a066.pdf` Ball-McLeish 1989, `ma00134a060.pdf` Pearson-Helfand 1984)
+were supplied on the LAPTOP and are NOT in OneDrive** — ask the user to drop
+them into the OneDrive `originals/` folder if the star forward model ever needs
+re-verifying (the code itself is done + validated).
 
 ## 0. First, on any PC at session start
 - Confirm the env exists: run `uv run pytest -m "not slow"` (should be **180
@@ -59,20 +67,19 @@ always `originals/` is gitignored and per-machine, so it does NOT arrive via
   expensive candidates or mark more tests slow — do not shrink N_S expecting
   a win.
 - Skim `.claude-notes/sessions.md` (newest entries) for what changed since.
-- **CHECK FOR `originals/` AND ASK THE USER IF IT'S MISSING.** `originals/` is
-  gitignored + per-machine, so it does NOT arrive via `git pull`. It holds the
-  source PDFs (and my extracted `.txt`) + `pivo2006.xlsx` needed for the
-  elastomer build's real-data validation. If this session is on a PC where
-  `originals/` is absent or empty (e.g. first time on the office PC), and the
-  active task touches those papers/data, **proactively ask the user to copy
-  the `originals/` folder over** (USB/cloud) before attempting any digitizing
-  or real-data validation. The forward-model code + planted-parameter tests
-  can proceed without it; only the real-data steps are blocked.
-  Quick check: `ls originals/` — expect the pivo, Martin EPDM, Tixier, Darby
-  2022 (silicone), Edera 2024, and Ricarte 2023 PDFs/xlsx + supp + .txt, plus
-  the three star-polymer papers added 2026-09-09: `ma961559f.pdf`
-  (Milner-McLeish 1997), `ma00194a066.pdf` (Ball-McLeish 1989),
-  `ma00134a060.pdf` (Pearson-Helfand 1984).
+- **`originals/` is a OneDrive junction now (2026-09-09).** On a Windows PC it
+  points at `C:\Users\krish\OneDrive - UCB-O365\CUB\ML\rheo_fingerprinting\originals\`
+  — one shared copy, files flat (no nested `rheo_fingerprinting/`). Set it up
+  per `.claude-notes/environment.md` if `ls originals/` is empty (`mklink /J`,
+  no admin). Still gitignored; derived `data/*.npz` are committed so tests /
+  planted-parameter validation run without it — only re-digitizing or a
+  `prep_*.py` rerun needs the raw files.
+  Quick check: `ls originals/` — expect pivo, Tixier, Darby 2022, Edera 2024,
+  Ricarte 2023 (ma3c00883), the elastomer lit-review PDFs, + `.txt` extracts.
+  **MISSING from OneDrive: the three star-polymer papers** (`ma961559f.pdf`
+  Milner-McLeish 1997, `ma00194a066.pdf` Ball-McLeish 1989, `ma00134a060.pdf`
+  Pearson-Helfand 1984) — they were supplied on the laptop only. Ask the user
+  to add them to OneDrive if the star forward model needs re-checking.
 
 ## ACTIVE TASK — star-polymer (Milner-McLeish) class
 

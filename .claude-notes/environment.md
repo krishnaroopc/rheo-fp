@@ -54,6 +54,28 @@ tells you which you got; training auto-selects via `device_auto()`.
 Cost of this: `uv sync` pulls ~2.5 GB of CUDA wheels on a fresh machine.
 Home PC (2026-09-01): GTX 1660 Ti, ~11 s/epoch at 16k examples.
 
+## `originals/` — per-machine, backed by OneDrive
+`originals/` is gitignored (raw paper PDFs, extracted `.txt`, hand-digitized
+xlsx). It does NOT travel via git. The **derived** `data/*.npz` files the prep
+scripts produce ARE committed, so tests and validation run without `originals/`;
+only re-digitizing / re-running a `prep_*.py` needs it.
+
+**Single source of truth (2026-09-09):** the files live in OneDrive at
+`C:\Users\krish\OneDrive - UCB-O365\CUB\ML\rheo_fingerprinting\originals\`
+— the same path on every Windows PC. In each repo, `originals/` is a **junction**
+to that folder, so scripts referencing `originals/...` work unchanged and there
+is only one copy to keep current.
+
+Set it up on a Windows PC (junction needs no admin, unlike a symlink):
+```cmd
+rmdir "C:\Users\krish\rheo-fp\originals"   :: if it's a real (empty) dir
+mklink /J "C:\Users\krish\rheo-fp\originals" "C:\Users\krish\OneDrive - UCB-O365\CUB\ML\rheo_fingerprinting\originals"
+```
+Linux PC: no OneDrive; either copy the folder in or leave it absent (only
+real-data digitizing is blocked). Files are flat in `originals/` — the older
+nested `originals/rheo_fingerprinting/` layout is gone (`prep_edera.py` /
+`prep_ricarte.py` updated 2026-09-09).
+
 ## Changing dependencies
 - Add/remove a package: edit `[project].dependencies` in `pyproject.toml`, then
   `uv lock` (updates `uv.lock`) and `uv sync`.

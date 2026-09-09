@@ -51,7 +51,7 @@ import pandas as pd
 
 from rheofp.io.data import save_npz
 
-SRC = "originals/rheo_fingerprinting/ricarte2023.xlsx"
+SRC = "originals/ricarte2023.xlsx"
 OUT = "data/ricarte2023.npz"
 
 TEMPS_C = (160, 140, 120, 100, 80)
