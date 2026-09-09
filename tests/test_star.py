@@ -1,0 +1,289 @@
+"""Milner-McLeish (1997) star-melt model: forward physics + inverse recovery.
+
+The forward tests pin the model against the paper's own analytic statements
+and published figures rather than against remembered numbers - eq 24 reducing
+to eq 8, the Figure 2 potential ratio, the quoted log(tau(1)/tau_0) = 13.8,
+and the eq-22 handoff location. Several of these caught real transcription
+errors while the module was being written, so they are regression tests in the
+strict sense, not decoration.
+
+Reference: Macromolecules 1997, 30, 2159 (originals/ma961559f.pdf), with
+Ball & McLeish 1989 (ma00194a066.pdf) and Pearson & Helfand 1984
+(ma00134a060.pdf) as the two precursors it builds on.
+"""
+import numpy as np
+import pytest
+
+from rheofp.models.star import (
+    ALPHA_CR, STAR_MODELS, dueff_ds, fit_star, model_star, star_spectrum,
+    tau_of_s, ueff, _tau_activated, _tau_early,
+)
+
+# The paper's Figure 1/5 system: 12-arm 1,4-polybutadiene, arm Mw 30 280,
+# Me = 1815 -> Z = 16.68, with the literature values quoted in its section IV.
+Z_FIG1 = 30280.0 / 1815.0
+G_N_FIG1 = 1.25e6
+TAU_E_FIG1 = 7.8e-6
+
+W_WIDE = np.logspace(-6, 6, 400)
+
+
+# --- forward physics: the potential (eq 24) ---------------------------------
+
+def test_ueff_reduces_to_ball_mcleish_eq8_at_alpha_one():
+    # eq 24 with alpha = 1 must collapse onto the older eq 8, 15N(s^2-2s^3/3)/8Ne.
+    s = np.linspace(0.0, 1.0, 201)
+    Z = 17.0
+    assert np.allclose(ueff(s, Z, alpha=1.0),
+                       15.0 * Z * (s**2 - 2.0 * s**3 / 3.0) / 8.0)
+
+
+def test_ueff_at_alpha_one_is_one_third_of_the_pearson_helfand_barrier():
+    # Paper, under eq 8: "Ueff(1) is reduced by a factor of 3".
+    Z = 17.0
+    assert ueff(1.0, Z, alpha=1.0) == pytest.approx(15.0 * Z / 8.0 / 3.0)
+
+
+def test_ueff_matches_the_published_figure_2_curve():
+    # Figure 2 plots Pearson-Helfand, Ball-McLeish and "this work". Read off
+    # its s = 1 endpoints, this work sits at ~0.26 of the PH barrier.
+    Z = 17.0
+    ratio = ueff(1.0, Z, ALPHA_CR) / (15.0 * Z / 8.0)
+    assert ratio == pytest.approx(0.26, abs=0.02)
+
+
+def test_pearson_helfand_barrier_reproduces_the_papers_quoted_13_8_decades():
+    # Paper, section II: for the Figure 1 system the un-diluted theory gives
+    # log(tau(1)/tau_0) = 13.8 - the headline failure dynamic dilution fixes.
+    assert (15.0 * 17.0 / 8.0) / np.log(10) == pytest.approx(13.8, abs=0.1)
+
+
+def test_ueff_derivative_is_analytic_and_correct():
+    s = np.linspace(0.05, 0.95, 50)
+    h = 1e-6
+    for alpha in (1.0, ALPHA_CR):
+        numeric = (ueff(s + h, 17.0, alpha) - ueff(s - h, 17.0, alpha)) / (2 * h)
+        assert np.allclose(dueff_ds(s, 17.0, alpha), numeric, rtol=1e-6)
+
+
+def test_ueff_is_a_monotonically_increasing_barrier():
+    # A retraction potential that turned over would let the arm end fall
+    # inward for free; it also silently signals a transcription slip in eq 24.
+    s = np.linspace(0.0, 1.0, 2000)
+    for alpha in (1.0, ALPHA_CR):
+        assert np.all(np.diff(ueff(s, 17.0, alpha)) >= -1e-12)
+
+
+def test_stronger_dilution_softens_the_barrier():
+    # The Colby-Rubinstein exponent 4/3 dilutes faster than the binary-contact
+    # alpha = 1, so it must give the LOWER barrier at every interior s.
+    s = np.linspace(0.05, 1.0, 50)
+    assert np.all(ueff(s, 17.0, ALPHA_CR) < ueff(s, 17.0, 1.0))
+
+
+# --- forward physics: the relaxation-time crossover (eqs 13, 22, 29) --------
+
+def test_eq22_hands_off_from_the_early_to_the_activated_branch():
+    # The paper places the crossover at 1 - s of order (Ne/N)^(1/2); for
+    # Z = 17 that is s ~ 0.2. If the activated branch never overtakes the
+    # early one, the terminal time stays Rouse-like and the whole alpha
+    # dependence collapses - which is exactly the bug this guards.
+    s = np.linspace(1e-6, 1.0 - 1e-9, 20000)
+    early = _tau_early(s, Z_FIG1, TAU_E_FIG1)
+    activated = _tau_activated(s, Z_FIG1, TAU_E_FIG1, ALPHA_CR)
+    overtakes = early > activated
+    assert overtakes.any(), "activated branch never takes over"
+    assert 0.10 < s[np.argmax(overtakes)] < 0.35
+
+
+def test_activated_prefactor_scales_as_Z_to_the_three_halves():
+    # Paper, under eq 19: "tau(s) ~ tau_e (N/Ne)^(3/2) exp[Ueff(s)]", and in
+    # the same sentence, that the prefactor "depends more weakly on N/Ne than
+    # the Rouse time tau_R" - and tau_R/tau_e = Z^2. Measure the prefactor
+    # alone by dividing out exp[Ueff] and the eq-29 denominator.
+    def bare_prefactor(Z):
+        s = 0.5
+        denom = np.sqrt(s**2 * (1 - s) ** (2 * ALPHA_CR)
+                        + _k_constant(Z) ** -2.0)
+        return (_tau_activated(s, Z, 1.0, ALPHA_CR)
+                * denom / np.exp(ueff(s, Z, ALPHA_CR)))
+
+    exponent = np.log(bare_prefactor(40.0) / bare_prefactor(10.0)) / np.log(4.0)
+    assert exponent == pytest.approx(1.5, abs=0.02)
+    assert exponent < 2.0, "prefactor must depend on Z more weakly than tau_R"
+
+
+def _k_constant(Z, alpha=ALPHA_CR):
+    """The eq-29 barrier-top constant K, duplicated here so the prefactor test
+    does not depend on the module's private spelling of it."""
+    from scipy.special import gamma
+    return ((15.0 * Z / 4.0) ** (alpha / (alpha + 1.0))
+            * (1.0 + alpha) ** (-(2.0 * alpha + 1.0) / (1.0 + alpha))
+            * gamma(1.0 / (1.0 + alpha)))
+
+
+def test_tau_is_linear_in_tau_e():
+    s = np.linspace(0.01, 0.99, 50)
+    assert np.allclose(tau_of_s(s, 17.0, 1e-4), 10.0 * tau_of_s(s, 17.0, 1e-5),
+                       rtol=1e-12)
+
+
+# --- forward physics: the modulus (eqs 25, 26) ------------------------------
+
+def test_terminal_scaling_is_maxwell_like():
+    w = np.logspace(-8, -5, 60)
+    Gp, Gpp = star_spectrum(w, G_N_FIG1, Z_FIG1, TAU_E_FIG1)
+    assert np.polyfit(np.log10(w), np.log10(Gp), 1)[0] == pytest.approx(2.0, abs=1e-3)
+    assert np.polyfit(np.log10(w), np.log10(Gpp), 1)[0] == pytest.approx(1.0, abs=1e-3)
+
+
+def test_plateau_recovers_G_N():
+    # eq 25's weight (alpha+1)(1-s)^alpha integrates to 1 over [0,1], so the
+    # mode weights sum to G_N and G' must approach it on a wide window.
+    Gp, _ = star_spectrum(W_WIDE, G_N_FIG1, Z_FIG1, TAU_E_FIG1)
+    assert Gp.max() / G_N_FIG1 == pytest.approx(1.0, abs=0.06)
+
+
+def test_G_N_is_a_pure_amplitude():
+    a = star_spectrum(W_WIDE, 1e6, 17.0, 1e-5)
+    b = star_spectrum(W_WIDE, 2e6, 17.0, 1e-5)
+    assert np.allclose(b[0], 2 * a[0], rtol=1e-12)
+    assert np.allclose(b[1], 2 * a[1], rtol=1e-12)
+
+
+def test_tau_e_is_a_pure_time_scale():
+    # Scaling tau_e by c must map the curve rigidly to w -> w/c.
+    w = np.logspace(-4, 4, 300)
+    a = star_spectrum(w, 1e6, 17.0, 1e-5)
+    b = star_spectrum(w / 10.0, 1e6, 17.0, 1e-4)
+    assert np.allclose(a[0], b[0], rtol=1e-9)
+    assert np.allclose(a[1], b[1], rtol=1e-9)
+
+
+def test_arm_count_is_not_a_parameter():
+    # The theory predicts LVE depends on ARM LENGTH only - a 3-arm and a
+    # 12-arm star with the same Z relax identically. This is a real physical
+    # claim (Pearson-Helfand's observed arm-number independence of viscosity),
+    # so the signature must not grow an `f` to look more informative.
+    import inspect
+    assert "f" not in inspect.signature(star_spectrum).parameters
+
+
+def test_spectrum_broadens_monotonically_with_Z():
+    # Z is the only shape parameter; the barrier grows with it, so the
+    # spectrum must widen. This is what makes Z identifiable against tau_e.
+    #
+    # Width is measured as the span of tau(s) itself rather than from the
+    # G'' peak, because the peak is not a stable landmark: past Z ~ 40 the
+    # barrier separates the Rouse and activated relaxations far enough that
+    # G'' develops TWO maxima (see the test below), and the global peak jumps
+    # between them. Measuring off the ladder avoids that discontinuity.
+    s = np.linspace(0.01, 1.0 - 1e-9, 2000)
+    spans = [np.log10(tau_of_s(s, Z, 1e-5).max() / tau_of_s(s, Z, 1e-5).min())
+             for Z in (5.0, 10.0, 17.0, 25.0, 40.0)]
+    assert np.all(np.diff(spans) > 0)
+
+
+def test_high_entanglement_splits_G_double_prime_into_two_peaks():
+    # Real feature of the theory, pinned so it is not mistaken for a bug or
+    # a quadrature artifact later. tau(s) crosses over from the early Rouse
+    # branch to the activated one (eq 22); when Z is large enough the
+    # activated terminal time is pushed so far from the Rouse time that the
+    # single broad loss peak resolves into two - a fast one near the
+    # crossover frequency and a slow one near 1/tau(1). Verified converged:
+    # identical peak positions for n_s from 400 to 64000.
+    def n_maxima(Z):
+        _, Gpp = star_spectrum(W_WIDE, 1e6, Z, 1e-5)
+        return int((np.diff(np.sign(np.diff(Gpp))) < 0).sum())
+
+    assert n_maxima(17.0) == 1
+    assert n_maxima(25.0) == 1
+    assert n_maxima(40.0) == 2
+
+
+# --- inverse recovery -------------------------------------------------------
+
+PLANTED = [
+    (1.25e6, 17.0, 7.8e-6),
+    (5.0e5, 8.0, 1.0e-4),
+    (2.0e6, 30.0, 1.0e-6),
+    (8.0e5, 12.0, 3.0e-5),
+]
+
+
+@pytest.mark.parametrize("G_N, Z, tau_e", PLANTED)
+def test_planted_parameters_are_recovered_exactly_without_noise(G_N, Z, tau_e):
+    w = np.logspace(-3, 5, 60)
+    Gp, Gpp = star_spectrum(w, G_N, Z, tau_e)
+    keep = (Gp > Gp.max() * 1e-6) & (Gpp > Gpp.max() * 1e-6)
+    got = fit_star(w[keep], Gp[keep], Gpp[keep], n_restarts=24, seed=1)
+    assert got["G_N"] == pytest.approx(G_N, rel=0.02)
+    assert got["Z"] == pytest.approx(Z, rel=0.02)
+    assert got["tau_e"] == pytest.approx(tau_e, rel=0.05)
+
+
+@pytest.mark.parametrize("Z", [17.0, 30.0])
+def test_recovery_survives_two_percent_noise(Z):
+    # 2% log-normal is the digitizing scatter synth.py assumes for real figures.
+    rng = np.random.default_rng(3)
+    w = np.logspace(-3, 5, 50)
+    Gp, Gpp = star_spectrum(w, 1e6, Z, 1e-5)
+    Gp = Gp * np.exp(rng.normal(0, 0.02, len(w)))
+    Gpp = Gpp * np.exp(rng.normal(0, 0.02, len(w)))
+    got = fit_star(w, Gp, Gpp, n_restarts=24, seed=3)
+    assert got["Z"] == pytest.approx(Z, rel=0.05)
+    assert got["G_N"] == pytest.approx(1e6, rel=0.05)
+
+
+def test_a_cropped_high_frequency_window_loses_Z_at_low_entanglement():
+    # HONEST LIMIT, pinned deliberately. At Z = 8 the whole spectrum is only
+    # ~3 decades wide, so a window that cuts the plateau leaves the G'' peak
+    # at the edge and Z poorly constrained - the profile likelihood still has
+    # its true minimum (verified: cost 5e-29 at Z=8 vs 2e-3 at Z=9), but 2%
+    # noise is enough to move the optimum by ~20%. This is a window
+    # limitation, not a fitter defect, and it is why the eventual class must
+    # not report Z from a terminal-only sweep.
+    rng = np.random.default_rng(0)
+    w = np.logspace(-3, 2, 50)
+    Gp, Gpp = star_spectrum(w, 1e6, 8.0, 1e-5)
+    Gp = Gp * np.exp(rng.normal(0, 0.02, len(w)))
+    Gpp = Gpp * np.exp(rng.normal(0, 0.02, len(w)))
+    got = fit_star(w, Gp, Gpp, n_restarts=24, seed=0)
+    assert got["Z"] != pytest.approx(8.0, rel=0.05)
+
+
+def test_registry_entry_matches_the_house_shape():
+    forward, p0, bounds, k = STAR_MODELS["star"]
+    assert forward is model_star
+    assert k == len(p0) == len(bounds) == 3
+    Gp, Gpp = forward(np.logspace(-2, 2, 20), p0)
+    assert np.all(np.isfinite(Gp)) and np.all(np.isfinite(Gpp))
+    assert np.all(Gp > 0) and np.all(Gpp > 0)
+
+
+def test_model_star_takes_log10_moduli_and_times():
+    # The registry convention is log10 for moduli/times, linear for exponents
+    # and counts - Z is a count, so it stays linear.
+    w = np.logspace(-2, 2, 30)
+    direct = star_spectrum(w, 1e6, 17.0, 1e-5)
+    viareg = model_star(w, [6.0, 17.0, -5.0])
+    assert np.allclose(direct[0], viareg[0])
+    assert np.allclose(direct[1], viareg[1])
+
+
+def test_star_is_in_the_identifier_bank():
+    # Wired in 2026-09-09 after the pre-registered cannibalisation check
+    # (scripts/check_star_cannibalisation.py). Replaced the earlier guard test
+    # that asserted its ABSENCE while the check was outstanding.
+    from rheofp.fitting.identify import ALL_MODELS
+    assert ALL_MODELS["star"] == STAR_MODELS["star"]
+    assert ALL_MODELS["star"][0] is model_star
+
+
+def test_identify_recovers_a_planted_star_melt():
+    # The point of the class existing: before it was on the ballot, `branched`
+    # (BSW) absorbed 25/30 planted star melts silently and confidently.
+    from rheofp.fitting.identify import identify
+    w = np.logspace(-2, 4, 60)
+    Gp, Gpp = star_spectrum(w, 1e6, 20.0, 1e-5)
+    assert identify(w, Gp, Gpp, n_restarts=8)["best"] == "star"

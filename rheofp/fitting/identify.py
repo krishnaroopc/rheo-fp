@@ -54,6 +54,7 @@ import numpy as np
 from rheofp.models.solutions import MODELS
 from rheofp.models.network import NETWORK_MODELS, tan_delta_spread
 from rheofp.models.maxwell import BRANCHED_MODELS, WLM_MODELS
+from rheofp.models.star import STAR_MODELS
 from rheofp.fitting.optimize import multi_restart_fit
 
 N_RESTARTS = 12
@@ -66,10 +67,27 @@ RNG_SEED = 0
 SSE_FLOOR = 1e-30
 
 # Full candidate bank: solution family + crosslinked-network family +
-# branched / LCB melt + wormlike micelle. This must stay in step with
-# rheofp.data.synth.ALL_CLASSES - a class the generator can produce but the
-# bank cannot emit is unanswerable, not merely hard (there is a test).
-ALL_MODELS = {**MODELS, **NETWORK_MODELS, **BRANCHED_MODELS, **WLM_MODELS}
+# branched / LCB melt + wormlike micelle + star melt. This must stay in step
+# with rheofp.data.synth.ALL_CLASSES - a class the generator can produce but
+# the bank cannot emit is unanswerable, not merely hard (there is a test).
+#
+# `star` (Milner-McLeish arm retraction) joined 2026-09-09 after the standard
+# pre-registered cannibalisation check (scripts/check_star_cannibalisation.py,
+# n=30 planted cropped noisy curves per class, identical seeds both banks):
+# real data held 6/6, seven of nine existing classes were byte-identical,
+# `branched` lost nothing, and `star` self-recovered 29/30. The reason it is
+# worth having is what the 9-model bank did with star melts: `branched` (BSW)
+# absorbed 25/30 of them silently and confidently - the same "good fit of the
+# WRONG class" failure already documented for vitrimers, now confirmed for a
+# second molecular architecture.
+#
+# The one cost, recorded honestly: `zimm` went 23/30 -> 21/30, both curves to
+# `star`. Both were EXACT TIES - identical rms to four decimals at identical
+# k=3, dAICc 0.07 and 0.00, with `rouse_screened` tied alongside. That is the
+# known Zimm<->Rouse degeneracy widening to include `star`, not evidence of a
+# real preference; see AMBIGUOUS_PAIRS in ml/evaluate.py.
+ALL_MODELS = {**MODELS, **NETWORK_MODELS, **BRANCHED_MODELS, **WLM_MODELS,
+              **STAR_MODELS}
 
 # Names belonging to the Solid/gel-like regime, for regime-level reporting.
 NETWORK_CLASSES = frozenset(NETWORK_MODELS)

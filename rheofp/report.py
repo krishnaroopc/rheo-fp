@@ -238,8 +238,27 @@ def describe_features(feats):
         lines.append("A modulus plateau is present, with spectrum above it "
                      "(entanglement or network-like).")
     if feats["has_shoulder"]:
-        lines.append("A second G\" maximum is present - a sticker / "
-                     "bond-exchange shoulder, characteristic of a reversibly "
+        # Deliberately NOT attributed to stickers. Measured 2026-09-09 on
+        # planted curves, a second G" maximum appears in ~72% of `branched`,
+        # ~75% of `reptation` and ~88% of `star` - none of which has any
+        # exchangeable bonds - and in only ~62% of `sticky_rouse`, the class it
+        # is meant to mark. So the feature points away from the sticker classes
+        # at least as often as toward them, and the old wording
+        # ("characteristic of a reversibly associating network") was a causal
+        # claim the evidence does not support.
+        #
+        # The mechanism is NOISE, not spectrum shape: `has_shoulder` in
+        # signature_features counts raw local maxima with no smoothing and no
+        # prominence threshold, and 2% multiplicative scatter on 10-100 points
+        # manufactures them. Broken down by Z, planted stars trip it at 84% for
+        # Z 5-20 (a single clean loss peak) against 100% for Z 35-45 (a genuine
+        # two-peak split) - nearly flat, i.e. the detector is not seeing the
+        # physics. See next-actions; fixing the detector is a separate, gated
+        # change because signature_features feeds the pre-filter.
+        lines.append("A second G\" maximum is present. This can indicate a "
+                     "bond-exchange (sticker) time inside your window, but it "
+                     "also appears in broad-spectrum melts and in star "
+                     "polymers, so on its own it does not identify an "
                      "associating network.")
     lines.append(
         f"Loss tangent: median {feats['median_tan_delta']:.2f}, varying by "
@@ -488,9 +507,10 @@ def explain(result, w=None, Gp=None, Gpp=None, max_alternatives=4):
         settle.append(
             "If you suspect exchangeable bonds (a vitrimer), widen the window "
             "or raise the temperature to bring the bond-exchange time into "
-            "view - its signature is a second G\" maximum. Note the sticker "
-            "classes WERE fitted and ranked here regardless; their absence "
-            "from the top is a fitted result, not a pre-filter deletion.")
+            "view - it would show as a second G\" maximum, though that alone "
+            "is not specific to stickers. Note the sticker classes WERE "
+            "fitted and ranked here regardless; their absence from the top is "
+            "a fitted result, not a pre-filter deletion.")
 
     return {
         "winner": winner["name"],

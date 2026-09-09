@@ -68,12 +68,17 @@ Consequences, which are easy to get wrong:
   Yield-dominated); 8 fine classes (4 identifiable from single curves, 4
   requiring stacks); 6 model-only classes (regime-level labels only).
   Glassy regime was dropped.
-- **Taxonomy (as actually built)**: **9 fine classes** (zimm, rouse_screened,
-  reptation, sticky_rouse, sticky_reptation, cured_elastomer, critical_gel,
-  wormlike_micelle, branched); **2 regimes** (terminal, solid). The
-  Yield-dominated regime has no physics and therefore no training data. Five
-  model-only classes from the design were never built. Do not quote the design
-  numbers as if they were implemented.
+- **Taxonomy (as actually built)**: **9 generated fine classes** (zimm,
+  rouse_screened, reptation, sticky_rouse, sticky_reptation, cured_elastomer,
+  critical_gel, wormlike_micelle, branched); **2 regimes** (terminal, solid).
+  The Yield-dominated regime has no physics and therefore no training data.
+  Five model-only classes from the design were never built. Do not quote the
+  design numbers as if they were implemented.
+  **`identify()`'s bank holds TEN**, the ninth-plus-one being `star`
+  (2026-09-09): it is a full fine class on the AICc side but `synth.py` cannot
+  yet sample it, so it is absent from `ml.dataset.CLASSES` and the neural head.
+  Quote the right number for the side you mean — the two are deliberately out
+  of step until the generator learns `star`, and a test declares the gap.
 - **The model-only tier no longer exists (retired 2026-09-07, user decision).**
   `wormlike_micelle` and `branched` were the only two, they were never actually
   coerced to regime level by any code, and both now stand as ordinary fine
@@ -150,6 +155,44 @@ class. Now IN `identify()`'s bank as `"branched"` (`BRANCHED_MODELS` in
 tube-model context + tests. G_N is a window-limited amplitude scale, not a
 measured plateau modulus. Refs: Baumgärtel & Winter (1990, 1992).
 
+**Star-polymer melts — Milner-McLeish (2026-09-09). A FINE CLASS, in
+`identify()`'s bank (10 candidates).** `rheofp/models/star.py`
+implements Milner & McLeish (1997, Macromolecules 30, 2159) verbatim: arm
+retraction against the eq-24 effective potential with the Colby-Rubinstein
+dilution exponent alpha = 4/3, the eq-13 early-Rouse branch, the eq-29
+first-passage time with prefactor, joined by the eq-22 crossover, and the
+eq-26 modulus integral evaluated through the shared `maxwell_spectrum` sum.
+Three parameters `(G_N, Z, tau_e)`, k=3, in `STAR_MODELS`. Validated against
+the paper's own analytic statements (eq 24 -> eq 8 at alpha=1 to 3.6e-15; the
+Figure 2 potential ratio 0.257 vs ~0.26; the quoted log(tau(1)/tau_0) = 13.8;
+eq-22 handoff at s = 0.183 where the text wants ~0.2) and planted-parameter
+recovery is exact, with Z holding to 0.4% under 2% noise.
+**`Z` is entanglements per ARM, and the number of arms is not a parameter at
+all** — LVE depends only on arm length, which is the theory's own prediction
+and reproduces Pearson-Helfand's observed arm-number independence of
+viscosity. The class can say "star", never "how many arms".
+**Two limits, both tested:** Z is not recoverable from a terminal-only sweep
+(low Z with the plateau cropped drifts ~20% under noise), and **past Z ~ 40 the
+model predicts TWO G'' maxima** as the Rouse and activated relaxations
+separate — numerically converged, so any feature or pre-filter assuming a
+single loss peak will misread a high-Z star.
+**Wired into `ALL_MODELS` after the pre-registered cannibalisation check**
+(n=30 planted cropped noisy curves/class, identical seeds both banks): real
+data held **6/6**, eight of nine existing classes were identical, and
+`branched` lost nothing. The reason it earns a place: the 9-model bank had
+`branched` (BSW) absorbing **25/30 star melts** silently and confidently —
+the "good fit of the WRONG class" failure already documented for vitrimers,
+now confirmed for a second architecture. Cost, recorded honestly: `zimm`
+23/30 → 21/30, both curves **exact ties** (identical rms to four decimals at
+identical k=3, ΔAICc 0.07 and 0.00, with `rouse_screened` tied alongside) —
+`star` has joined the known Zimm↔Rouse degenerate cluster, not displaced
+anything. Refs 1 and 2 (Pearson-Helfand 1984; Ball-McLeish 1989) are in
+`originals/` and were needed to fix the eq-29 prefactor — see next-actions
+for the three transcription traps.
+**Open gap:** `synth.py` cannot generate `star`, so the bank can emit a class
+the NEURAL head has never seen — the mirror image of the wormlike_micelle bug.
+Declared explicitly by a test in test_synth.py rather than left silent.
+
 **Bank-coverage invariant (2026-09-04).** `identify()`'s bank must hold a
 candidate for EVERY class `rheofp/data/synth.py` can generate — now enforced by
 `test_every_generated_class_has_a_candidate_in_the_identifier_bank`. It was
@@ -195,6 +238,15 @@ removing the network classes; `wide_plateau` gating reptation).
 3. DONE. ML training pipeline — `rheofp/ml/` + `scripts/train_classifier.py`.
    Two-head set model (conv encoder -> masked attention pool -> classify +
    regress) with a learned abstention head, on the frozen architecture.
+
+> **STALE AS OF 2026-09-09 — every ML number in this paragraph is a 9-CLASS
+> measurement.** `star` became a generated class on 2026-09-09, so the training
+> distribution has ten classes and the shipped checkpoint predates it. The
+> synthetic accuracy, merged-pair, regime and abstention figures below, and the
+> neural head's 6/6 on real data, all need re-measuring on the next training
+> run — see the office-PC ACTIVE TASK in `.claude-notes/next-actions.md`. What
+> is NOT stale: the AICc side's **6/6 on real literature curves**, re-confirmed
+> with the 10-model bank on 2026-09-09, and the test count is now ~183.
 
 **Current state (2026-09-07):** 151 tests pass (2 skipped). On synthetic data
 the classifier scores **0.917** (merged-pair 0.963, regime 0.999); **55% of all

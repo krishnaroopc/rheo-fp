@@ -89,6 +89,16 @@ def accuracy_by_stack_size(pred, true, n_curves):
 AMBIGUOUS_PAIRS = (("zimm", "rouse_screened"),
                    ("cured_elastomer", "critical_gel"))
 
+# NOT added as a pair, deliberately, though the evidence tempts it: the
+# 2026-09-09 cannibalisation check found `star` taking 2/30 zimm curves, and
+# both were EXACT ties (identical rms to four decimals at identical k=3,
+# dAICc 0.07 and 0.00) with `rouse_screened` tied alongside on one. So the
+# degeneracy is real but it is three-way and window-dependent, not the clean
+# two-way nesting that zimm/rouse and cured/gel are. Collapsing star into zimm
+# for `merged_pair_accuracy` would hide genuine star-vs-linear-melt errors,
+# which is the distinction the class exists to make. Revisit once a trained
+# checkpoint shows where the network's star errors actually land.
+
 
 def merged_pair_accuracy(pred, true, pairs=AMBIGUOUS_PAIRS):
     """Accuracy when each physically-degenerate pair is treated as one class.

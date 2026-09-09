@@ -31,6 +31,7 @@ from rheofp.models.maxwell import (
 )
 from rheofp.models.network import chasset_thirion_spectrum, critical_gel_spectrum
 from rheofp.models.solutions import MODELS as SOLUTION_MODELS
+from rheofp.models.star import star_spectrum, tau_of_s as star_tau_of_s
 
 # ── config ────────────────────────────────────────────────────────────────
 OMEGA_DECADES = (-2.0, 3.0)   # log10 rad/s, the span of a typical sweep
@@ -68,6 +69,7 @@ CLASS_REGIME = {
     "critical_gel": "solid",
     "wormlike_micelle": "terminal",
     "branched": "terminal",
+    "star": "terminal",
 }
 # Classes the identifier can emit as a fine label. wormlike_micelle and
 # branched were model-only (regime-level-only) until 2026-09-07: BSW fits
@@ -76,9 +78,13 @@ CLASS_REGIME = {
 # the sticky classes it was suspected of being confused with (measured
 # 2026-09-07, n=40/class) - both promoted to ordinary fine labels by user
 # decision. See CLAUDE.md and .claude-notes/next-actions.md.
+# `star` (Milner-McLeish arm retraction) added 2026-09-09, closing the reverse
+# bank/generator gap: it had been wired into identify()'s bank after its
+# cannibalisation check while synth.py still could not sample it, so the AICc
+# side could emit a class the neural head had never been trained on.
 FINE_CLASSES = ("zimm", "rouse_screened", "reptation", "sticky_rouse",
                 "sticky_reptation", "cured_elastomer", "critical_gel",
-                "wormlike_micelle", "branched")
+                "wormlike_micelle", "branched", "star")
 ALL_CLASSES = FINE_CLASSES
 
 # Network-family sampling ranges (log10 Pa where noted).
@@ -107,6 +113,42 @@ BRANCHED_TAU_C_OFFSET_DECADES = (0.2, 4.0)
 BRANCHED_N_E = (0.15, 0.75)         # terminal-wedge exponent
 BRANCHED_N_G = (0.40, 0.70)         # glassy-wedge exponent
 
+# Star melt (Milner-McLeish arm retraction). Added 2026-09-09, after `star`
+# was wired into identify()'s bank; before that the bank could emit a class
+# the generator could not produce, so the neural head had no star label.
+STAR_LOG_GN = (3.5, 6.5)            # plateau modulus [log10 Pa]
+# Entanglements per arm - the ONLY shape parameter (arm COUNT does not enter
+# LVE at all; see rheofp/models/star.py). Sampled a little inside the fitter's
+# Z_BOUNDS = (4, 60) so a planted curve never sits on a bound.
+STAR_Z = (5.0, 55.0)
+# tau_e is NOT drawn independently. A star's spectrum spans ~23-24 decades
+# from tau_e up to the terminal tau(1), while a sweep window is ~3-5 decades,
+# so an independent draw would put the visible slice essentially anywhere -
+# usually somewhere featureless. Instead the TERMINAL time is placed relative
+# to the window (the physically meaningful anchor, and what a real experiment
+# is set up to catch) and tau_e is back-computed from it, since tau(1)/tau_e
+# is a fixed function of Z. Same idea as BRANCHED_TAU_C_OFFSET_DECADES
+# deriving tau_c from tau_max rather than drawing it free.
+#
+# Offset in decades of the terminal time relative to the nominal window's low
+# edge (1/w_lo): 0 puts terminal relaxation right at that edge, POSITIVE makes
+# tau(1) longer so the terminal moves BELOW the window (not reached - the
+# common case for a well-entangled star), NEGATIVE makes it shorter so flow is
+# visible inside the sweep.
+#
+# Range chosen by measurement, not taste. The window is independently cropped
+# by up to WINDOW_CROP_DECADES from BOTH ends after these params are drawn, so
+# the effective low edge is typically ~1 decade above the nominal one - an
+# offset centred on 0 therefore still lands most curves below the window. The
+# range below was tuned so the planted population carries BOTH cases -
+# measured 51% terminal_reached over n=120. The first attempt, (-1, 3), gave
+# **0%**: every planted star had its terminal relaxation below the window. That
+# would have taught the classifier that stars never flow, making
+# `terminal_reached` a spurious star-vs-melt discriminator - the same shape of
+# defect as the fixed-60-point density bug, a sampling artifact learned as
+# physics. Re-measure this fraction if the range is ever touched.
+STAR_TERMINAL_OFFSET_DECADES = (-3.0, 1.0)
+
 
 # ── parameter sampling ────────────────────────────────────────────────────
 def _u(rng, lohi):
@@ -131,7 +173,25 @@ def sample_params(rng, name):
         log_tau_c = log_tau_max - _u(rng, BRANCHED_TAU_C_OFFSET_DECADES)
         return np.array([_u(rng, BRANCHED_LOG_GN), log_tau_max, log_tau_c,
                          _u(rng, BRANCHED_N_E), _u(rng, BRANCHED_N_G)])
+    if name == "star":
+        Z = _u(rng, STAR_Z)
+        # Place the TERMINAL time relative to the window's low edge, then back
+        # out tau_e, because tau(1)/tau_e is a fixed function of Z alone.
+        log_terminal = -OMEGA_DECADES[0] + _u(rng, STAR_TERMINAL_OFFSET_DECADES)
+        log_tau_e = log_terminal - _star_terminal_decades(Z)
+        return np.array([_u(rng, STAR_LOG_GN), Z, log_tau_e])
     raise ValueError(f"unknown class {name!r}")
+
+
+def _star_terminal_decades(Z):
+    """log10(tau(1)/tau_e) for a star of Z entanglements per arm.
+
+    Depends only on Z (tau_e is a pure multiplicative time scale), so it can be
+    evaluated once at tau_e = 1 and used to convert a desired terminal time
+    into the tau_e that produces it. Ranges ~2.6 decades at Z=4 to ~8.6 at
+    Z=60.
+    """
+    return float(np.log10(star_tau_of_s(1.0 - 1e-9, float(Z), 1.0)))
 
 
 def forward(name, w, theta, tau_scale=1.0):
@@ -159,6 +219,13 @@ def forward(name, w, theta, tau_scale=1.0):
         lGN, ltau_max, ltau_c, n_e, n_g = theta
         return bsw_spectrum(w, 10.0**lGN, 10.0**ltau_max * tau_scale,
                             10.0**ltau_c * tau_scale, n_e, n_g)
+    if name == "star":
+        lGN, Z, ltau_e = theta
+        # tau_e is the only time in the model - every tau(s) is proportional
+        # to it - so an Arrhenius stack shifts it and the whole spectrum
+        # translates rigidly in log omega, which is the physically right
+        # behaviour for a melt.
+        return star_spectrum(w, 10.0**lGN, Z, 10.0**ltau_e * tau_scale)
     raise ValueError(f"unknown class {name!r}")
 
 

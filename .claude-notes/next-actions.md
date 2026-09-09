@@ -7,31 +7,57 @@ left off", this is where to look. Update + commit this file as items complete.
 
 Last updated: 2026-09-07 (home PC, end of session).
 
-**RESUMING ELSEWHERE — read this first.** The 2026-09-07 session (home PC, RTX
-A1000) closed the model-only tier, fixed a latent NaN in the AICc ranking,
-fixed the `has_shoulder` pre-filter bug, built the whole explanation layer
-(`rheofp/report.py`), validated the temperature stack against TWO real
-vitrimer datasets for the first time, diagnosed why the sticky models fail on
-real vitrimer data, and reported that failure explicitly in the challenge
-section. Everything is committed and pushed. On arrival: `git pull`, `uv sync`,
-then `uv run pytest -m "not slow"` (expect **151 passed, 2 skipped**, ~7-8 min —
-slower now that `has_shoulder` no longer prunes the ballot, see §0 note below).
-Then read the ACTIVE TASK immediately below.
+**RESUMING ELSEWHERE — read this first.** The 2026-09-09 session (home PC)
+took the star-polymer class all the way from paper to shipped: forward physics,
+inverse recovery, the cannibalisation check, wiring into `identify()`'s bank,
+and teaching `synth.py` to generate it. New files: `rheofp/models/star.py`,
+`tests/test_star.py`, `scripts/validate_star.py`,
+`scripts/check_star_cannibalisation.py`. Modified: `fitting/identify.py`
+(bank is now **10 candidates**), `data/synth.py` (**10 generated classes**),
+`report.py`, `ml/evaluate.py`, `tests/test_synth.py`, `tests/test_report.py`.
+On arrival: `git pull`, `uv sync`, then `uv run pytest -m "not slow"`
+(expect **~183 passed, 2 skipped**, ~20 min — slower again, see §0).
 
-**`originals/` note for this task specifically:** the star-polymer work is
-BLOCKED until the Milner-McLeish (1997) PDF is in `originals/` — see the task.
-That file has never been supplied on any machine, so do not assume it travels
-with the rest of `originals/`.
+**THE ACTIVE TASK IS NOW A RETRAIN, AND IT IS FOR THE OFFICE PC** (user said
+2026-09-09 they would do it there, not on the home machine). The shipped
+checkpoint is STALE — the training distribution gained a tenth class, so every
+published accuracy number is a 9-class measurement that no longer describes the
+code. Jump to ">>> ACTIVE TASK FOR THE OFFICE PC <<<" below.
+
+The preceding 2026-09-07 session (home PC, RTX A1000) closed the model-only
+tier, fixed a latent NaN in the AICc ranking, fixed the `has_shoulder`
+pre-filter bug, built the whole explanation layer (`rheofp/report.py`),
+validated the temperature stack against TWO real vitrimer datasets for the
+first time, and diagnosed why the sticky models fail on real vitrimer data.
+
+**`originals/` note:** all three star-polymer papers are now supplied —
+`ma961559f.pdf` (Milner-McLeish 1997), `ma00194a066.pdf` (Ball-McLeish 1989),
+`ma00134a060.pdf` (Pearson-Helfand 1984), each with extracted `.txt`. As
+always `originals/` is gitignored and per-machine, so it does NOT arrive via
+`git pull` — on a fresh PC ask the user to copy it over.
 
 ## 0. First, on any PC at session start
-- Confirm the env exists: run `uv run pytest -m "not slow"` (should be **151
-  passing, 2 skipped**, ~7-8 min). If uv or the venv is missing, bootstrap per
+- Confirm the env exists: run `uv run pytest -m "not slow"` (should be **180
+  passing, 2 skipped**, ~17 min). If uv or the venv is missing, bootstrap per
   `.claude-notes/environment.md` (install uv, then `uv sync`). Python is
   pinned to 3.12 — do not change.
   NOTE: the suite is now noticeably slower than earlier sessions recorded —
   first the 5-param BSW candidate, then the 2026-09-07 `has_shoulder` removal
-  put two more k=4 models on every ballot (`identify()` ~1.9 s/curve). Both are
-  expected costs of correctness fixes, not a hang.
+  put two more k=4 models on every ballot, then 2026-09-09 added `star` as a
+  tenth candidate (~3 min -> ~4.5 -> ~10 -> **~17 min**). All are expected
+  costs of correctness fixes, not a hang.
+  MEASURED per-candidate cost (12 restarts, one 60-pt curve, 2026-09-09), so
+  nobody optimises the wrong thing: `branched` 3.36 s, `sticky_reptation`
+  2.61, `star` 2.36, `reptation` 1.55, then everything else <= 0.32
+  (wormlike_micelle 0.32, cured_elastomer 0.30, sticky_rouse 0.20, zimm 0.16,
+  rouse_screened 0.14, critical_gel 0.10). Total ~11 s/curve.
+  **`star` is NOT the bottleneck** — the two broad-spectrum mode-ladder models
+  above it are, and `branched` sits on every ballot. Note also that `N_S` in
+  star.py is a poor dial: dropping it 8x (400 -> 50) saves only ~0.5 s
+  (2.35 -> 1.83), because the cost is in `multi_restart_fit`'s restarts, not
+  the ladder. If the suite ever needs to be faster, reduce restarts on the
+  expensive candidates or mark more tests slow — do not shrink N_S expecting
+  a win.
 - Skim `.claude-notes/sessions.md` (newest entries) for what changed since.
 - **CHECK FOR `originals/` AND ASK THE USER IF IT'S MISSING.** `originals/` is
   gitignored + per-machine, so it does NOT arrive via `git pull`. It holds the
@@ -43,13 +69,296 @@ with the rest of `originals/`.
   or real-data validation. The forward-model code + planted-parameter tests
   can proceed without it; only the real-data steps are blocked.
   Quick check: `ls originals/` — expect the pivo, Martin EPDM, Tixier, Darby
-  2022 (silicone), Edera 2024, and Ricarte 2023 PDFs/xlsx + supp + .txt. The
-  Milner-McLeish (1997) star-polymer PDF is NOT yet among these — see the
-  ACTIVE TASK below, which is blocked on it.
+  2022 (silicone), Edera 2024, and Ricarte 2023 PDFs/xlsx + supp + .txt, plus
+  the three star-polymer papers added 2026-09-09: `ma961559f.pdf`
+  (Milner-McLeish 1997), `ma00194a066.pdf` (Ball-McLeish 1989),
+  `ma00134a060.pdf` (Pearson-Helfand 1984).
 
-## ACTIVE TASK (set 2026-09-07) — add a star-polymer (Milner-McLeish) class
+## ACTIVE TASK — star-polymer (Milner-McLeish) class
 
-**BLOCKED on the user supplying the paper.** Nothing is built. User asked
+**UNBLOCKED 2026-09-09. Steps 1 and 2 DONE; step 3 (cannibalisation) is next.**
+
+The user supplied all three papers into `originals/`:
+`ma961559f.pdf` (Milner-McLeish 1997), `ma00194a066.pdf` (Ball-McLeish 1989,
+ref 2), `ma00134a060.pdf` (Pearson-Helfand 1984, ref 1). Extracted text sits
+alongside each as `.txt`.
+
+**Built:** `rheofp/models/star.py` (forward + `fit_star` + `STAR_MODELS`
+registry, k=3), `tests/test_star.py` (27 tests, ~10 s),
+`scripts/validate_star.py`. **NOT wired into `identify()`** - `ALL_MODELS` is
+untouched and a test asserts `"star" not in ALL_MODELS`, to be deleted in the
+same commit that does step 3.
+
+**Parameters are (G_N, Z, tau_e), k=3** - G_N a pure amplitude, tau_e a pure
+time scale, and Z = entanglements per arm the ONLY shape parameter. The number
+of arms f does not enter G*(omega) at all; that is a real prediction of the
+theory (it reproduces Pearson-Helfand's observed arm-number independence of
+viscosity), so the class can say "star" but never "how many arms". Do not add
+an `f` parameter to make it look more informative.
+
+**Recovery measured:** planted round-trip exact (rms 0.0000 dec) on four
+parameter sets; under 2% log-normal noise Z comes back to within 0.4% at
+Z = 8/17/30. Z is genuinely identifiable, not degenerate with the tau_e shift -
+the profile cost with G_N and tau_e re-optimised is 5.9e-29 at the true Z = 17
+against 1.6e-02 one unit away.
+
+**Two limits found while building, both pinned by tests:**
+  - *Low Z + cropped plateau loses Z.* At Z = 8 with the high-frequency end
+    cut off, the G'' peak sits at the window edge and 2% noise moves the
+    fitted Z by ~20% (the profile minimum is still correct). So Z must not be
+    reported from a terminal-only sweep.
+  - *Past Z ~ 40 the model predicts TWO G'' maxima, not one.* The eq-22
+    crossover separates the Rouse and activated relaxations far enough that
+    the loss peak splits - fast peak near the crossover frequency, slow peak
+    near 1/tau(1). Numerically converged (identical for n_s 400..64000), so it
+    is physics. **Any feature or pre-filter rule that assumes a single loss
+    peak will misread a high-Z star**, and spectrum width must not be measured
+    from the global G'' peak, which jumps between branches around Z ~ 40.
+
+**Three transcription traps in the 1997 paper, all hit and all now documented
+in the module docstrings** - record them so nobody re-derives them the hard way:
+  1. *Eq 8 is printed across two lines* so it reads `(s - 2s^3/3)`; it is
+     actually `(s^2 - 2s^3/3)`. The wrong version makes the barrier turn over.
+  2. *Eq 29's prefactor.* Eq 29 rewrites eq 19's `1/U'eff(s)` division into the
+     square-root denominator, pulling the CONSTANT `15Z/4` out of
+     `U'eff(s) = (15Z/4) s (1-s)^a` - which is why the denominator holds a bare
+     `s^2(1-s)^{2a}`. That `15Z/4` must therefore be divided out of the
+     prefactor, giving `A(Z) = sqrt(30) pi^{5/2} Z^{3/2} tau_e / 30`. Leaving
+     it in gives `Z^{5/2}`, about a decade too slow, and then **the eq-22
+     crossover never fires at all**: the terminal time stays Rouse-like and the
+     entire alpha dependence collapses (measured: 0.00 decades between
+     alpha = 1 and 4/3, where Ueff(1) alone demands 1.03). Three independent
+     checks fix the exponent at 3/2 - the paper's scaling remark under eq 19,
+     its statement that the prefactor "depends more weakly on N/Ne than tau_R"
+     (= Z^2 tau_e, so anything >= 2 contradicts the text), and assembling
+     L^2/Deff from L = R^2/a, a^2 = (4/5)Ne b^2, Deff = 2DR, DR = kT/(N zeta).
+     **Ball-McLeish eq 8 is the anchor at the other end**: they write the same
+     activated time as `t(s) = t_0 exp[U(s)]` with t_0 stated to be "the Rouse
+     time for an entanglement length", i.e. tau_e, so a prefactor far above
+     tau_e Z^2 cannot be right.
+  3. *Eq 13's `(N/Ne)^2 tau_R` really is Z^4 overall*, not Z^2. Deriving it
+     from eq 12 gives `(9pi^3/16)(L/R)^4 tau_R s^4` with `(L/R)^4 = (5Z/4)^2`,
+     landing exactly on the printed coefficient. It looks absurd at s = 1
+     because it is an `s << s*` asymptote, and it is the ONLY reading under
+     which the eq-22 crossover fires (at s ~ 0.18, matching the text's
+     "1-s of order (Ne/N)^{1/2}"). The Z^2 reading never hands off.
+
+**Remaining honest gap:** terminal time moves only ~0.16 decades between
+alpha = 1 and 4/3 where Ueff(1) implies ~1.03, because at s -> 1 the two eq-22
+branches sit within ~0.3 decades for Z ~ 17 and the harmonic blend pulls toward
+the faster one. That is the paper's own "simple crossover function", not a
+coding error, but it damps the alpha sensitivity the paper emphasises.
+Quantify against real star data before making any alpha-dependent claim.
+
+**STEP 3 DONE 2026-09-09 - checked, reported, and WIRED IN.**
+`scripts/check_star_cannibalisation.py` (kept, re-runnable) ran the standard
+pre-registered protocol: n=30 planted single cropped noisy curves per class,
+identical seeds through both banks, 12 restarts.
+
+| class | before | after |
+|---|---|---|
+| zimm | 23/30 | **21/30** (both to `star`) |
+| all 8 others | — | **identical** |
+| overall | 244/270 (0.904) | 242/270 (0.896) |
+| real data | **6/6** | **6/6** |
+| `star` self-recovery | (unreachable) | **29/30** |
+
+**Why the class earns its place:** with the 9-model bank, `branched` (BSW)
+absorbed **25/30 planted star melts** silently and confidently, with
+sticky_reptation taking 3 more. That is the "good fit of the WRONG class"
+failure mode already documented for vitrimers (§2b), now confirmed for a
+second molecular architecture and previously invisible. `branched` itself lost
+nothing (30/30 both ways), so BSW's real melts are safe - real data confirms
+it at 6/6.
+
+**The -2 on zimm was investigated before wiring, and both are EXACT TIES:**
+  - curve 14 (4.56 dec window, 79 pts): zimm rms 0.0182, star rms 0.0182,
+    **dAICc 0.07**, rouse_screened at 0.11.
+  - curve 17 (2.77 dec window, 23 pts): zimm rms 0.0187, star rms 0.0187,
+    **dAICc 0.00**, rouse_screened also 0.00 - a three-way tie.
+  Identical fit to four decimals at identical k=3, so AICc has no parsimony
+  lever and the winner is decided by float noise. By the Burnham-Anderson rule
+  the report itself prints (delta < 2 = substantial support), these are ties,
+  not losses. **`star` has joined the known Zimm<->Rouse degenerate cluster**
+  rather than displacing anything.
+
+**Two hypotheses tested and REJECTED along the way, recorded so they are not
+re-tried:**
+  1. *"star cannot impersonate zimm"* - FALSE as stated. On clean full-window
+     zimm the star model fits badly (median 0.41 dec, 1/6 under FLOOR_CHI2),
+     but on the generator's cropped noisy population it fits **11/30 under
+     FLOOR_CHI2**, median 0.18 dec. The fit-quality overlap is much larger
+     than the classification damage, because ties do not move the winner.
+  2. *"cropping causes the overlap"* - FALSE. Correlation between window width
+     and star-fit rms is **+0.06** (nil), and the well-fit curves have a
+     slightly NARROWER median window (3.52 vs 3.93 dec). The overlap is just
+     two broad-spectrum models being similar, not a window artifact.
+
+**STEP 3b DONE 2026-09-09 - `synth.py` now generates `star`.** The reverse
+bank/generator gap is closed: `STAR_LOG_GN` / `STAR_Z` /
+`STAR_TERMINAL_OFFSET_DECADES` ranges, a `sample_params` branch, a `forward`
+branch, `CLASS_REGIME["star"] = "terminal"`, and `star` appended to
+`FINE_CLASSES`. `ml/dataset.py` needed NO change - `CLASSES` derives from
+`ALL_CLASSES`, and `N_PARAMS = 5` still holds because star is k=3 (branched
+remains the widest class).
+
+**Design choice worth understanding before touching the ranges: `tau_e` is
+DERIVED, not drawn.** A star's spectrum spans ~23-24 decades from tau_e up to
+the terminal tau(1), while a sweep window is ~3-5 decades. An independent draw
+would drop the visible slice essentially anywhere, usually somewhere
+featureless. Instead the TERMINAL time is placed relative to the window (the
+physically meaningful anchor - it is what a real experiment is set up to catch)
+and tau_e is back-computed via `_star_terminal_decades(Z)`, since tau(1)/tau_e
+is a fixed function of Z alone. Same pattern as `BRANCHED_TAU_C_OFFSET_DECADES`
+deriving tau_c from tau_max.
+
+**A bug was caught here and it is the kind that would have been learned as
+physics.** The first offset range, (-1, 3), gave **terminal_reached = 0%** over
+60 planted curves: the sign convention meant positive offsets pushed the
+terminal BELOW the window, so no planted star ever flowed. Training on that
+population would have taught the classifier that stars never reach terminal
+flow, making `terminal_reached` a spurious star-vs-melt discriminator - the
+same shape of defect as the fixed-60-point density bug in §1f. Range is now
+(-3, 1), **measured at 51% terminal_reached (n=120)**. Re-measure that fraction
+if the range is ever touched.
+
+Verified: 8/8 planted stars self-recover through `identify()`; temperature
+stacks shift rigidly and monotonically in log omega with density redrawn per
+curve; Z uniform on (5, 55) as declared (median 30.4).
+
+**`star` was deliberately NOT added to `AMBIGUOUS_PAIRS`** (ml/evaluate.py),
+despite the tie evidence - reasoning is in a comment there. Short version:
+zimm<->rouse and cured<->gel are clean two-way nestings differing by one
+parameter; the star/zimm overlap is three-way (rouse_screened tied alongside),
+window-dependent, and cost only 2/30. Collapsing star into zimm for
+`merged_pair_accuracy` would HIDE genuine star-vs-linear-melt errors, which is
+the distinction the class exists to make. Revisit once a trained checkpoint
+shows where the network's star errors actually land.
+
+## >>> ACTIVE TASK FOR THE OFFICE PC (set 2026-09-09) <<<
+
+**RETRAIN THE CLASSIFIER. The shipped checkpoint is STALE.** The training
+distribution now has a tenth class (`star`), so every accuracy number currently
+in this file and in CLAUDE.md was measured on a 9-class population and does not
+describe the current code. `checkpoints/` is gitignored and reproducible.
+
+    uv run python scripts/train_classifier.py -n 16000 --epochs 55
+
+(~12 min on a GTX 1660 Ti; the home PC's RTX A1000 did the last one. Seed 1 was
+used for the runs quoted below.)
+
+**What to check, and what would be a red flag:**
+1. **Overall accuracy vs the 0.917 from the 9-class run.** Adding a tenth class
+   makes the problem strictly harder, so a small drop is expected and fine. A
+   LARGE drop means star is colliding with something - look at
+   `pair_confusions`.
+2. **Where star's errors land.** The AICc side ties star against
+   zimm/rouse_screened (see step 3 above). If the network's star confusion is
+   also mostly zimm/rouse, that CONFIRMS a genuine three-way degeneracy and
+   `AMBIGUOUS_PAIRS` should probably gain star at that point. If star instead
+   collides with `branched`, that is the more interesting result - it would
+   mean the two brains disagree about which class absorbs stars, since on the
+   AICc side `branched` was the one absorbing them 25/30 before star existed.
+3. **`rouse_screened` per-class accuracy is known seed-unstable** (0.20 on
+   seed 0, 0.71 on seed 1) - check `merged_pair_accuracy` (~0.96 historically)
+   before concluding anything is broken.
+4. **Re-measure the physics baseline in the SAME run** - §1h left that pairing
+   outstanding, and the standalone ~0.82 (n=90) is not from the same split as
+   the 0.917. This retrain is the natural chance to fix that.
+5. Then update the "Current state" paragraph in CLAUDE.md and §1e/§1g here with
+   the new numbers, and say plainly that they are 10-class numbers.
+
+**Real-data eval also wants a rerun after the retrain**
+(`scripts/eval_real_data.py`) - it uses the checkpoint, and the 6/6 currently
+quoted for the NEURAL head is a 9-class result. The AICc side's 6/6 was
+re-confirmed with the 10-model bank on 2026-09-09 and is current.
+
+**NEXT after that - step 4, real-data validation of the star class.** BLOCKED
+on the user supplying star melt data; sources already identified below
+(Roovers' star polybutadienes, the four-arm polyisoprene MM validation set,
+Santangelo & Roland star PIB - the last has a free PDF at
+http://polymerphysics.net/pdf/Macromolecules_32_1972_99.pdf).
+  - ~~**`has_shoulder` wording overstates its case**~~ — **FIXED 2026-09-09
+    (user decision: state it neutrally, drop the causal claim).**
+    report.py:240 used to read "a sticker / bond-exchange shoulder,
+    characteristic of a reversibly associating network". Measured on 60
+    planted curves per class, a second G" maximum fires on 92% of stars (the
+    Z >~ 35 two-peak split), but also **72% of `branched` and 75% of
+    `reptation`**, which have no exchangeable bonds at all — and only **62% of
+    `sticky_rouse`**, the class it was meant to mark. So it pointed AWAY from
+    the sticker classes at least as often as toward them, and the wording was
+    a causal claim the evidence did not support. It now reports the
+    observation and names the alternatives (broad-spectrum melts, star
+    polymers) without attributing it. The `not has_shoulder` branches were
+    already correctly hedged and kept, except report.py:503's "its signature
+    is a second G\" maximum", softened to "it would show as ... though that
+    alone is not specific to stickers".
+    **General lesson, third instance of the same shape:** `has_shoulder` was
+    already the subject of the 2026-09-07 pre-filter fix (missing-evidence
+    reasoning) and is now also a reporting overstatement. The feature itself is
+    weak; the discard is gone and the prose is neutral, but if it ever gets
+    used as evidence again, measure its per-class rates FIRST.
+
+### 2b-bis. `has_shoulder` measured properly — DO NOT RE-INVESTIGATE 2026-09-09
+Investigated at the user's request, then **user decided: LEAVE THE DETECTOR
+ALONE.** No code changed in `signature_features`. Recorded so the ground is not
+covered twice — the numbers below are the whole answer.
+
+**The detector fires on NOISE, not on spectrum shape.** Same planted
+population, noise on vs off (n=60/class):
+
+| class | noisy (2%) | clean |
+|---|---|---|
+| zimm | 65% | **0%** |
+| rouse_screened | 67% | **0%** |
+| reptation | 63% | **0%** |
+| sticky_rouse | 67% | **3%** |
+| sticky_reptation | 92% | **10%** |
+| cured_elastomer | 85% | **0%** |
+| critical_gel | 72% | **0%** |
+| wormlike_micelle | 65% | **0%** |
+| branched | 68% | **0%** |
+| star | 95% | **15%** |
+
+At 2% scatter every class sits at 63-95%, i.e. the feature carries no class
+information at all. `cured_elastomer` - a flat plateau with NO second G" peak
+by construction - trips it 85% of the time. Cause: `has_shoulder` counts raw
+sign changes in G" with no smoothing and no prominence threshold
+(identify.py ~line 153), and 2% multiplicative scatter (~0.0086 decades)
+manufactures local maxima freely.
+
+**But the detector's LOGIC is sound - the shoulder is genuinely absent.** On
+clean curves a dip exists in only **3% of `sticky_rouse` and 10% of
+`sticky_reptation`**; when one IS present it is unmistakable (0.5-0.73 decades
+deep) and the detector finds it. So the generator's random window cropping puts
+the bond-exchange time outside the sweep ~90% of the time. Two separate facts,
+easy to conflate: a noise-blind detector AND an almost-always-absent signal.
+
+**A prominence threshold was swept and does NOT rescue it** (require the
+interior dip to exceed N decades):
+
+| threshold | sticker mean | others mean | why unusable |
+|---|---|---|---|
+| 0.02 | 72% | 61% | `cured_elastomer` 83% > `sticky_rouse` 57% |
+| 0.05 | 31% | 24% | `cured_elastomer` 48% ties `sticky_reptation` |
+| 0.10 | 3% | 0% | zero false positives, but feature is dead |
+| 0.20 | 2% | 0% | dead |
+
+There is no operating point where the sticker classes separate, because there
+is barely any true signal in the population to recover. 0.10 dec would give a
+rare-but-trustworthy feature (0% false positives on all seven non-sticker
+classes); the user judged that not worth changing `signature_features`, which
+feeds the pre-filter and every identify() call.
+
+**This vindicates the 2026-09-07 has_shoulder fix on stronger grounds than were
+available then.** The old discard deleted both vitrimer classes whenever no
+shoulder was visible — and the shoulder is invisible ~90% of the time even for
+genuine vitrimers on CLEAN data. The rule was not merely unsound reasoning; it
+would have fired against the correct class in the large majority of cases.
+
+### original brief (kept for reference)
+
+**~~BLOCKED on the user supplying the paper.~~** User asked
 "am I forgetting common [molecular] models?" (explicitly NOT macroscopic
 material categories — that filter was established 2026-09-04). Audited the
 existing taxonomy plus `docs/rheology_models.md` (which is mostly macroscopic

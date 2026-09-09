@@ -6,6 +6,145 @@ the end of each working session (what was discussed, decided, and changed).
 
 ---
 
+## 2026-09-09 — Star-polymer class: forward physics + inverse recovery (steps 1-2)
+
+Home PC. Sync first: pulled `274c9bf..8510b32` (the 2026-09-07 docs-only
+handoff), `uv sync` clean, baseline suite confirmed **151 passed, 2 skipped**
+in 10 min. `originals/` present.
+
+**User supplied all three papers on request** — Milner-McLeish 1997
+(`ma961559f.pdf`), and when the prefactor could not be pinned down from it
+alone, the two precursors it builds on: Ball-McLeish 1989 (`ma00194a066.pdf`)
+and Pearson-Helfand 1984 (`ma00134a060.pdf`). Getting the precursors was what
+actually resolved the build; see below.
+
+**Built** `rheofp/models/star.py` (forward physics, `fit_star`, `STAR_MODELS`
+registry k=3), `tests/test_star.py` (27 tests, ~10 s), `scripts/validate_star.py`.
+**Deliberately NOT wired into `identify()`** — the cannibalisation check against
+`branched` has not run, and a test asserts `"star" not in ALL_MODELS` to keep it
+that way until it does.
+
+**The build was not smooth, and the reason is worth carrying.** Three separate
+transcription traps in the 1997 paper, each of which produced a plausible-looking
+but wrong model; full detail is in next-actions §ACTIVE TASK and in the module
+docstrings. The short version:
+  - eq 8 is printed across two lines and reads `(s - 2s^3/3)`; it is really
+    `(s^2 - 2s^3/3)`. My first "verification" failed because my *reference*
+    was wrong, not the code — worth remembering that a failing check can
+    indict the check.
+  - eq 29's prefactor: the `15Z/4` pulled out of `U'eff` into the denominator
+    has to be divided out of the prefactor. Getting this wrong gave `Z^{5/2}`
+    instead of `Z^{3/2}`, which meant **the eq-22 crossover never fired at
+    all** — terminal relaxation stayed Rouse-like and the whole alpha
+    dependence collapsed to 0.00 decades where the potential demands 1.03.
+  - eq 13's `(N/Ne)^2 tau_R` genuinely is `Z^4`; it only looks wrong because
+    it is an `s << s*` asymptote evaluated where it does not apply.
+
+**What broke the deadlock was Ball-McLeish, not more algebra.** Their eq 8
+writes the same activated time as `t(s) = t_0 exp[U(s)]` and states plainly
+that `t_0` is "the Rouse time for an entanglement length" — an O(1) anchor that
+immediately rules out a prefactor of `~10^4 tau_e`. Pearson-Helfand eqs 1.9/1.10
+supplied the matching fact that the natural diffusive time is built on the tube
+FLUCTUATION length, not the full primitive path. Before that I had spent several
+iterations moving the discrepancy around rather than closing it, and had
+(correctly) stopped and asked for the papers rather than tuning a constant to
+match a figure.
+
+**Validation.** eq 24 collapses onto eq 8 at alpha=1 to 3.6e-15; Ueff(1)/U_PH(1)
+= 0.257 against ~0.26 read off their Figure 2, and exactly 1/3 at alpha=1 as the
+text says; the Pearson-Helfand barrier reproduces the paper's quoted
+log(tau(1)/tau_0) = 13.8; eq-22 handoff lands at s = 0.183 where the text wants
+~0.2; terminal slopes exact; G' recovers 0.963 G_N; G'' spans ~5.9 decades
+against "five decades". Planted recovery exact (rms 0.0000 dec), and Z survives
+2% noise to within 0.4%. Z is not degenerate with tau_e — profile cost 5.9e-29
+at the true Z=17 vs 1.6e-02 one unit away.
+
+**Two limits found while fitting, both now pinned by tests.** (1) At low Z with
+the plateau cropped away, Z is not recoverable under noise (~20% error) even
+though the profile minimum is still correct — so Z must never be reported from a
+terminal-only sweep. (2) **Past Z ~ 40 the model predicts TWO G'' maxima**, the
+Rouse and activated relaxations having separated; converged for n_s 400..64000,
+so it is physics, not quadrature. This one has teeth beyond the star class:
+**any feature or pre-filter that assumes a single loss peak will misread a
+high-Z star** — the same shape of bug as the `has_shoulder` discard fixed on
+2026-09-07.
+
+**Step 3 (cannibalisation) also done this session, and `star` is now WIRED IN.**
+`scripts/check_star_cannibalisation.py`, n=30 planted cropped noisy curves per
+class, identical seeds through both banks. Result: real data **6/6 -> 6/6**,
+eight of nine existing classes identical, `branched` 30/30 both ways, `star`
+self-recovery 29/30. **The finding that justifies the class: with the 9-model
+bank, `branched` (BSW) absorbed 25/30 planted star melts silently and
+confidently** — the same "good fit of the WRONG class" failure documented for
+vitrimers, now confirmed for a second architecture and previously invisible.
+
+**The one cost was `zimm` 23/30 -> 21/30, and I checked both before wiring.**
+They are exact ties: identical rms to four decimals at identical k=3, dAICc
+0.07 and 0.00, with `rouse_screened` tied alongside on one of them. AICc has no
+parsimony lever between two k=3 models, so the winner is float noise. `star`
+joined the known Zimm<->Rouse degenerate cluster rather than displacing
+anything. **User approved wiring in on that evidence.**
+
+Two hypotheses I formed and then disproved, worth not re-treading: (a) "star
+cannot impersonate zimm" — false, it fits 11/30 of the generator's cropped
+noisy zimm curves under FLOOR_CHI2, though the fit overlap is far larger than
+the classification damage because ties don't move winners; (b) "cropping causes
+the overlap" — false, correlation with window width is +0.06, i.e. nil. I had
+stated (a) too confidently on 6 clean curves before the larger run corrected it.
+
+**Wiring opened a REVERSE invariant gap, now declared rather than left silent.**
+`synth.py` cannot generate `star`, so the bank can emit a class the neural head
+has never seen — the mirror image of the wormlike_micelle bug (there a
+generated class was unanswerable; here a bank class is untrainable). Added
+`test_bank_classes_the_generator_cannot_produce_are_declared` listing `star` as
+a known deliberate exception, so any further drift fails.
+
+**Byproduct finding, separate from the star work and untouched:** `has_shoulder`
+fires on 92% of planted stars (the Z >~ 35 two-peak split) but ALSO on 72% of
+`branched` and 75% of `reptation`, which have no stickers — and only 62% of
+`sticky_rouse`. So report.py:240's "characteristic of a reversibly associating
+network" overstates it for every class, not just stars. Flagged for a decision.
+
+**Step 3b — `synth.py` now generates `star`**, closing the reverse bank/generator
+gap the wiring opened. `tau_e` is DERIVED rather than drawn: a star spans ~23
+decades against a ~4-decade window, so the terminal time is anchored to the
+window and tau_e back-computed from Z. **Caught a real bug doing it** — the
+first offset range gave `terminal_reached` **0%**, i.e. no planted star ever
+flowed, which would have taught the classifier that stars never reach terminal
+flow. Fixed to 51% (n=120). Same shape as the fixed-60-point density bug: a
+sampling artifact that would have been learned as physics.
+
+**`has_shoulder` investigated at the user's request, then LEFT ALONE by user
+decision.** Full numbers in next-actions §2b-bis, marked DO NOT RE-INVESTIGATE.
+The finding is worth carrying anyway: the detector fires on NOISE, not shape —
+noise-on vs noise-off on the same population gives 63-95% across every class
+versus 0-15%, and `cured_elastomer` (no second G" peak by construction) trips
+it 85% of the time. Separately, the shoulder is genuinely absent from ~90% of
+windows even for clean sticker curves, so no prominence threshold rescues it —
+swept 0.02/0.05/0.10/0.20 and none separates the sticker classes. **This
+vindicates the 2026-09-07 has_shoulder fix on stronger grounds than existed
+then**: the old discard would have deleted the correct vitrimer class in the
+large majority of cases, not merely in principle.
+
+**Three things I got wrong this session and corrected, all now recorded with
+measurements rather than my reasoning:** (1) claimed `star` was the suite's
+performance bottleneck — it is third, behind `branched` and `sticky_reptation`,
+and `N_S` is a useless speed dial since the cost is in restarts; (2) claimed
+"star cannot impersonate zimm" from 6 clean curves — on the generator's cropped
+noisy population it fits 11/30 under FLOOR_CHI2; (3) attributed the star
+shoulder rate to the Z>=35 two-peak split — it is noise, and the rate is nearly
+flat in Z. Also broke a `test_report.py` assertion by rewording a sentence such
+that `_wrap` split the phrase it checked; fixed the test to check the structured
+field instead of rendered text.
+
+**Next, and it is FOR THE OFFICE PC** (user's call, 2026-09-09): **retrain**.
+The checkpoint is stale — ten classes now — so every published ML number is a
+9-class measurement. Full instructions and what to watch for are in
+next-actions under ">>> ACTIVE TASK FOR THE OFFICE PC <<<". Step 4 (real-data
+validation of the star class) stays blocked on star melt data.
+
+---
+
 ## 2026-09-07 — Promoted branched + wormlike_micelle; framework sweep; latent NaN found
 
 Home PC (RTX A1000, `originals/` present). Session began as a walkthrough of the

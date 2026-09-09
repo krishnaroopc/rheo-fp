@@ -132,7 +132,13 @@ def test_vitrimer_absence_is_reported_as_a_fitted_result_not_a_deletion():
     for d in rep["discards"]:
         assert "sticky_rouse" not in d["classes"]
         assert "sticky_reptation" not in d["classes"]
-    assert "not a pre-filter deletion" in format_report(rep)
+    # Check the STRUCTURED field, not the rendered text: format_report wraps
+    # to a fixed width, so any phrase can be split across a newline by an
+    # unrelated wording change upstream (this assertion previously broke on
+    # exactly that, when the has_shoulder sentence was reworded 2026-09-09).
+    assert any("not a pre-filter deletion" in s
+               for s in rep["what_would_settle_it"])
+    assert "WHAT WOULD SETTLE IT" in format_report(rep)
 
 
 def test_stack_verdict_reaches_the_report():

@@ -35,7 +35,8 @@ def test_sampled_parameters_stay_inside_the_fitters_search_space(name):
     """Generated population and fitting bounds must not drift apart."""
     from rheofp.models.solutions import MODELS
     from rheofp.models.maxwell import BRANCHED_MODELS, WLM_MODELS
-    banks = {**MODELS, **BRANCHED_MODELS, **WLM_MODELS}
+    from rheofp.models.star import STAR_MODELS
+    banks = {**MODELS, **BRANCHED_MODELS, **WLM_MODELS, **STAR_MODELS}
     if name not in banks:
         pytest.skip("network classes use their own ranges (see test_network)")
     rng = np.random.default_rng(1)
@@ -61,6 +62,28 @@ def test_every_generated_class_has_a_candidate_in_the_identifier_bank():
     assert not missing, (
         f"generated but unreachable by identify(): {sorted(missing)} - "
         "register a (forward, p0, bounds, k) entry or stop generating it")
+
+
+def test_bank_classes_the_generator_cannot_produce_are_declared():
+    """The REVERSE of the invariant above, and it bites differently.
+
+    A class in identify()'s bank that the generator cannot produce is not
+    unanswerable - the AICc side can emit it fine. What it cannot do is reach
+    the NEURAL head, which only ever sees generated data, so the two brains
+    end up with different taxonomies and any AICc-vs-network comparison is
+    quietly asymmetric. That is the mirror image of the wormlike_micelle bug.
+
+    `star` was briefly in exactly that state on 2026-09-09 - wired into the
+    bank after its cannibalisation check, hours before synth.py learned to
+    sample it. The gap is now closed and the expected set is empty; if a class
+    is ever added to the bank alone again, this fails and says so.
+    """
+    from rheofp.fitting.identify import ALL_MODELS
+    KNOWN_BANK_ONLY = set()
+    bank_only = set(ALL_MODELS) - set(ALL_CLASSES)
+    assert bank_only == KNOWN_BANK_ONLY, (
+        f"bank/generator drift: {sorted(bank_only ^ KNOWN_BANK_ONLY)} - either "
+        "teach synth.py to generate it or update KNOWN_BANK_ONLY deliberately")
 
 
 def test_labels_and_regimes_are_consistent():
