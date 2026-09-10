@@ -61,8 +61,65 @@ docstring/bounds comment corrections in `rheofp/models/star.py`; the stale
 text fix; CLAUDE.md star paragraph + "Current state" rewritten with the real
 envelope.
 
-**Left open, needs a user decision:** whether `report.py` should add a
-star-specific caveat when a `star` winner comes off a non-terminal window.
+**Star caveat: user said yes, "in rheology friendly language" — BUILT.**
+`challenge()` gains a second `window` item when the winner is `star` and
+terminal flow was not reached. Written as physics, not statistics: arm
+retraction along the tube, retraction time exponential in arm length, the
+characteristic shape therefore living in the terminal zone, the measured
+low-frequency slopes against the 2/1 flow limits, and the actionable fix
+(extend the low-frequency end, or measure warmer and shift by TTS). Two tests,
+one of them a counterpart on a star that DID reach flow so the caveat cannot
+drift into being unconditional.
+
+**What justified it — look at this before softening it.** `challenge()` on
+Santangelo L176, a LINEAR PIB that comes back as `star`: weight **1.000**, fit
+**0.036 dec** described as "a genuinely good fit", and **no alternative inside
+dAICc 10**, so the alternatives section is empty. Nothing in the standard
+report signals any doubt at all. Also exposed, and NOT addressed: the
+pre-filter had struck `reptation` (no wide plateau) on that same curve, so the
+plausibly correct class was never on the ballot and `star` won unopposed - and
+the report states both facts without connecting them.
+
+**RETRAINED on the laptop (seed 0, the script default - the published run was
+seed 1).** Being a different seed made it more useful than a repeat:
+accuracy **0.922** vs the published 0.923, regime 0.999, merged-pair 0.963,
+`star` 0.984, cured<->gel still 0 errors. Three things worth carrying:
+1. **The seed instability has largely resolved.** This file records
+   `rouse_screened` at **0.20 on seed 0**; it now reads **0.651**, and overall
+   accuracy is within 0.001 across the two seeds.
+2. **The published "+0.016 margin" over the physics baseline is not a
+   resolvable number.** The baseline is n=150, sampling error ~+/-0.027, i.e.
+   bigger than the margin. Across seeds the baseline moved 0.907 -> 0.860 and
+   the margin +0.016 -> +0.062 while the network side barely moved. Say "at
+   least as good as the physics baseline, gap not measurable at n=150".
+3. `star`'s 4 errors here include **2 to `branched`**, where the seed-1 run's
+   single error went to `wormlike_micelle` and was read as evidence the two
+   brains do NOT disagree about what absorbs stars. Four errors is far too few
+   to overturn that, but it is no longer clean evidence for it either.
+
+**Environment gotcha fixed:** `git push` hung indefinitely - git was set to
+Git Credential Manager, which blocks on an invisible GUI prompt in a
+non-interactive shell. `gh` was already authenticated, so `gh auth setup-git`
+fixed it permanently. Expect this on any fresh Windows PC.
+
+**Also confirmed while answering a user question, worth not re-investigating:**
+on this laptop `python` on PATH is `WindowsApps\python.exe`, a **0-byte
+Microsoft Store alias**, not an interpreter. That is the state environment.md
+prescribes ("do not install Python"), not a fault - but it means any bare
+`python` invocation opens the Store instead of running code. Everything goes
+through `uv run`. uv, git, gh and code all resolve normally in a
+newly-opened terminal (verified against the registry PATH); only the
+mid-session shell had a stale PATH.
+
+**LEFT UNVERIFIED - first job next session.** The star caveat and its two
+tests landed at the very end. `tests/test_report.py` passed 25/25, which does
+cover the changed code, but the confirming FULL non-slow run was stopped
+mid-run at the user's request (end of day). Expect **196 passed, 2 skipped**.
+Run it before building anything on top.
+
+**Next task is set in next-actions:** the neural head as `report.py`'s second
+column - the two brains' AGREEMENT as a confidence signal neither
+self-confidence can provide. Needs a checkpoint, which does not travel in git.
 
 ---
 

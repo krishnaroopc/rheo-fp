@@ -53,8 +53,16 @@ uv sync
 `uv sync` installs Python 3.12 if absent, builds `.venv\`, and installs
 `rheofp` editable. First run pulls a few hundred MB; later ones are instant.
 The repo is private, so the clone will ask you to authenticate - easiest is
-`winget install --id GitHub.cli -e` then `gh auth login` (browser flow), which
-also configures git's credential helper for future pushes.
+`winget install --id GitHub.cli -e` then `gh auth login` (browser flow).
+
+**Then run `gh auth setup-git`, and do not skip it.** `gh auth login` alone
+leaves git pointed at **Git Credential Manager**, which pops a GUI prompt. In
+a non-interactive shell (anything Claude runs, CI, a script) that prompt is
+invisible and `git push` simply **hangs forever** with no error - it does not
+time out and it does not say why. Hit on the laptop 2026-09-09.
+`gh auth setup-git` re-points git at gh's existing token and the hang goes
+away. Symptom to recognise: a `git-credential-manager` process sitting in the
+process list while push produces no output.
 
 **Step 4 - prove it works before doing anything else:**
 ```powershell

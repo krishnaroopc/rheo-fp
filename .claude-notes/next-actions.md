@@ -5,23 +5,76 @@ kept in git so it syncs between the user's home and office PCs. When the user
 says something like "let's continue" / "do the next thing" / "pick up where we
 left off", this is where to look. Update + commit this file as items complete.
 
-Last updated: 2026-09-07 (home PC, end of session).
+Last updated: **2026-09-09 (LAPTOP, end of session).**
 
-**RESUMING ELSEWHERE — read this first.** The 2026-09-09 session (home PC)
-took the star-polymer class all the way from paper to shipped: forward physics,
-inverse recovery, the cannibalisation check, wiring into `identify()`'s bank,
-and teaching `synth.py` to generate it. New files: `rheofp/models/star.py`,
-`tests/test_star.py`, `scripts/validate_star.py`,
-`scripts/check_star_cannibalisation.py`. Modified: `fitting/identify.py`
-(bank is now **10 candidates**), `data/synth.py` (**10 generated classes**),
-`report.py`, `ml/evaluate.py`, `tests/test_synth.py`, `tests/test_report.py`.
-On arrival: `git pull`, `uv sync`, then `uv run pytest -m "not slow"`
-(expect **~183 passed, 2 skipped**, ~20 min — slower again, see §0).
+# >>> START HERE ON ANY PC <<<
 
-**THE RETRAIN IS DONE (2026-09-09, office PC).** All published accuracy numbers
-are now 10-class and current: **0.923** synthetic, **0.907** paired physics
-baseline, **6/6** real data, `star` at **0.996**. See the RETRAIN DONE section
-below for the full table and the three decisions it settled.
+**On arrival, in order:** `git pull` → `uv sync` → `uv run pytest -m "not slow"`.
+Expect **196 passed, 2 skipped** (~12-15 min on the laptop, ~5 min office).
+Everything through `uv run`; there is no usable system Python (on the laptop
+`python` is a 0-byte Microsoft Store stub). On a fresh Windows PC also run
+**`gh auth setup-git`** or `git push` will hang forever with no error —
+see environment.md.
+
+## The ONE unverified thing, and it is the first job
+
+**The last commit's tests were NOT confirmed by a full-suite run.** The star
+caveat in `report.py` and its two tests were added at the very end of the
+laptop session; `uv run pytest tests/test_report.py` passed **25/25** (which
+does cover the changed code), but the full non-slow suite was **stopped
+mid-run** at the user's request before it finished. Expected count is 196
+(194 + the 2 new). **Run it first and confirm before building anything on
+top.** If it is green, delete this section.
+
+## What the state actually is
+
+- **Star class: COMPLETE through step 4** (forward physics → inverse recovery
+  → cannibalisation → wired into the bank → generator → real-data validation
+  → reported limits). Nothing outstanding on it.
+- **Two brains, both current.** The 10-model AICc bank and a freshly trained
+  10-class checkpoint. `checkpoints/` is **gitignored, so it does NOT travel** —
+  whichever PC you are on, if `checkpoints/rheonet.pt` is absent you must
+  retrain before doing anything neural:
+  `uv run python scripts/train_classifier.py -n 16000 --epochs 55`
+  (~20 s/epoch on the laptop; the AICc baseline afterwards is the long pole).
+- **Accuracy, and how to quote it honestly.** Seed 1 (office): 0.923 / merged
+  0.968 / regime 0.999 / baseline 0.907. Seed 0 (laptop): 0.922 / 0.963 /
+  0.999 / baseline 0.860. The NETWORK is seed-stable to 0.001. The **baseline
+  is not** — n=150 gives it ~±0.027 sampling error, which is larger than the
+  published "+0.016 margin". **Do not quote +0.016 as a result.** Say the
+  network is at least as good as the physics baseline and the gap is not
+  resolvable at n=150.
+- Real data: **6/6** benchmark; `star` 5/7 on MM1998 (5/5 restricted to curves
+  that reach terminal flow).
+
+## >>> THE NEXT TASK <<<
+
+**Build the neural head as `report.py`'s second column.** This is the largest
+unbuilt item in this file and DECISION 3 (below) already approved the design.
+The reason it matters is the one line worth re-reading:
+
+> the two brains are mathematically independent, so **whether they AGREE is a
+> better confidence signal than either one's own certainty** — and nothing
+> currently looks at this.
+
+Both self-confidences are known unreliable in the same way: the network's
+abstention is trained only against its own errors on the SYNTHETIC
+distribution, and AICc's weight reaches 1.000 even when the true class is
+absent from the bank entirely (§1h). Agreement between two independent methods
+is not subject to either failure, and it attacks the dominant error mode — a
+GOOD fit of the WRONG class — which no confidence score flags today.
+
+Needs a checkpoint (see above). Read DECISION 2 and DECISION 3 before starting:
+`identify()`'s return contract must NOT change; build alongside it.
+
+**A smaller, well-evidenced item found the same session and NOT done:** on
+Santangelo L176 the pre-filter struck `reptation` (no wide plateau) so the
+plausibly correct class was never on the ballot, and `star` won unopposed at
+weight 1.000. The report states both facts in separate paragraphs and never
+connects them. Linking "the class you might have wanted was discarded" to "and
+the winner is weak under exactly these conditions" is a real gap.
+
+---
 
 **>>> ~~ACTIVE TASK FOR THE LAPTOP~~ — BOOTSTRAP + STEP 4 BOTH DONE 2026-09-09 <<<**
 
@@ -126,14 +179,33 @@ it would delete the class on exactly the curves where a real star is hardest
 to see. It belongs in the REPORT. n=10 curves, so state it as a strong
 indication, not a law.
 
-**OPEN, needs a user decision (the only thing left here):** should
-`report.py` add a star-specific caveat when a `star` winner comes off a
-`terminal_reached = False` window — something like *"this star call rests on a
-window that never reached flow; the one linear control tested under that
-condition was also returned as star"*? Evidence for: 1 false positive in 1
-opportunity, and the report layer exists precisely for good-fits-of-the-wrong-
-class. Evidence against: n=1 on the false positive, and there is already a
-generic "window does not reach terminal flow" item in `challenge()`.
+**~~OPEN~~ — DECIDED AND BUILT 2026-09-09 (user: yes, "in rheology friendly
+language").** `challenge()` now emits a second `window` item when the winner
+is `star` AND `terminal_reached` is False. It explains the physics rather than
+the statistics: arm retraction along the tube, retraction time exponential in
+arm length so the spectrum is broad and its characteristic shape lives in the
+TERMINAL zone, the measured low-frequency slopes quoted against the 2 and 1 of
+a melt in flow, the note that what is left (the high-frequency wing) looks much
+the same for a broad linear or LCB melt, and the fix a rheologist would
+actually use — extend the low-frequency end, or measure warmer and shift by
+time-temperature superposition until the G'/G" crossover and the 2/1 onset are
+in the window.
+
+**What made the case, and it is worth looking at before ever softening this:**
+run `challenge()` on Santangelo L176 (a LINEAR PIB control that comes back as
+`star`). The ordinary report shows weight **1.000**, a **0.036-decade** fit
+called "a genuinely good fit", and **no alternative inside dAICc 10 at all** —
+so the alternatives section is EMPTY. Nothing in the standard output signals
+any doubt whatsoever. Two tests pin it, including a counterpart on MM1998
+Ma36k asserting the caveat does NOT fire when flow was reached, so it cannot
+quietly become unconditional.
+
+**Second thing that run exposed, NOT yet addressed:** on L176 the pre-filter
+struck `reptation` (no plateau a decade wide), so the plausibly correct class
+for a linear entangled melt was never on the ballot, and `star` won unopposed.
+The report states both facts in separate paragraphs and never connects them.
+A "the class you might have wanted was discarded AND the winner is weak here"
+link is a real gap - worth considering if the report layer is revisited.
 
 **`Z` IS NOT A REPORTABLE OUTPUT** and that has not changed: still biased
 +17-84% on mm1998. The class says "star", never "Z = ...".

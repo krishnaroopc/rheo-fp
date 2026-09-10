@@ -450,6 +450,31 @@ def challenge(result, max_named=3, w=None, Gp=None, Gpp=None):
                 "or below your lowest frequency. Anything distinguished by "
                 "that relaxation cannot be settled by this measurement."),
         })
+        if winner["name"] == "star":
+            items.append({
+                "kind": "window",
+                "text": (
+                    f"That matters more than usual for a star melt. A star arm "
+                    f"relaxes by retraction along its own tube, and because "
+                    f"the retraction time grows exponentially with arm length "
+                    f"the resulting spectrum is very broad and its "
+                    f"characteristic shape sits in the TERMINAL zone. Your low-"
+                    f"frequency slopes are G' {feats['slope_Gp_lo']:.2f} and "
+                    f"G\" {feats['slope_Gpp_lo']:.2f}, short of the 2 and 1 of "
+                    f"a melt in flow, so that zone is not in your data and the "
+                    f"star spectrum has been matched on its high-frequency "
+                    f"wing alone - where a broad linear or long-chain-branched "
+                    f"melt looks much the same. On the literature star melts "
+                    f"tested, this class was right on every curve that reached "
+                    f"flow and unreliable on every curve that did not, "
+                    f"including one linear melt that came back as a star. "
+                    f"Before accepting this, push the terminal zone into your "
+                    f"window: run the low-frequency end further down, or "
+                    f"measure warmer and shift by time-temperature "
+                    f"superposition. Reaching the G'/G\" crossover and the "
+                    f"onset of the 2/1 slopes is what makes a star call "
+                    f"trustworthy."),
+            })
     if not feats["has_shoulder"]:
         items.append({
             "kind": "window",

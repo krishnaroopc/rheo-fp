@@ -271,6 +271,47 @@ def test_challenge_always_states_the_out_of_taxonomy_limit():
         assert "out_of_taxonomy" in kinds, path
 
 
+# --- star called off a window that never reached flow (2026-09-09) ----------
+
+def test_a_star_call_without_terminal_flow_says_so_specifically():
+    """Santangelo (1999) L176 is a LINEAR polyisobutylene control and
+    identify() returns `star` at weight 1.000 with a 0.036-decade fit, with
+    no alternative inside dAICc 10 - i.e. nothing in the ordinary report
+    signals any doubt.
+
+    Measured on the two literature star sets (2026-09-09): the class is right
+    on every curve that reaches terminal flow (5/5) and unreliable on every
+    curve that does not (1/5), in BOTH directions - stars missed and this
+    linear melt claimed. A star arm's retraction spectrum has its
+    characteristic shape in the terminal zone, so a window stopping short of
+    flow removes exactly the evidence the class rests on. The generic
+    'no terminal flow' item does not name that, so this one does.
+    """
+    s = load_npz("data/santangelo1999.npz")["L176"]
+    m = s["omega"] <= 1e3
+    w, Gp, Gpp = s["omega"][m], s["Gp"][m], s["Gpp"][m]
+    res = identify(w, Gp, Gpp, n_restarts=6)
+    assert res["best"] == "star"
+    assert not res["features"]["terminal_reached"]
+    text = " ".join(c["text"] for c in explain(res, w, Gp, Gpp)["challenge"])
+    assert "star melt" in text and "retraction" in text
+    # It must tell the rheologist what to actually DO about it.
+    assert "time-temperature superposition" in text
+
+
+def test_a_star_call_that_did_reach_flow_gets_no_such_warning():
+    """The counterpart, so the caveat cannot quietly become unconditional:
+    MM1998's Ma36k is a real four-arm star whose window does reach flow, and
+    it must not be hedged with a window warning it does not deserve.
+    """
+    s = load_npz("data/mm1998.npz")["PI4_Ma36k"]
+    res = identify(s["omega"], s["Gp"], s["Gpp"], n_restarts=6)
+    assert res["best"] == "star" and res["features"]["terminal_reached"]
+    text = " ".join(c["text"] for c in
+                    explain(res, s["omega"], s["Gp"], s["Gpp"])["challenge"])
+    assert "retraction" not in text
+
+
 # --- branched-vs-vitrimer-power-law contradiction (2026-09-07) --------------
 
 def test_real_vitrimer_called_branched_trips_the_contradiction():

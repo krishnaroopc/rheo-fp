@@ -11,10 +11,18 @@ it's the live cross-PC to-do list with the current active task and decisions
 already made.
 
 ## Cross-PC workflow (important)
-User works from multiple PCs (home + office). Git is the sync layer:
+User works from multiple PCs (home + office + laptop). Git is the sync layer:
 - **Pull before starting**, commit + push before leaving a machine. Only
   committed work is visible on the other PC.
 - Reconstruct "what changed on the other PC" from `git log` / `git diff`.
+- **What does NOT travel, and must be rebuilt per machine:** `.venv/`
+  (recreate with `uv sync`), `checkpoints/` (retrain — see next-actions),
+  and `originals/` (a OneDrive junction; optional, nothing is blocked by its
+  absence because every derived `data/*.npz` is committed).
+- **On a fresh Windows PC, run `gh auth setup-git` after `gh auth login`.**
+  Otherwise git uses Git Credential Manager, which blocks on an invisible GUI
+  prompt and makes `git push` **hang forever with no error message**. Hit on
+  the laptop 2026-09-09; details in `.claude-notes/environment.md`.
 
 **On a machine where `git` or `uv` is "not recognized", or `.venv/` is
 missing, you are on a fresh/formatted PC — go straight to the
@@ -309,8 +317,10 @@ removing the network classes; `wide_plateau` gating reptation).
 **Current state (2026-09-09, retrained) — these are 10-CLASS numbers.**
 **194 tests pass, 2 skipped** — the full non-slow suite re-run on the laptop
 after the two `star.py` fixes and the step-4 real-data tests (12:15 on an
-i7-10750H; it was 185 before those 9 tests were added), so the suite is green
-against the current code, not just against the retrain snapshot. Retrained on
+i7-10750H; it was 185 before those 9 tests were added). **Two more tests were
+added after that run (the star window caveat, 196 expected) and the confirming
+full-suite run was stopped early — `tests/test_report.py` passed 25/25 on its
+own, but run the full suite first on the next session.** Retrained on
 the ten-class distribution after `star` was added (16k examples, 55 epochs,
 seed 1, office PC).
 
