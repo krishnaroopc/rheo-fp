@@ -1,0 +1,428 @@
+<title>RheoNet Architecture</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --ground: #FAFAF8;
+    --panel: #F1F0EC;
+    --panel-2: #E7E5DF;
+    --ink: #1A1D21;
+    --ink-soft: #55595F;
+    --ink-faint: #8A8E94;
+    --rule: #D6D4CC;
+    --accent: #0E7C7B;
+    --accent-soft: #DCEEED;
+    --accent-ink: #0A5150;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #16181B;
+      --panel: #1F2225;
+      --panel-2: #282C30;
+      --ink: #ECEBE6;
+      --ink-soft: #A9ADB3;
+      --ink-faint: #71767C;
+      --rule: #33373B;
+      --accent: #4FB8B4;
+      --accent-soft: #17332F;
+      --accent-ink: #8FD6D2;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #16181B;
+    --panel: #1F2225;
+    --panel-2: #282C30;
+    --ink: #ECEBE6;
+    --ink-soft: #A9ADB3;
+    --ink-faint: #71767C;
+    --rule: #33373B;
+    --accent: #4FB8B4;
+    --accent-soft: #17332F;
+    --accent-ink: #8FD6D2;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: "IBM Plex Sans", system-ui, sans-serif;
+    line-height: 1.6;
+  }
+  .wrap {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding-inline: 24px;
+    padding-block: 56px 72px;
+  }
+
+  header { margin-bottom: 40px; max-width: 68ch; }
+  .eyebrow {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent-ink);
+    margin: 0 0 12px;
+  }
+  h1 {
+    font-family: "Spectral", Georgia, serif;
+    font-weight: 500;
+    font-size: clamp(1.9rem, 1.3rem + 2.4vw, 2.9rem);
+    line-height: 1.12;
+    text-wrap: balance;
+    margin: 0 0 14px;
+    letter-spacing: -0.01em;
+  }
+  header p {
+    font-size: 1.02rem;
+    color: var(--ink-soft);
+    margin: 0;
+  }
+
+  figure { margin: 0 0 44px; }
+  .figframe {
+    background: var(--panel);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    padding: 24px 20px 16px;
+    overflow-x: auto;
+  }
+  .figframe svg {
+    display: block;
+    width: 100%;
+    min-width: 1080px;
+    height: auto;
+    color: var(--ink);
+  }
+  figcaption {
+    margin-top: 16px;
+    font-size: 0.92rem;
+    color: var(--ink-soft);
+    max-width: 94ch;
+  }
+  figcaption b { color: var(--ink); font-weight: 600; }
+
+  .svg-panel { fill: var(--panel-2); }
+  .svg-panel-line { stroke: var(--rule); stroke-width: 1; fill: none; }
+  .svg-box { fill: var(--ground); stroke: var(--ink-soft); stroke-width: 1.3; }
+  .svg-box-accent { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1.5; }
+  .svg-flow { stroke: var(--ink-soft); stroke-width: 1.5; fill: none; }
+  .svg-flow-accent { stroke: var(--accent); stroke-width: 1.9; fill: none; }
+  .svg-shared { stroke: var(--accent); stroke-width: 1.3; stroke-dasharray: 5 3; fill: none; }
+  text {
+    font-family: "IBM Plex Sans", sans-serif;
+    fill: var(--ink);
+  }
+  .t-title { font-family: "Spectral", serif; font-size: 15px; font-weight: 600; }
+  .t-lbl { font-size: 13px; font-weight: 500; }
+  .t-sub { font-size: 11.5px; fill: var(--ink-soft); }
+  .t-shape { font-family: "IBM Plex Mono", monospace; font-size: 11.5px; fill: var(--accent-ink); }
+  .t-op { font-family: "IBM Plex Mono", monospace; font-size: 12px; fill: var(--ink); }
+  .t-stage { font-family: "IBM Plex Mono", monospace; font-size: 10.5px; letter-spacing: 0.12em; fill: var(--ink-faint); }
+
+  .cols {
+    display: grid;
+    grid-template-columns: 1.35fr 1fr;
+    gap: 32px;
+    align-items: start;
+  }
+  @media (max-width: 880px) { .cols { grid-template-columns: 1fr; } }
+
+  h2 {
+    font-family: "Spectral", serif;
+    font-weight: 600;
+    font-size: 1.15rem;
+    margin: 0 0 14px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .tbl-scroll { overflow-x: auto; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.86rem;
+  }
+  th, td {
+    text-align: left;
+    padding: 7px 12px 7px 0;
+    border-bottom: 1px solid var(--rule);
+    vertical-align: top;
+    white-space: nowrap;
+  }
+  th {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 10.5px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    font-weight: 500;
+  }
+  td.mono, .mono { font-family: "IBM Plex Mono", monospace; font-size: 0.8rem; }
+  td:first-child { font-weight: 500; }
+  tbody tr:last-child td { border-bottom: none; }
+
+  .eq {
+    background: var(--panel);
+    border: 1px solid var(--rule);
+    border-left: 3px solid var(--accent);
+    border-radius: 3px;
+    padding: 16px 18px;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.82rem;
+    line-height: 1.75;
+    overflow-x: auto;
+    margin: 0 0 16px;
+  }
+  .eq .term { color: var(--accent-ink); }
+  .notes { font-size: 0.88rem; color: var(--ink-soft); margin: 0; padding-left: 1.1em; }
+  .notes li { margin-bottom: 7px; }
+  .notes code, .inlinecode {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.82em;
+    background: var(--panel);
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+
+  .foot {
+    margin-top: 48px;
+    padding-top: 16px;
+    border-top: 1px solid var(--rule);
+    font-size: 0.8rem;
+    color: var(--ink-faint);
+    font-family: "IBM Plex Mono", monospace;
+    line-height: 1.9;
+  }
+</style>
+
+<div class="wrap">
+  <header>
+    <p class="eyebrow">Model architecture &middot; rheo-fp</p>
+    <h1>RheoNet: a two-head set network for SAOS spectra</h1>
+    <p>A permutation-invariant encoder over a variable-size stack of small-amplitude
+      oscillatory-shear curves <span class="inlinecode">G&prime;(&omega;), G&Prime;(&omega;)</span>,
+      pooled by masked attention into one stack embedding that feeds a classification head
+      (with learned abstention) and a parameter-regression head.</p>
+  </header>
+
+  <figure>
+    <div class="figframe">
+      <svg viewBox="0 0 1280 620" role="img"
+        aria-label="Data-flow diagram of RheoNet. A variable-length set of N SAOS curves, each 60 by 4 channels, plus an N by 6 block of per-curve summary scalars, passes through a weight-shared 1-D convolutional curve encoder that produces N embeddings of dimension 128. A learned-query masked multi-head attention layer pools these N embeddings into one 128-dimensional stack embedding, with padded slots masked before the softmax. A shared MLP trunk then feeds two heads: head 1 emits 10 class logits, 1 abstain logit and 2 regime logits; head 2 emits a 5-dimensional parameter vector.">
+
+        <!-- ===================== STAGE RAIL ===================== -->
+        <line x1="40" y1="44" x2="1240" y2="44" class="svg-panel-line"/>
+        <text class="t-stage" x="40"   y="34">1 &nbsp; SET INPUT</text>
+        <text class="t-stage" x="360"  y="34">2 &nbsp; PER-CURVE ENCODER &mdash; ONE SHARED WEIGHT SET</text>
+        <text class="t-stage" x="760"  y="34">3 &nbsp; MASKED ATTENTION POOL</text>
+        <text class="t-stage" x="1010" y="34">4 &nbsp; TRUNK + HEADS</text>
+
+        <!-- ===================== 1 · SET INPUT ===================== -->
+        <g>
+          <!-- stacked curve cards -->
+          <rect class="svg-box" x="64" y="118" width="176" height="96" rx="3"/>
+          <rect class="svg-box" x="52" y="102" width="176" height="96" rx="3"/>
+          <rect class="svg-box" x="40" y="86"  width="176" height="96" rx="3"/>
+          <polyline class="svg-flow-accent" points="56,140 84,140 112,108 146,100 200,98"/>
+          <polyline class="svg-flow" points="56,158 92,142 128,130 164,128 206,140" stroke-dasharray="3 2"/>
+          <text class="t-lbl"   x="40" y="78">stack of N curves</text>
+          <text class="t-shape" x="40" y="206">N &times; 60 &times; 4</text>
+
+          <text class="t-sub" x="40" y="240">4 channels, all log10:</text>
+          <text class="t-sub" x="40" y="257">log &omega; &middot; log G&prime; &middot; log G&Prime; &middot; log tan &delta;</text>
+          <text class="t-sub" x="40" y="279">N = 1 to 5 temperatures</text>
+          <text class="t-sub" x="40" y="296">resampled to a 60-point log-&omega; grid</text>
+
+          <!-- per-curve summary side input -->
+          <rect class="svg-box" x="40" y="336" width="176" height="58" rx="3"/>
+          <text class="t-lbl"   x="52" y="358">summary scalars</text>
+          <text class="t-shape" x="52" y="380">N &times; 6</text>
+          <text class="t-sub" x="40" y="416">modulus scale, window</text>
+          <text class="t-sub" x="40" y="433">position &amp; width, temperature</text>
+        </g>
+
+        <!-- arrows: set -> encoder -->
+        <path class="svg-flow" d="M240,150 H300" marker-end="url(#arw)"/>
+        <path class="svg-flow" d="M216,362 C258,362 266,232 300,214" marker-end="url(#arw)"/>
+
+        <!-- ===================== 2 · CURVE ENCODER ===================== -->
+        <g>
+          <rect class="svg-panel" x="304" y="70" width="300" height="356" rx="4"/>
+          <path class="svg-panel-line" d="M304,70 h300 v356 h-300 z"/>
+          <text class="t-title" x="322" y="98">CurveEncoder</text>
+          <text class="t-sub"   x="322" y="116">runs on each curve independently</text>
+
+          <rect class="svg-box" x="324" y="132" width="260" height="32" rx="3"/>
+          <text class="t-op" x="338" y="153">Conv1d k5 &middot; 4&#8594;64 &middot; GELU &middot; BN</text>
+          <rect class="svg-box" x="324" y="176" width="260" height="32" rx="3"/>
+          <text class="t-op" x="338" y="197">Conv1d k5 &middot; 64&#8594;96 &middot; GELU &middot; BN</text>
+          <rect class="svg-box" x="324" y="220" width="260" height="32" rx="3"/>
+          <text class="t-op" x="338" y="241">Conv1d k5 &middot; 96&#8594;128 &middot; GELU &middot; BN</text>
+
+          <rect class="svg-box" x="324" y="270" width="260" height="32" rx="3"/>
+          <text class="t-op" x="338" y="291">mean &#8853; max over &omega;  &#8594; 256</text>
+
+          <rect class="svg-box" x="324" y="320" width="260" height="32" rx="3"/>
+          <text class="t-op" x="338" y="341">concat 6 &middot; Linear &middot; GELU &middot; Linear</text>
+
+          <rect class="svg-box-accent" x="324" y="370" width="260" height="36" rx="3"/>
+          <text class="t-lbl"   x="338" y="392">curve embedding</text>
+          <text class="t-shape" x="520" y="392">dim 128</text>
+        </g>
+
+        <!-- internal encoder flow -->
+        <path class="svg-flow" d="M454,164 V176" marker-end="url(#arw)"/>
+        <path class="svg-flow" d="M454,208 V220" marker-end="url(#arw)"/>
+        <path class="svg-flow" d="M454,252 V270" marker-end="url(#arw)"/>
+        <path class="svg-flow" d="M454,302 V320" marker-end="url(#arw)"/>
+        <path class="svg-flow" d="M454,352 V370" marker-end="url(#arw)"/>
+
+        <!-- weight-sharing bracket -->
+        <path class="svg-shared" d="M614,150 C646,150 646,300 618,300"/>
+        <text class="t-sub" x="628" y="212" fill="var(--accent-ink)">applied</text>
+        <text class="t-sub" x="628" y="229" fill="var(--accent-ink)">&times; N,</text>
+        <text class="t-sub" x="628" y="246" fill="var(--accent-ink)">shared</text>
+        <text class="t-sub" x="628" y="263" fill="var(--accent-ink)">weights</text>
+
+        <!-- arrow: encoder -> pool -->
+        <path class="svg-flow" d="M604,388 H700" marker-end="url(#arw)"/>
+        <text class="t-shape" x="620" y="378">N &times; 128</text>
+        <text class="t-sub"   x="620" y="410">+ padding mask</text>
+
+        <!-- ===================== 3 · ATTENTION POOL ===================== -->
+        <g>
+          <rect class="svg-panel" x="704" y="286" width="272" height="176" rx="4"/>
+          <path class="svg-panel-line" d="M704,286 h272 v176 h-272 z"/>
+          <text class="t-title" x="722" y="314">MaskedAttentionPool</text>
+
+          <rect class="svg-box-accent" x="724" y="330" width="232" height="32" rx="3"/>
+          <text class="t-op" x="738" y="351">learned query &middot; 1 token</text>
+
+          <rect class="svg-box-accent" x="724" y="374" width="232" height="32" rx="3"/>
+          <text class="t-op" x="738" y="395">MHA &middot; 4 heads &middot; Q = query</text>
+
+          <rect class="svg-box" x="724" y="418" width="232" height="32" rx="3"/>
+          <text class="t-op" x="738" y="439">softmax (mask&#8594;&#8722;&#8734;) &middot; LayerNorm</text>
+        </g>
+        <path class="svg-flow-accent" d="M724,346 C712,346 712,390 724,390"/>
+        <path class="svg-flow" d="M840,362 V374" marker-end="url(#arw)"/>
+        <path class="svg-flow" d="M840,406 V418" marker-end="url(#arw)"/>
+
+        <!-- arrow: pool -> trunk -->
+        <path class="svg-flow-accent" d="M976,434 C1006,434 1010,338 1028,322" marker-end="url(#arw)"/>
+        <text class="t-shape" x="984" y="458">stack embedding &middot; 128</text>
+
+        <!-- ===================== 4 · TRUNK + HEADS ===================== -->
+        <g>
+          <rect class="svg-box" x="1030" y="290" width="212" height="32" rx="3"/>
+          <text class="t-op" x="1044" y="311">trunk: Linear &middot; GELU &middot; Drop</text>
+
+          <!-- head 1 -->
+          <rect class="svg-panel" x="1030" y="342" width="212" height="150" rx="4"/>
+          <path class="svg-panel-line" d="M1030,342 h212 v150 h-212 z"/>
+          <text class="t-title" x="1044" y="368">Head 1 &mdash; identify</text>
+
+          <rect class="svg-box" x="1044" y="380" width="150" height="28" rx="3"/>
+          <text class="t-op"    x="1056" y="399">class logits</text>
+          <text class="t-shape" x="1204" y="399">10</text>
+
+          <rect class="svg-box-accent" x="1044" y="414" width="150" height="28" rx="3"/>
+          <text class="t-op"    x="1056" y="433">abstain logit</text>
+          <text class="t-shape" x="1204" y="433">1</text>
+
+          <rect class="svg-box" x="1044" y="448" width="150" height="28" rx="3"/>
+          <text class="t-op"    x="1056" y="467">regime logits</text>
+          <text class="t-shape" x="1204" y="467">2</text>
+
+          <!-- head 2 -->
+          <rect class="svg-panel" x="1030" y="510" width="212" height="86" rx="4"/>
+          <path class="svg-panel-line" d="M1030,510 h212 v86 h-212 z"/>
+          <text class="t-title" x="1044" y="536">Head 2 &mdash; regress</text>
+          <rect class="svg-box" x="1044" y="550" width="150" height="28" rx="3"/>
+          <text class="t-op"    x="1056" y="569">Linear&middot;GELU&middot;Linear</text>
+          <text class="t-shape" x="1200" y="569">&#8594; 5</text>
+        </g>
+        <path class="svg-flow" d="M1136,322 V342" marker-end="url(#arw)"/>
+        <path class="svg-flow" d="M1136,492 V510" marker-end="url(#arw)"/>
+
+        <!-- outputs -->
+        <text class="t-sub" x="1044" y="612">argmax &#8594; material class, gated by &sigma;(abstain); params padded to 5 &amp; masked by class</text>
+
+        <defs>
+          <marker id="arw" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="var(--ink-soft)"/>
+          </marker>
+        </defs>
+      </svg>
+    </div>
+    <figcaption>
+      <b>Figure 1.</b> One forward pass. A stack of <span class="mono">N</span> curves
+      (<span class="mono">N&nbsp;=&nbsp;1</span> is the degenerate single-curve case) is
+      resampled to a common 60-point log-frequency grid and encoded curve-by-curve by a
+      weight-shared 1-D CNN; per-curve scalars (absolute modulus scale, window position,
+      temperature) enter after the frequency pool so the encoder need not re-derive them.
+      A single <b>learned query</b> attends over the <span class="mono">N</span> embeddings
+      with padded slots masked to <span class="mono">&minus;&infin;</span> before the softmax,
+      giving a permutation-invariant stack embedding in which one informative curve
+      (typically the hottest, where terminal relaxation enters the window) can be selected
+      rather than averaged away. Two heads read a shared trunk: <b>Head 1</b> emits
+      class + abstain + an auxiliary regime view; <b>Head 2</b> always emits a fixed-width
+      parameter vector. Accent marks the pooling operation and the abstention path &mdash;
+      the two elements that are not standard practice.
+    </figcaption>
+  </figure>
+
+  <div class="cols">
+    <section>
+      <h2>Layer specification</h2>
+      <div class="tbl-scroll">
+        <table>
+          <thead>
+            <tr><th>Stage</th><th>Operation</th><th>Output</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Input</td><td class="mono">resample_log_grid &middot; 4 channels</td><td class="mono">N&times;60&times;4</td></tr>
+            <tr><td>Encoder</td><td class="mono">3&times; [Conv1d k=5, pad=2 &middot; GELU &middot; BatchNorm]</td><td class="mono">N&times;128&times;60</td></tr>
+            <tr><td></td><td class="mono">mean &oplus; max over frequency axis</td><td class="mono">N&times;256</td></tr>
+            <tr><td></td><td class="mono">concat 6 summary &middot; Linear&middot;GELU&middot;Dropout&middot;Linear</td><td class="mono">N&times;128</td></tr>
+            <tr><td>Pool</td><td class="mono">MultiheadAttention, 4 heads, learned query, key-padding mask</td><td class="mono">1&times;128</td></tr>
+            <tr><td></td><td class="mono">LayerNorm</td><td class="mono">128</td></tr>
+            <tr><td>Trunk</td><td class="mono">Linear&middot;GELU&middot;Dropout(0.10)</td><td class="mono">128</td></tr>
+            <tr><td>Head 1</td><td class="mono">Linear &rarr; class / abstain / regime</td><td class="mono">10 / 1 / 2</td></tr>
+            <tr><td>Head 2</td><td class="mono">Linear&middot;GELU&middot;Linear</td><td class="mono">5</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="notes" style="margin-top:14px; list-style:none; padding-left:0;">
+        <span class="mono" style="font-size:0.78rem;">embed 128 &middot; dropout 0.10 &middot; AdamW lr 3e-4 wd 1e-4 &middot; cosine schedule &middot; batch 64 &middot; grad-clip 1.0 &middot; early stop (patience 8)</span>
+      </p>
+    </section>
+
+    <section>
+      <h2>Training objective</h2>
+      <div class="eq">
+L = <span class="term">CE</span>(class)
+  + 0.3 &middot; <span class="term">CE</span>(regime)
+  + 0.2 &middot; <span class="term">BCE</span>(abstain, <em>wrong</em>)
+  + 0.1 &middot; <span class="term">SmoothL1</span>(params)
+      </div>
+      <ul class="notes">
+        <li>The abstention target is <code>argmax(class) &ne; label</code>, <b>detached</b> &mdash;
+          the head learns to predict the classifier's own errors without back-propagating
+          into it.</li>
+        <li>Regime (terminal vs solid) is an auxiliary task, down-weighted; it is not the
+          objective.</li>
+        <li>Head 2 targets are the planted parameter vectors, zero-padded to width 5 and
+          <b>masked</b> by class so a 2-parameter model never trains the unused slots.</li>
+        <li>Split is <b>by stack</b> (70 / 15 / 15); normalisation statistics come from the
+          training split only.</li>
+      </ul>
+    </section>
+  </div>
+
+  <p class="foot">
+    rheofp/ml/{model,dataset,train}.py &nbsp;&middot;&nbsp; 10 classes &nbsp;&middot;&nbsp; ~246k parameters<br>
+    retrained 2026-09-09 &nbsp;&middot;&nbsp; test accuracy 0.923 &nbsp;&middot;&nbsp; AICc physics baseline 0.907 (same split)
+  </p>
+</div>
