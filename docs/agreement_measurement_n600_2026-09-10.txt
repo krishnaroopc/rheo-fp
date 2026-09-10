@@ -1,0 +1,46 @@
+  zimm               done (60)
+  rouse_screened     done (60)
+  reptation          done (60)
+  sticky_rouse       done (60)
+  sticky_reptation   done (60)
+  cured_elastomer    done (60)
+  critical_gel       done (60)
+  wormlike_micelle   done (60)
+  branched           done (60)
+  star               done (60)
+
+600 planted curves, 60/class, seed 11
+
+group                      n  phys acc  neural acc  either right
+----------------------------------------------------------------
+agree (any kind)         525     0.947       0.935         0.971
+  agree (exact)          492     0.972       0.972         0.972
+  agree_degenerate        33     0.576       0.394         0.970
+disagree (any)            75     0.493       0.413         0.907
+  disagree_ranked         23     0.304       0.435         0.739
+  disagree (sharp)        52     0.577       0.404         0.981
+ALL                      600     0.890       0.870         0.963
+
+GATE COMPARISON at matched coverage (87.5% of curves kept)
+----------------------------------------------------------------
+  keep where the two AGREE      : neural acc 0.935
+  keep top 88% by network p    : neural acc 0.916   (p >= 0.612)
+  keep top 88% by abstention   : neural acc 0.912   (abstain <= 0.259)
+
+  Agreement is only worth reporting if it competes with these -
+  it is INDEPENDENT of both, which the others cannot claim.
+
+MOST COMMON DISAGREEMENTS  (true -> phys / neural)
+----------------------------------------------------------------
+   10x  star               star               branched            right: phys
+    9x  branched           branched           rouse_screened      right: phys
+    6x  reptation          reptation          sticky_rouse        right: phys
+    4x  zimm               branched           zimm                right: neural
+    4x  rouse_screened     star               rouse_screened      right: neural
+    4x  reptation          wormlike_micelle   reptation           right: neural
+    4x  reptation          zimm               reptation           right: neural
+    3x  rouse_screened     branched           rouse_screened      right: neural
+    3x  sticky_rouse       reptation          sticky_rouse        right: neural
+    2x  zimm               star               rouse_screened      right: NEITHER
+    2x  rouse_screened     rouse_screened     branched            right: phys
+    2x  rouse_screened     star               zimm                right: NEITHER

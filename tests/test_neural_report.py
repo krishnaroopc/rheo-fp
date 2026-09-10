@@ -293,15 +293,22 @@ def test_agreement_on_one_class_offers_no_pair():
 
 
 def test_the_degenerate_pair_gets_its_own_stronger_shortlist_claim():
-    """On the known-degenerate split the measurement is stronger still - one
-    of the two was right in 100% of planted cases, against ~36% for the
-    fitting side alone - and the actionable advice is different: outside
-    knowledge (solvent quality, whether it was crosslinked) settles it."""
+    """On the known-degenerate split the pair is stronger than either member
+    (~97% of planted cases against 40-58% each) and the actionable advice is
+    different: outside knowledge (solvent quality, whether it was crosslinked)
+    settles it.
+
+    The note must ALSO warn that which member is the better bet is unstable -
+    the two measurement runs reversed on exactly this group (physics 0.364 /
+    neural 0.636 at n=200; 0.576 / 0.394 at n=600), so any advice to prefer
+    one side of this pair would have been fitted to noise.
+    """
     n = neural_column(_probs(rouse_screened=0.8), CLASSES, 0.05)
     a = agreement("zimm", n, [{"name": "zimm", "delta": 0.0},
                               {"name": "rouse_screened", "delta": 0.4}])
     assert a["pair"] == ["rouse_screened", "zimm"]
-    assert "100%" in a["pair_note"]
+    assert "97%" in a["pair_note"]
+    assert "not even stable" in a["pair_note"]
 
 
 def test_no_text_claims_agreement_beats_the_other_confidence_scores():
@@ -320,33 +327,67 @@ def test_no_text_claims_agreement_beats_the_other_confidence_scores():
 def test_the_quoted_accuracies_match_the_committed_measurement():
     """The user-facing text quotes measured numbers, so they must not drift
     from the run they came from. Pins them against the committed output of
-    scripts/measure_agreement.py rather than against a copy of the numbers."""
+    scripts/measure_agreement.py rather than against a copy of the numbers.
+
+    Points at the n=600 run (seed 11), which supersedes the n=200 one (seed 7)
+    because that had only 18 curves in the disagree arm. Both files stay
+    committed; this asserts the constants track whichever the module says it
+    is quoting.
+    """
     import re
     from rheofp import neural_report as nr
 
-    path = "docs/agreement_measurement_2026-09-09.txt"
+    path = "docs/agreement_measurement_n600_2026-09-10.txt"
     text = open(path, encoding="utf-8").read()
 
     m = re.search(r"^(\d+) planted curves", text, re.M)
     assert m and int(m.group(1)) == nr.AGREE_N
 
     def row(label):
-        m = re.search(rf"^{re.escape(label)}\s+(\d+)\s+([\d.]+)\s+([\d.]+)",
-                      text, re.M)
+        m = re.search(
+            rf"^{re.escape(label)}\s+(\d+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)",
+            text, re.M)
         assert m, f"row {label!r} not found in {path}"
-        return float(m.group(2)), float(m.group(3))
+        return float(m.group(2)), float(m.group(3)), float(m.group(4))
 
-    phys_a, neur_a = row("agree (any kind)")
-    phys_d, _ = row("disagree (any)")
+    phys_a, neur_a, either_a = row("agree (any kind)")
+    phys_d, neur_d, either_d = row("disagree (any)")
     assert phys_a == nr.AGREE_ACC_PHYS
     assert neur_a == nr.AGREE_ACC_NEURAL
     assert phys_d == nr.DISAGREE_ACC_PHYS
+    assert neur_d == nr.DISAGREE_ACC_NEURAL
+    assert either_d == nr.EITHER_RIGHT_DISAGREE
+    assert either_a == nr.EITHER_RIGHT_AGREE
 
     m = re.search(r"keep top \d+% by network p\s*:\s*neural acc ([\d.]+)", text)
     assert m and float(m.group(1)) == nr.AGREE_ACC_GATE_BASELINE
 
-    # and the honest reading of those two numbers must still hold
-    assert nr.DISAGREE_ACC_PHYS < 0.5 * nr.AGREE_ACC_PHYS + 0.1, \
-        "disagreement should more than halve the physics side"
-    assert abs(nr.AGREE_ACC_NEURAL - nr.AGREE_ACC_GATE_BASELINE) < 0.02, \
-        "the gate margin is inside noise; do not claim agreement is better"
+
+def test_the_pair_beats_either_member_which_is_what_the_shortlist_rests_on():
+    """The claim the shortlist is built on, asserted against the constants so
+    it cannot quietly stop being true if they are ever re-measured.
+
+    This held across both runs and got STRONGER at the larger n, unlike the
+    gate comparison - which is why it, not the gate, is the headline.
+    """
+    from rheofp import neural_report as nr
+    assert nr.EITHER_RIGHT_DISAGREE > nr.DISAGREE_ACC_PHYS + 0.3
+    assert nr.EITHER_RIGHT_DISAGREE > nr.DISAGREE_ACC_NEURAL + 0.3
+    assert nr.EITHER_RIGHT_AGREE > nr.AGREE_ACC_PHYS
+
+
+def test_the_gate_margin_is_not_overstated():
+    """The n=200 run put this margin at +0.006 (refuted); n=600 puts it at
+    +0.019 against an SE of ~0.011, i.e. ~1.7 SE - real enough to stop calling
+    it refuted, NOT enough to call it established. The wording must stay at
+    "comparable, possibly a little better" until a run settles it."""
+    from rheofp.neural_report import (
+        AGREE_ACC_NEURAL, AGREE_ACC_GATE_BASELINE, _agreement_text,
+    )
+    margin = AGREE_ACC_NEURAL - AGREE_ACC_GATE_BASELINE
+    assert 0.0 < margin < 0.05, (
+        "if the margin has moved out of this band, re-read the wording in "
+        "_agreement_text before changing this test")
+    n = neural_column(_probs(branched=0.9), CLASSES, 0.02)
+    txt = _agreement_text("agree", "branched", n, 0.0)
+    assert "not decisively so" in txt

@@ -6,7 +6,76 @@ the end of each working session (what was discussed, decided, and changed).
 
 ---
 
-## 2026-09-09 (OFFICE PC, latest) — the second brain wired into the report
+## 2026-09-10 (OFFICE PC, latest) — the agreement signal, measured properly
+
+Two items off the top of next-actions: more n on the disagree arm, and the
+`either right` finding turned into a feature.
+
+**1. n=600 (60/class, seed 11) — and it REVISED the n=200 verdict.**
+`docs/agreement_measurement_n600_2026-09-10.txt`. Seed 11 deliberately not
+seed 7, so the two runs are independent samples rather than nested. The
+disagree arm went 18 -> 75 curves, which is what n=200 could not resolve.
+
+| | agree | disagree |
+|---|---|---|
+| physics | 0.947 | **0.493** |
+| neural | 0.935 | **0.413** |
+| either right | 0.971 | **0.907** |
+
+Three corrections to what was written last night, all in the direction of the
+larger run:
+
+- **The gate comparison flipped from refuted to suggestive.** Agreement gates
+  to 0.935 against **0.916** (network's own p) and **0.912** (abstention) at
+  matched coverage — **+0.019 / +0.023**, where n=200 gave +0.006. Against an
+  SE of ~0.011 that is ~1.7 SE. So "not supported" is **withdrawn**, but this
+  is not established either. Wording everywhere is now "comparable, possibly a
+  little better", and a test pins it there.
+- **"More than halves" was an artefact of 18 curves.** At n=600 it is
+  0.947 -> 0.493, i.e. exactly half; pooled over both runs the disagree arm is
+  0.473 +- 0.052 against 0.941 +- 0.009, a factor of 2.0. Now says "halves".
+- **The NETWORK degrades more than the fitter on a disagreement** here
+  (0.935->0.413 vs 0.947->0.493) — the reverse of n=200. So **neither side is
+  reliably the one to trust when they split.** That is the strongest argument
+  yet for the shortlist rather than picking a winner.
+
+Also: `agree_degenerate` **reversed** between runs (physics 0.364/neural 0.636
+-> 0.576/0.394). ~5% of curves and unstable — only its `either right` figure is
+quotable, and the report now says outright that which member to prefer is not
+stable between runs. And `star -> branched` appears **10x** in the n=600
+disagreements **with the PHYSICS side right**, the opposite direction from
+MM1998: **the real-data n=7 pattern does not generalise.**
+
+**2. The pair beats either member — built as `YOUR SHORTLIST: A or B`.**
+`pair_note()` in `neural_report.py`. This was the most robust thing the n=200
+run produced and it is the one result that got STRONGER at the larger n: one of
+the two labels is correct **97%** (agree), **91%** (disagree), **98%** (sharp
+disagreement), against 0.493/0.413 for the methods individually on those same
+cases. Framed as a two-item list to settle with outside knowledge — never a
+winner with a dissent, and **never averaged into one verdict, which would
+destroy exactly this result**.
+
+Worth keeping: **the SHARP disagreements are the pair's BEST case (98%), not
+its worst**, which is the opposite of what the alarming wording around them
+suggests. When the two methods diverge completely they are usually diverging
+onto the right answer and a wrong one, rather than both missing.
+
+**3. Removed an overstatement that was still in the code.** Two of the four
+agreement texts said "stronger evidence than either one's own confidence score"
+and "worth more than either" — the exact claim n=200 refuted. They now quote
+measured constants instead of asserting a verdict. **Two guards added:** the
+constants are pinned by a test against the committed measurement file (so
+user-facing numbers cannot drift from the run they came from), and a test
+asserts no agreement text ever re-acquires the refuted claim.
+
+One honest note carried into the notes: on Santangelo L176 the shortlist reads
+`cured_elastomer or star` and the truth is neither (it is a linear melt). That
+is inside the measured ~9%, and the text does not promise otherwise, but the
+shortlist is a strong prior and not a guarantee.
+
+---
+
+## 2026-09-09 (OFFICE PC) — the second brain wired into the report
 
 Office PC (RTX A1000). Pulled `1108064`, worked through the three items
 next-actions listed as next: verify the unverified commit, build the neural

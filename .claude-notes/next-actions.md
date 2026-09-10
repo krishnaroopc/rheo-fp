@@ -60,21 +60,36 @@ agree on all 5 AICc gets right, disagree on both it gets wrong (Ma95k/Ma105k,
 true stars called `branched` at delta 56.5 and 102.6, where AICc is decisive
 and the abstention head reads 0.00, so neither self-confidence flags them).
 
-**Then it was measured at n=200 the same session and the headline did not
-hold** (`scripts/measure_agreement.py`, output in
-`docs/agreement_measurement_2026-09-09.txt`). Agree -> physics 0.923 / neural
-0.940; disagree -> 0.389 / 0.500. **A disagreement really does more than halve
-the physics side's accuracy — but the flag does NOT clearly beat the network's
-own top-class probability as a gate: 0.940 vs 0.934 at matched 91% coverage,
-+0.006, inside sampling error at n=200.** The pre-registered claim is
-half-supported.
+**Then it was measured on synthetic data TWICE, and the second run revised the
+first.** Quote **n=600** (seed 11, `docs/agreement_measurement_n600_2026-09-10.txt`);
+the n=200 seed-7 run is superseded but kept committed.
 
-**State it this way and do not upgrade it without more n:** agreement is
-INDEPENDENT of both self-confidences and so fails DIFFERENTLY from them; it is
-not measurably BETTER than them. Also: `star -> branched` shows up 3x in the
-synthetic disagreements with the PHYSICS side right — the opposite direction
-from MM1998 — so the real-data pattern does not generalise, and the n=7 result
-is a striking observation, not the general behaviour.
+| | agree | disagree |
+|---|---|---|
+| physics | 0.947 | **0.493** |
+| neural | 0.935 | **0.413** |
+| either right | 0.971 | **0.907** |
+
+- **A disagreement roughly HALVES both methods.** Pooled over both runs the
+  disagree arm is 0.473 +- 0.052 against 0.941 +- 0.009 — a factor of 2.0.
+  ("More than halves", written after n=200, was an artefact of 18 curves.)
+- **The gate comparison FLIPPED from refuted to suggestive.** Agreement gates
+  to 0.935 vs **0.916** (network's own p) and **0.912** (abstention) at matched
+  coverage: **+0.019 / +0.023, ~1.7 SE.** The n=200 "+0.006, not supported"
+  verdict is WITHDRAWN. **Wording is now "comparable, possibly a little
+  better" — do not upgrade to "established" on one run.**
+- **The network degrades MORE than the fitter on a disagreement** here
+  (0.935->0.413 vs 0.947->0.493), the reverse of n=200. **Neither side is
+  reliably the one to trust when they split**, which is the whole argument for
+  the shortlist rather than picking a winner.
+- **`agree_degenerate` REVERSED between runs** (physics 0.364/neural 0.636 at
+  n=200; 0.576/0.394 at n=600). ~5% of curves, unstable; only its
+  `either right` figure (0.970-1.000) is quotable, and the report now says
+  outright that which member to prefer is not stable.
+- **`star -> branched` shows up 10x in the n=600 disagreements with the
+  PHYSICS side right** — the opposite direction from MM1998. **The real-data
+  n=7 pattern does not generalise**; quote it as a striking observation, not
+  as the general behaviour.
 
 **A next-actions claim was found WRONG and corrected — do not re-propagate
 it.** This file said the L176 false positive arose because "the pre-filter
@@ -88,19 +103,19 @@ an uncontested winner.)
 
 ### What is genuinely next, in the order I would take it
 
-1. ~~Measure the agreement signal on synthetic data~~ — **DONE at n=200
-   (seed 7), and RE-RUN at n=600 (60/class, seed 11) on 2026-09-10** to put
-   ~54 curves in the disagree arm instead of 18, which is what the n=200 gate
-   comparison could not resolve. **If the n=600 numbers are not yet written
-   into this file, the run did not finish — re-run it:**
-   `uv run python scripts/measure_agreement.py -n 60 --restarts 8 --seed 11`
-   (~2 h; background it). Seed 11 is deliberately NOT seed 7, so the two runs
-   are independent samples rather than nested.
-2. **Do NOT wire agreement into `identify()` yet.** The n=200 result does not
-   justify it: the flag is not measurably better than the network's own
-   confidence, and `identify()`'s contract is depended on by the tests, the
-   validation scripts and the ML baseline (DECISION 2). Revisit only if the
-   larger disagree arm shows a real margin.
+1. ~~Measure the agreement signal on synthetic data~~ — **DONE TWICE.**
+   n=200 (seed 7) 2026-09-09, then **n=600 (60/class, seed 11) 2026-09-10**,
+   which supersedes it: 75 curves in the disagree arm instead of 18. Output
+   committed as `docs/agreement_measurement_n600_2026-09-10.txt`. **The
+   n=200 verdict was WITHDRAWN by the larger run — see the summary at the
+   top of this file, and do not quote the n=200 numbers as current.**
+2. **Still do NOT wire agreement into `identify()`.** The margin improved
+   (+0.006 → +0.019, ~1.7 SE) but 1.7 SE is not a basis for changing a
+   contract the tests, validation scripts and ML baseline all depend on
+   (DECISION 2). **What would settle it:** another independent seed at
+   n=60/class. If the gate margin lands ≥ +0.015 again, that is two
+   independent runs agreeing and the case is made; if it collapses toward
+   zero, n=600 was the fluke. ~2 h, background it.
 3. ~~Report both labels as a shortlist~~ — **DONE 2026-09-10.** `pair_note()`
    in `neural_report.py`; the renderer prints `YOUR SHORTLIST: A or B` on any
    disagreement, with the measured worth of the pair (96% agree / 89% disagree
