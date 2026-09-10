@@ -76,12 +76,13 @@ fed literature values of G_N, Ne and zeta. Those residual factors are the
 paper's own open question (its section V), so a fit here that lands within a
 factor of two on the time scale is behaving exactly as published.
 
-STATUS: forward physics only, planted-parameter checks not yet written as
-tests. This module is deliberately NOT wired into `fitting/identify.py`'s bank
-- the cannibalisation check against `branched` (BSW) has not been run, and the
-project's rule is that a class earns its place on the ballot by measurement,
-not by being implemented. See .claude-notes/next-actions.md, the star-polymer
-ACTIVE TASK, steps 2-4.
+STATUS: wired into `fitting/identify.py`'s bank as `star` (2026-09-09) after
+the cannibalisation check against `branched` (BSW) - which found BSW silently
+absorbing 25/30 planted star melts before this class existed. `synth.py`
+generates the class too. Real-data validation is PARTIAL: `identify()` returns
+`star` for 5 of the 7 MM1998 four-arm PI stars (the two misses, the highest-Z
+arms, go to `branched`), but Z is not quantitatively recoverable - see the two
+corrections below.
 
 VERIFIED SO FAR against the paper's own analytic statements and figures:
   - eq 24 reduces to eq 8 (Ball-McLeish) at alpha = 1, to machine precision;
@@ -109,6 +110,48 @@ converged - peak positions identical for n_s from 400 to 64000 - so it is
 physics, not quadrature. Two consequences: any feature that assumes "one loss
 peak" will misread a high-Z star, and spectrum width must not be measured from
 the global G'' peak, which jumps between the two branches around Z ~ 40.
+
+TWO CORRECTIONS MADE 2026-09-09 AGAINST REAL DATA (the seven monodisperse
+four-arm PI stars of Milner & McLeish 1998, data/mm1998.npz - the theory's
+OWN validation set, where the authors report excellent agreement with no
+adjustable parameters). Both were found by fitting known-Z data and finding Z
+wrong by a median 44%:
+
+  1. THE EQ-29 PREFACTOR WAS 2x TOO LARGE. This is the authors' own erratum,
+     printed in MM1998's Appendix under its eq 10: "This is eq 29 of ref 1
+     with an additional factor of 1/2, which was mistakenly omitted in the
+     earlier paper." This module was transcribed from the 1997 paper, so it
+     inherited the error. Small effect on its own (a constant prefactor is a
+     ~0.3 decade rigid shift, which tau_e absorbs) but it is a real bug.
+
+  2. THE ARM'S OWN ROUSE MODES WERE MISSING - the larger effect. MM scope eq
+     26 to "the terminal region up to the start of the high-frequency Rouse
+     regime [the minimum in G''(omega)]" (section IV, comment 1); above that
+     minimum their Figure 5 shows the data rising away from the theory. A real
+     SAOS window usually extends into that region, and without a term there
+     the fitter widens the spectrum - i.e. inflates Z - to cover it. Added as
+     `_arm_rouse_modes` (Likhtman-McLeish eq-19 bookkeeping, reusing the form
+     already validated in tube.py), switchable off via `arm_rouse=False` to
+     recover the paper's bare result.
+
+  Measured effect on Z recovery, the five samples with Z above Z_BOUNDS'
+  floor: median |error| 44% -> 30%, every residual improved, and the fitted
+  G_N moved from 440-490 kPa toward 366-436 kPa against polyisoprene's true
+  ~400 kPa plateau. The systematic high-frequency G'' deficit at known Z
+  (-0.21 to -0.37 decades in the top band) is gone.
+
+  CONSEQUENCE FOR G_N, worth knowing before reporting one: with the Rouse
+  modes on, G' rises ABOVE G_N at high frequency (~2.4x on a very wide
+  window). G_N is the plateau LEVEL, not the maximum of the curve. A test
+  pins this.
+
+Z IS STILL BIASED HIGH by 17-84% on that set and is NOT a quantitative output.
+Two separate reasons, both real: the mid-Z samples (Z ~ 7-9) do not have
+enough barrier for the retraction picture to dominate - the terminal peak and
+the Rouse regime sit about a decade apart, with no window between them - and
+`Z_BOUNDS` starts at 4, so genuinely weakly-entangled arms (the Ma 17k and
+11.4k samples, true Z 3.4 and 2.2) cannot be fitted correctly at all. Report
+"star", not "Z = ...", until this is resolved.
 
 KNOWN LIMIT, not yet resolved: the terminal time moves only ~0.16 decades
 between alpha = 1 and alpha = 4/3, where Ueff(1) alone would imply ~1.03. The
@@ -152,6 +195,15 @@ S_EPS = 1e-6
 # Default optimizer settings; override per-call, not by editing these.
 N_RESTARTS = 32
 SEED = 0
+
+# Arm-Rouse mode ladder truncation (see `_arm_rouse_modes`). A mode whose
+# tau_p sits this many decades below the window's fastest time contributes
+# w tau << 1 to both moduli, i.e. nothing measurable, so the sum stops there.
+# 2.0 is already generous: convergence measured at 1.0/2.0/3.0/4.0 decades.
+MODE_TAU_FLOOR_DECADES = 2.0
+# Hard ceiling on the number of transverse modes, so no parameter vector the
+# optimizer explores can make one forward call pathologically slow.
+MODE_COUNT_CAP = 4000
 
 # Entanglements per arm. The lower end is where "star melt" stops meaning
 # anything - below ~4 entanglements there is no barrier to speak of and the
@@ -254,7 +306,15 @@ def _tau_activated(s, Z, tau_e, alpha=ALPHA_CR):
     (1-s)^(1+a)) and the bare 1/U'eff would diverge.
     """
     s = np.asarray(s, float)
-    pref = tau_e * np.sqrt(30.0) * np.pi**2.5 / 30.0 * Z**1.5
+    # The factor 1/2 is the AUTHORS' OWN ERRATUM to eq 29, published in the
+    # follow-up paper: Milner & McLeish (1998), Macromolecules 31, 7479,
+    # Appendix, under its eq 10 - "This is eq 29 of ref 1 with an additional
+    # factor of 1/2, which was mistakenly omitted in the earlier paper."
+    # originals/ma980060d.pdf. Without it the activated branch is 2x too slow
+    # at any given Z, the spectrum is correspondingly too wide, and fitting
+    # real data recovers Z high by ~1.4-2.2x (measured on the seven MM1998
+    # four-arm PI stars, 2026-09-09 - see scripts/validate_star_real.py).
+    pref = 0.5 * tau_e * np.sqrt(30.0) * np.pi**2.5 / 30.0 * Z**1.5
 
     K = ((15.0 * Z / 4.0) ** (alpha / (alpha + 1.0))
          * (1.0 + alpha) ** (-(2.0 * alpha + 1.0) / (1.0 + alpha))
@@ -276,7 +336,80 @@ def tau_of_s(s, Z, tau_e, alpha=ALPHA_CR):
     return te / (1.0 + te / ta)
 
 
-def star_spectrum(omega, G_N, Z, tau_e, alpha=ALPHA_CR, n_s=N_S):
+def _arm_rouse_modes(omega, G_N, Z, tau_e):
+    """Longitudinal + transverse Rouse modes of the ARM, above the G'' minimum.
+
+    WHY THIS IS HERE AND WHY IT IS SEPARATE FROM EQ 26. Milner-McLeish scope
+    their own result explicitly (1997, section IV, comment 1): the theory
+    agrees with data "from the terminal region up to the start of the
+    high-frequency Rouse regime [the minimum in G''(omega)]". Above that
+    minimum the arm's own internal Rouse modes carry the stress, eq 26 does
+    not describe them, and their Figure 5 shows the data rising away above the
+    theory curve exactly there. So this term is NOT part of the paper's star
+    theory - it is the standard tube-model high-frequency bookkeeping, added so
+    a fit over a window that extends past the G'' minimum is not forced to
+    distort Z to cover a region the retraction integral cannot reach.
+
+    Measured before adding it (2026-09-09, the seven MM1998 four-arm PI stars
+    in data/mm1998.npz): at the KNOWN Z, eq 26 alone under-predicts G'' in the
+    top frequency band by 0.21-0.37 decades (1.6-2.3x too low) while
+    over-predicting mid-window, and `fit_star` inflates Z by a median 44% to
+    compensate. That is the failure this corrects.
+
+    The form is Likhtman-McLeish (2002) eq 19's second and third sums, the same
+    expressions already implemented and validated in `tube.py`
+    (`_Gstar_long_modes`, `_Gstar_hf_rouse`) for linear melts - a Rouse mode
+    ladder tau_p = tau_R / p^2 with tau_R = Z^2 tau_e:
+
+      longitudinal, p = 1 .. Z-1 : weight G_N / (5 Z) per mode
+      transverse,   p = Z .. p_max: weight G_N / Z     per mode
+
+    The 1/5 on the longitudinal branch and the p >= Z switch to transverse are
+    that paper's, not fitted here. For a star the ladder is built on the ARM
+    (Z = entanglements per arm), because the branch point pins one end and the
+    arm's internal modes are what relax at these frequencies - the same reason
+    the retraction picture uses the arm and not the whole molecule.
+
+    TRUNCATION, and it matters for speed as well as sense. Modes whose tau_p
+    lies far BELOW the window's fastest point contribute nothing measurable -
+    each adds w tau << 1, i.e. essentially zero to both moduli. The sum is
+    therefore cut at the p whose tau_p is MODE_TAU_FLOOR_DECADES decades below
+    1/w_max, not at some fixed p. Bounding it by tau_e instead (the obvious
+    first way to write it) makes p_max scale as sqrt(tau_e w_max): at the top
+    of `fit_star`'s tau_e bound that reached ~3.7 MILLION modes and a 60 x 3.7M
+    temporary per call, which made a single fit take minutes. Measured
+    2026-09-09. The cap below keeps it in the hundreds regardless of tau_e.
+    """
+    omega = np.atleast_1d(np.asarray(omega, float))
+    Zi = max(1, int(round(float(Z))))
+    tR = float(tau_e) * float(Z) ** 2
+
+    # Longitudinal modes: p below Z, weight G_N/(5Z).
+    p_long = np.arange(1, max(2, Zi))
+    tau_long = tR / p_long ** 2
+    wt = omega[:, None] * tau_long[None, :]
+    denom = 1.0 + wt ** 2
+    Gp = (G_N / (5.0 * Z)) * (wt ** 2 / denom).sum(axis=1)
+    Gpp = (G_N / (5.0 * Z)) * (wt / denom).sum(axis=1)
+
+    # Transverse (high-frequency) modes: p from Z up to where tau_p has fallen
+    # MODE_TAU_FLOOR_DECADES below the window's fastest time. Solving
+    # tR/(2 p^2) = tau_floor for p gives the bound.
+    w_max = omega.max()
+    tau_floor = (1.0 / w_max) * 10.0 ** (-MODE_TAU_FLOOR_DECADES)
+    p_needed = int(np.sqrt(tR / (2.0 * tau_floor))) + 1
+    p_max = min(max(Zi, p_needed), Zi + MODE_COUNT_CAP)
+    p_hf = np.arange(Zi, p_max + 1)
+    tau_hf = tR / (2.0 * p_hf ** 2)
+    wt = omega[:, None] * tau_hf[None, :]
+    denom = 1.0 + wt ** 2
+    Gp = Gp + (G_N / Z) * (wt ** 2 / denom).sum(axis=1)
+    Gpp = Gpp + (G_N / Z) * (wt / denom).sum(axis=1)
+    return Gp, Gpp
+
+
+def star_spectrum(omega, G_N, Z, tau_e, alpha=ALPHA_CR, n_s=N_S,
+                  arm_rouse=True):
     """Milner-McLeish star-melt dynamic modulus -> (G', G'').
 
     Evaluates eq 26 by discretizing the arm coordinate s and summing the
@@ -292,6 +425,12 @@ def star_spectrum(omega, G_N, Z, tau_e, alpha=ALPHA_CR, n_s=N_S):
              of arms does not enter - see the module docstring.
       tau_e  Rouse time of one entanglement segment [s]. Pure time scale.
       alpha  dilution exponent; 4/3 (Colby-Rubinstein) by default.
+      arm_rouse  add the arm's own Rouse modes above the G'' minimum, which
+             eq 26 does not describe (see `_arm_rouse_modes`). True by
+             default because a real SAOS window usually extends into that
+             region and without it Z absorbs the shortfall. Set False to get
+             the paper's bare eq-26 result - which is what the analytic
+             checks against MM's published statements must use.
     """
     s = np.linspace(S_EPS, 1.0 - S_EPS, int(n_s))
     ds = s[1] - s[0]
@@ -299,7 +438,12 @@ def star_spectrum(omega, G_N, Z, tau_e, alpha=ALPHA_CR, n_s=N_S):
     # Weight from eq 26: (alpha+1)(1-s)^alpha ds, which integrates to 1 over
     # [0,1], so the mode weights sum to G_N and the plateau is recovered.
     g = float(G_N) * (alpha + 1.0) * (1.0 - s) ** alpha * ds
-    return maxwell_spectrum(omega, g, tau)
+    Gp, Gpp = maxwell_spectrum(omega, g, tau)
+    if arm_rouse:
+        Gp_r, Gpp_r = _arm_rouse_modes(omega, float(G_N), float(Z),
+                                       float(tau_e))
+        Gp, Gpp = Gp + Gp_r, Gpp + Gpp_r
+    return Gp, Gpp
 
 
 def fit_star(omega, Gp_data, Gpp_data, n_restarts=None, seed=None,

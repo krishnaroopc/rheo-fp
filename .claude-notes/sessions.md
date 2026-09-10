@@ -6,6 +6,153 @@ the end of each working session (what was discussed, decided, and changed).
 
 ---
 
+## 2026-09-09 (office PC, latest, part 2) — star REAL-DATA validation: two bugs found and fixed
+
+Continued the same session. User supplied two papers into `originals/`
+(`ma9815556.pdf` Santangelo-Roland-Puskas 1999; `ma980060d.pdf` Milner-McLeish
+1998) and then hand-digitized both into xlsx. **This is step 4, the real-data
+validation of `star` that had been blocked since the class was built.**
+
+**New files:** `scripts/prep_santangelo.py` -> `data/santangelo1999.npz`
+(2 six-arm PIB stars + a LINEAR control, Tref 80 C), `scripts/prep_mm1998.py`
+-> `data/mm1998.npz` (7 monodisperse four-arm PI stars, Z = Ma/Me = 2.3-21),
+`scripts/validate_star_real.py`.
+
+**Digitizing traps recorded in the prep docstrings, both caught by checking
+rather than assuming:**
+- MM1998's column order is **REVERSED vs the Fig. 1 caption**. "In order of
+  increasing terminal time" means the LEFTMOST curve is the LARGEST arm, so
+  `w1` = Ma 105k, not 11.4k. Verified from the data (G'' peak moves
+  monotonically 0.32 -> 21.9 rad/s).
+- MM1998 moduli are **dyn/cm^2, not Pa** (x0.1). Established from physics: as
+  dyn/cm^2 the plateau is 310-420 kPa, matching PI's known ~0.4 MPa; as Pa it
+  would be 3-4 MPa, an order of magnitude too stiff.
+- Santangelo's axes are `a_T*omega` and `b_T*G'` — MASTER CURVES. The
+  temperature suffixes are PROVENANCE, not interpretation temperatures
+  (user confirmed); both isotherms per sample concatenate into one 80 C curve.
+
+**THE HEADLINE: fitting known-Z data exposed TWO REAL BUGS in `star.py`.**
+Z came back wrong by a median 44%, systematically HIGH, with good-looking rms —
+the project's own "good fit of the wrong parameters" mode.
+1. **The eq-29 prefactor was 2x too large** — and this is the AUTHORS' OWN
+   ERRATUM, printed in MM1998's Appendix under eq 10: *"This is eq 29 of ref 1
+   with an additional factor of 1/2, which was mistakenly omitted in the
+   earlier paper."* star.py was transcribed from the 1997 paper, so it
+   inherited the mistake. The erratum was sitting unread in `originals/`.
+   Small effect alone (a constant prefactor is a rigid shift tau_e absorbs).
+2. **The arm's own Rouse modes were missing** — the larger effect. MM scope
+   eq 26 explicitly (1997 section IV, comment 1) to *"the terminal region up to
+   the start of the high-frequency Rouse regime [the minimum in G''(omega)]"*;
+   their Fig. 5 shows data rising away above the theory there. A real SAOS
+   window extends past that minimum, so the fitter widened the spectrum —
+   i.e. inflated Z — to cover a region the retraction integral cannot reach.
+   Added `_arm_rouse_modes`, REUSING the already-validated Likhtman-McLeish
+   eq-19 form from `tube.py` rather than inventing physics; `arm_rouse=False`
+   recovers the paper's bare result and the analytic tests use it.
+
+**Measured effect (5 samples with Z above the bounds floor):** median |Z error|
+**44% -> 30%**, every rms improved, fitted G_N **440-490 -> 366-436 kPa**
+against PI's true ~400, and the systematic top-band G'' deficit at known Z
+(-0.21..-0.37 dec) is gone. **New consequence, tested:** G' now rises ABOVE
+G_N at high frequency (~2.4x on a wide window) — G_N is the plateau LEVEL, not
+the curve maximum.
+
+**A performance bug I introduced and caught.** The first version bounded the
+mode sum by tau_e, which at the top of fit_star's bound reached ~3.7 MILLION
+modes and a 60x3.7M temporary per call — one fit took minutes and timed out.
+Fixed by truncating on the WINDOW instead (modes far below the fastest measured
+time contribute nothing). Convergence verified at 1/2/3/4 decades of floor;
+worst case **193 ms -> 4 ms**.
+
+**Process note worth keeping: I nearly did the wrong thing twice.**
+- Diagnosed `torch 2.13.0+cpu` + idle nvidia-smi as a broken env and was about
+  to edit pyproject.toml — environment.md already documented it as intended
+  Windows behaviour that "must not be fixed with a per-PC torch variant".
+- Reported "+2%/+9% Z recovery by excluding the Rouse wing" from ONE favourable
+  cutoff; testing 0/1/1.5/2 decades gave 44/35/48/36% — non-monotonic, no real
+  effect. Retracted. There was also no wing in that data to exclude (G'' is
+  monotone to the window edge in all seven curves).
+Both times the fix was to read the notes/paper before acting on process state.
+
+**Status at session end:** 31 star tests pass (28 + 3 new). Real-data benchmark
+held **6/6**, `identify()` returned `star` on **5/7** MM1998 stars (the two
+misses are the highest-Z arms -> `branched`).
+
+**Cannibalisation check DONE and PASSED** — matched before/after, seed 11,
+n=20/class, OLD model reproduced exactly by monkeypatch:
+overall **0.845 -> 0.855**, `star` self-recovery **18/20 -> 20/20**, the other
+eight classes **byte-identical**. The star fix cost nothing. (This n=20 run is
+an internal before/after only, NOT comparable to the published 0.885 at n=30.)
+
+**NOT done at session end (user stopped for the day):** the full non-slow test
+suite was interrupted mid-run — `tests/test_star.py` was 31/31 but the rest is
+unconfirmed. And CLAUDE.md's star paragraph + "Current state" still need the
+star.py fixes folded in once the suite is green. Both are in next-actions as
+laptop tasks.
+
+**Z remains NOT a reportable output** (+17-84% biased); the class says "star",
+never "Z = ...". In the module docstring.
+
+**COMMITTED AND PUSHED at session end** (user asked to sync before switching to
+the laptop). 7 modified + 5 new files in one commit.
+
+---
+
+## 2026-09-09 (office PC, latest) — 10-class RETRAIN done; star validated on the neural side
+
+Office PC (RTX A1000). User asked "what is next on the agenda", then said go.
+Executed the ACTIVE TASK that had been tagged for this machine: retrain the
+classifier on the ten-class distribution after `star` landed.
+
+**Ran:** `git pull` (already current), `uv sync` (clean), full suite
+(**182 passed, 2 skipped, 5:07**), then
+`train_classifier.py -n 16000 --epochs 55 --seed 1`, then
+`eval_real_data.py`.
+
+**Results — all 10-class now:** accuracy **0.923** (was 0.917 at 9 classes;
+it went UP on a harder problem), merged-pair **0.968**, regime **0.999**,
+physics baseline **0.907 on the SAME split** (n=150, `skipped`=0), real data
+**6/6** with raw == resampled.
+
+**Three questions the retrain existed to answer, all settled:**
+- **`star` = 0.996 (239/240)**, single error to `wormlike_micelle`. NOT
+  zimm/rouse (the AICc three-way tie does not reproduce in the network) and NOT
+  `branched` (the two brains do not disagree about what absorbs stars).
+  => **`star` stays OUT of `AMBIGUOUS_PAIRS`**; the "revisit once a checkpoint
+  exists" comment in `ml/evaluate.py` is now answered in place.
+- **§1h baseline pairing CLOSED** — same-split baseline at last. The +0.016
+  margin must be read against a baseline that rose ~0.82 -> 0.907 *because the
+  bank was fixed*, not a weakened network.
+- **`rouse_screened` did not collapse** on seed 1 (0.737).
+
+**Unchanged:** 58% of all error is still Zimm<->Rouse; cured/gel still zero.
+
+**A misdiagnosis worth recording so it is not repeated.** Saw `torch 2.13.0+cpu`
+and an idle `nvidia-smi` mid-run and concluded the locked env was broken on this
+PC; was about to kill the run and edit `pyproject.toml`. `environment.md`
+already documented the opposite: **Windows resolves `+cpu` from the shared lock
+by design** (CUDA extras carry `sys_platform == 'linux'` markers) and it "must
+not be fixed with a per-PC torch variant" — CPU is ~9 s/epoch vs ~11 on a
+1660 Ti, i.e. faster. Measured 7.4-10.9 s/epoch this run. The real long pole is
+the **AICc baseline after training**, not the epochs. Also had two PIDs
+swapped and asserted the wrong one was the test suite. Lesson: read the notes
+before reading process state. Rewrote environment.md's GPU section, which had
+flatly claimed "resolves to the CUDA build" and caused the confusion.
+
+**Docs corrected** (some were stale independently of the retrain): CLAUDE.md
+taxonomy bullet 9 -> **10 generated fine classes**; the "Open gap: `synth.py`
+cannot generate `star`" paragraph (closed 2026-09-09 step 3b) rewritten to keep
+the derived-`tau_e` design note and the sign-inversion bug lesson; "Current
+state" paragraph replaced with the 10-class numbers; `evaluate.py` baseline
+docstring nine -> ten; next-actions header + ACTIVE TASK section.
+
+**No active task now.** Next substantive step is **step 4, real-data validation
+of `star`** — BLOCKED on the user supplying star melt data (Roovers PB stars /
+four-arm PI / Santangelo-Roland PIB). `star` is the only class in the bank with
+zero real-data validation.
+
+---
+
 ## 2026-09-09 (office PC, later) — Housekeeping: originals/ consolidated into OneDrive
 
 Office PC (RTX A1000). Started as "update yourself and tell me what's next" —

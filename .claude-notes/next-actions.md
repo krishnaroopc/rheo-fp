@@ -18,11 +18,54 @@ and teaching `synth.py` to generate it. New files: `rheofp/models/star.py`,
 On arrival: `git pull`, `uv sync`, then `uv run pytest -m "not slow"`
 (expect **~183 passed, 2 skipped**, ~20 min — slower again, see §0).
 
-**THE ACTIVE TASK IS NOW A RETRAIN, AND IT IS FOR THE OFFICE PC** (user said
-2026-09-09 they would do it there, not on the home machine). The shipped
-checkpoint is STALE — the training distribution gained a tenth class, so every
-published accuracy number is a 9-class measurement that no longer describes the
-code. Jump to ">>> ACTIVE TASK FOR THE OFFICE PC <<<" below.
+**THE RETRAIN IS DONE (2026-09-09, office PC).** All published accuracy numbers
+are now 10-class and current: **0.923** synthetic, **0.907** paired physics
+baseline, **6/6** real data, `star` at **0.996**. See the RETRAIN DONE section
+below for the full table and the three decisions it settled.
+
+**>>> ACTIVE TASK (set 2026-09-09 end of session, FOR THE LAPTOP) <<<**
+
+**The laptop was formatted and reinstalled with Windows 11.** Before anything
+else, follow **">>> BOOTSTRAP A FRESHLY-FORMATTED WINDOWS PC <<<"** at the top
+of `.claude-notes/environment.md` (install git + uv + VS Code; do NOT install
+Python; clone; `uv sync`; `uv run pytest -m "not slow"`).
+
+**Then: finish the `star` real-data validation.** Step 4 was started and got a
+long way — two real bugs found and fixed in `rheofp/models/star.py` — but it is
+NOT finished. Read the 2026-09-09 part-2 entry in `sessions.md` first; the
+short version:
+
+1. **CANNIBALISATION CHECK — DONE, PASSED.** Matched before/after, identical
+   seed 11 and n=20/class, 12 restarts, the OLD forward model reproduced
+   exactly (`arm_rouse=False` + 2x prefactor restored via monkeypatch):
+
+   | | OLD star model | NEW star model |
+   |---|---|---|
+   | overall | 0.845 | **0.855** |
+   | `star` self-recovery | 18/20 | **20/20** |
+   | all 8 other classes | — | **byte-identical** |
+
+   The star fix cost nothing and gained 2 on star's own recovery; the per-class
+   diff is one line. NOTE this n=20/seed-11 run is NOT comparable to the
+   published 0.885 (n=30, different seeds) — it is an internal before/after
+   only. If you want a headline number, re-run at n=30 with the standard seeds.
+2. **Run the full suite** — `uv run pytest -m "not slow"`. It was interrupted
+   at session end (user stopped for the day). `tests/test_star.py` alone was
+   31/31; the rest is expected to pass but was NOT confirmed this session.
+   Expect ~185 passed, 2 skipped.
+3. **Real data held 6/6** at session end; MM1998 was 5/7 on `identify()`.
+4. Then decide what to do about the two misses (highest-Z arms -> `branched`)
+   and about `Z_BOUNDS`' floor of 4, which makes genuinely weakly-entangled
+   arms unfittable by construction.
+5. Update CLAUDE.md's "Star-polymer melts" paragraph and "Current state" with
+   the star.py fixes once the suite is confirmed green.
+
+**`Z` IS NOT A REPORTABLE OUTPUT** and that has not changed: still biased
++17-84% on mm1998. The class says "star", never "Z = ...".
+
+**Nothing from this session is committed** — 7 modified + 5 new files in the
+tree. Commit before/while starting on the laptop, or pull whatever the office
+PC pushed.
 
 The preceding 2026-09-07 session (home PC, RTX A1000) closed the model-only
 tier, fixed a latent NaN in the AICc ranking, fixed the `has_shoulder`
@@ -245,7 +288,52 @@ window-dependent, and cost only 2/30. Collapsing star into zimm for
 the distinction the class exists to make. Revisit once a trained checkpoint
 shows where the network's star errors actually land.
 
-## >>> ACTIVE TASK FOR THE OFFICE PC (set 2026-09-09) <<<
+## >>> ~~ACTIVE TASK FOR THE OFFICE PC~~ — RETRAIN DONE 2026-09-09 <<<
+
+**COMPLETE.** Retrained on the office PC (RTX A1000) the same day it was set.
+Results below; CLAUDE.md's "Current state" now carries them as 10-class numbers.
+
+| | 9-class (old) | **10-class (new)** |
+|---|---|---|
+| accuracy | 0.917 | **0.923** |
+| merged-pair | 0.963 | **0.968** |
+| regime | 0.999 | **0.999** |
+| physics baseline | ~0.82 standalone (n=90) | **0.907, SAME split** (n=150) |
+| margin | +0.10 (not comparable) | **+0.016** |
+| real data (neural) | 6/6 | **6/6**, raw == resampled |
+
+Accuracy went UP despite a harder 10-class problem. Answers to the four things
+this retrain was set up to check:
+1. **No collision** - `star` did not depress anything.
+2. **`star` = 0.996 (239/240)**, its one error to `wormlike_micelle`. NEITHER
+   hypothesis held: not zimm/rouse (so the AICc three-way tie does not
+   reproduce in the network), and not `branched` (so the two brains do NOT
+   disagree about what absorbs stars). **`star` stays OUT of
+   `AMBIGUOUS_PAIRS`** - decision recorded in the comment in `ml/evaluate.py`.
+   Asymmetry worth keeping: 2 zimm -> star, but 0 star -> zimm.
+3. **`rouse_screened` 0.737 on seed 1** - no collapse this time; merged-pair
+   0.968 confirms nothing broke.
+4. **Baseline paired on the same split - §1h is CLOSED.** `skipped` = 0, so the
+   bank genuinely covers all ten generated classes.
+   **Read the +0.016 correctly:** the baseline rose ~0.82 -> 0.907 because the
+   BANK was fixed (wormlike_micelle, then star), not because the network got
+   worse. The network is now measured against a much stronger physics side.
+   The two still are not strictly comparable - baseline sees ONE curve.
+
+Unchanged and still true: 58% of all error is Zimm<->Rouse; cured/gel is zero.
+
+**Environment note that cost time here - read before debugging a "stuck" run.**
+On Windows `torch` resolves to **`2.13.0+cpu`** from the shared lock (CUDA
+extras carry `sys_platform == 'linux'` markers), so `torch.cuda.is_available()`
+is False **even on the A1000 box** and `nvidia-smi` shows no process during
+training. That is INTENDED - see environment.md, "must not be fixed with a
+per-PC torch variant". Measured this run: **7.4-10.9 s/epoch on CPU**, matching
+the ~9 s/epoch already recorded. The genuine long pole is the **AICc baseline
+after training** (150 stacks x 10 SciPy candidates, single-threaded), not the
+55 epochs. Also: the suite ran in **5:07 here**, not the ~17 min §0 predicts -
+that estimate is home-PC-specific.
+
+### original brief (kept for reference)
 
 **RETRAIN THE CLASSIFIER. The shipped checkpoint is STALE.** The training
 distribution now has a tenth class (`star`), so every accuracy number currently

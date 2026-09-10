@@ -96,8 +96,15 @@ AMBIGUOUS_PAIRS = (("zimm", "rouse_screened"),
 # degeneracy is real but it is three-way and window-dependent, not the clean
 # two-way nesting that zimm/rouse and cured/gel are. Collapsing star into zimm
 # for `merged_pair_accuracy` would hide genuine star-vs-linear-melt errors,
-# which is the distinction the class exists to make. Revisit once a trained
-# checkpoint shows where the network's star errors actually land.
+# which is the distinction the class exists to make.
+#
+# REVISITED 2026-09-09 on the first 10-class checkpoint, and the answer is a
+# clear NO - do not add it. `star` scored 0.996 (239/240), its ONE error going
+# to `wormlike_micelle`; zero star curves went to zimm, rouse_screened or
+# branched. So the AICc side's three-way tie does not reproduce in the network
+# at all, and there is no degeneracy here to merge. The leakage that does exist
+# is one-directional and small (2 zimm -> star), which is not what a merged
+# pair is for.
 
 
 def merged_pair_accuracy(pred, true, pairs=AMBIGUOUS_PAIRS):
@@ -182,8 +189,9 @@ def physics_baseline_accuracy(records, n_max=200, seed=0, n_restarts=6):
     share of the data rather than by any failure of the method.
 
     This filter is a guard, not a no-op. It currently keeps everything, because
-    the bank covers all nine generated classes - and it is what will keep the
-    number honest if a tenth class is ever generated before it is registered.
+    the bank covers all ten generated classes (`star` closed the last gap on
+    2026-09-09) - and it is what will keep the number honest if an eleventh
+    class is ever generated before it is registered.
     `skipped` reports how many records it had to drop, so a silent divergence
     between generator and bank shows up in the report instead of in the score.
     """

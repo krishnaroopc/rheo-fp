@@ -16,6 +16,14 @@ User works from multiple PCs (home + office). Git is the sync layer:
   committed work is visible on the other PC.
 - Reconstruct "what changed on the other PC" from `git log` / `git diff`.
 
+**On a machine where `git` or `uv` is "not recognized", or `.venv/` is
+missing, you are on a fresh/formatted PC — go straight to the
+">>> BOOTSTRAP A FRESHLY-FORMATTED WINDOWS PC <<<" section at the top of
+`.claude-notes/environment.md`.** It lists exactly what to install (git, uv,
+VS Code — NOT Python, uv manages that), the clone URL, and which
+"broken"-looking things are expected. The **laptop was wiped and reinstalled
+with Windows 11 on 2026-09-09**, so it needs that path on its next session.
+
 ## Environment — reproducible, DO NOT loosen
 The env is locked for **identical versions across PCs** (user requirement — no
 dependency issues, computer-agnostic):
@@ -68,17 +76,16 @@ Consequences, which are easy to get wrong:
   Yield-dominated); 8 fine classes (4 identifiable from single curves, 4
   requiring stacks); 6 model-only classes (regime-level labels only).
   Glassy regime was dropped.
-- **Taxonomy (as actually built)**: **9 generated fine classes** (zimm,
+- **Taxonomy (as actually built)**: **10 generated fine classes** (zimm,
   rouse_screened, reptation, sticky_rouse, sticky_reptation, cured_elastomer,
-  critical_gel, wormlike_micelle, branched); **2 regimes** (terminal, solid).
-  The Yield-dominated regime has no physics and therefore no training data.
-  Five model-only classes from the design were never built. Do not quote the
-  design numbers as if they were implemented.
-  **`identify()`'s bank holds TEN**, the ninth-plus-one being `star`
-  (2026-09-09): it is a full fine class on the AICc side but `synth.py` cannot
-  yet sample it, so it is absent from `ml.dataset.CLASSES` and the neural head.
-  Quote the right number for the side you mean — the two are deliberately out
-  of step until the generator learns `star`, and a test declares the gap.
+  critical_gel, wormlike_micelle, branched, star); **2 regimes** (terminal,
+  solid). The Yield-dominated regime has no physics and therefore no training
+  data. Five model-only classes from the design were never built. Do not quote
+  the design numbers as if they were implemented.
+  **`identify()`'s bank holds TEN**, matching the generator exactly — `star`
+  was added to the bank and then to `synth.py` on 2026-09-09, so both sides and
+  `ml.dataset.CLASSES` now carry the same ten. The bank-coverage invariant
+  below is enforced by a test in both directions.
 - **The model-only tier no longer exists (retired 2026-09-07, user decision).**
   `wormlike_micelle` and `branched` were the only two, they were never actually
   coerced to regime level by any code, and both now stand as ordinary fine
@@ -157,11 +164,14 @@ measured plateau modulus. Refs: Baumgärtel & Winter (1990, 1992).
 
 **Star-polymer melts — Milner-McLeish (2026-09-09). A FINE CLASS, in
 `identify()`'s bank (10 candidates).** `rheofp/models/star.py`
-implements Milner & McLeish (1997, Macromolecules 30, 2159) verbatim: arm
+implements Milner & McLeish (1997, Macromolecules 30, 2159): arm
 retraction against the eq-24 effective potential with the Colby-Rubinstein
 dilution exponent alpha = 4/3, the eq-13 early-Rouse branch, the eq-29
-first-passage time with prefactor, joined by the eq-22 crossover, and the
-eq-26 modulus integral evaluated through the shared `maxwell_spectrum` sum.
+first-passage time with prefactor (**with the 1/2 erratum from MM1998's
+Appendix applied — see the star.py docstring**), joined by the eq-22 crossover,
+the eq-26 modulus integral through the shared `maxwell_spectrum` sum, **and a
+separate arm-Rouse high-frequency term (`_arm_rouse_modes`, default on) for the
+region above the G″ minimum that MM's eq 26 does not cover**.
 Three parameters `(G_N, Z, tau_e)`, k=3, in `STAR_MODELS`. Validated against
 the paper's own analytic statements (eq 24 -> eq 8 at alpha=1 to 3.6e-15; the
 Figure 2 potential ratio 0.257 vs ~0.26; the quoted log(tau(1)/tau_0) = 13.8;
@@ -189,9 +199,42 @@ identical k=3, ΔAICc 0.07 and 0.00, with `rouse_screened` tied alongside) —
 anything. Refs 1 and 2 (Pearson-Helfand 1984; Ball-McLeish 1989) are in
 `originals/` and were needed to fix the eq-29 prefactor — see next-actions
 for the three transcription traps.
-**Open gap:** `synth.py` cannot generate `star`, so the bank can emit a class
-the NEURAL head has never seen — the mirror image of the wormlike_micelle bug.
-Declared explicitly by a test in test_synth.py rather than left silent.
+**Gap CLOSED same day (2026-09-09, step 3b):** `synth.py` now generates `star`
+too, so the bank can no longer emit a class the NEURAL head has never seen —
+the mirror image of the wormlike_micelle bug never shipped. Design note worth
+keeping: **`tau_e` is DERIVED, not drawn.** A star's spectrum spans ~23-24
+decades while a sweep window is ~3-5, so the TERMINAL time is placed relative
+to the window and `tau_e` back-computed via `_star_terminal_decades(Z)`. The
+first offset range was sign-inverted and gave `terminal_reached` = 0% over 60
+planted curves — which would have taught the classifier that stars never flow,
+a spurious discriminator of exactly the shape of the fixed-density bug. Range
+is now (-3, 1), measured at 51% terminal_reached (n=120); **re-measure that
+fraction if the range is ever touched.**
+**Real-data validation (step 4) — started 2026-09-09, PARTIAL.** Two datasets
+prep'd and committed: `data/mm1998.npz` (7 monodisperse four-arm PI stars, Z
+known from Ma/Me; Milner-McLeish 1998) and `data/santangelo1999.npz` (2 six-arm
+PIB stars + a LINEAR control). `identify()` returns `star` for **5/7** MM1998
+stars; the two misses are the highest-Z arms → `branched`. **`Z` is NOT a
+reportable output** — biased +17-84% — for two real reasons: mid-Z arms lack
+enough barrier, and `Z_BOUNDS` floors at 4. Report "star", never "Z = ...".
+Santangelo's window never reaches flow (its own caption: ω² "not attained ...
+due to polydispersity") so it can't test Z, and its linear control is a
+documented false positive. `star` is deliberately NOT in `AMBIGUOUS_PAIRS` —
+see next-actions.
+
+**Two bugs in `rheofp/models/star.py` found and fixed by that validation
+(2026-09-09).** (1) The eq-29 prefactor was **2× too large** — the AUTHORS'
+OWN erratum, printed in MM1998's Appendix under eq 10 ("eq 29 of ref 1 with an
+additional factor of 1/2, mistakenly omitted"); the module was transcribed from
+the 1997 paper. (2) **The arm's own Rouse modes were missing** — MM scope eq 26
+to end at the G″ minimum, a real window goes past it, so the fitter inflated Z
+to cover the gap. Added `_arm_rouse_modes` reusing the validated Likhtman-
+McLeish eq-19 form from `tube.py` (`arm_rouse=False` recovers the paper's bare
+result). Effect: median |Z error| 44% → 30%, fitted G_N 440-490 → 366-436 kPa
+(PI's true ~400). **Consequence: G′ now rises ABOVE G_N at high frequency —
+G_N is the plateau LEVEL, not the curve maximum.** Cannibalisation check passed
+(matched before/after: overall 0.845 → 0.855, star self-recovery 18/20 → 20/20,
+other 8 classes byte-identical).
 
 **Bank-coverage invariant (2026-09-04).** `identify()`'s bank must hold a
 candidate for EVERY class `rheofp/data/synth.py` can generate — now enforced by
@@ -239,31 +282,52 @@ removing the network classes; `wide_plateau` gating reptation).
    Two-head set model (conv encoder -> masked attention pool -> classify +
    regress) with a learned abstention head, on the frozen architecture.
 
-> **STALE AS OF 2026-09-09 — every ML number in this paragraph is a 9-CLASS
-> measurement.** `star` became a generated class on 2026-09-09, so the training
-> distribution has ten classes and the shipped checkpoint predates it. The
-> synthetic accuracy, merged-pair, regime and abstention figures below, and the
-> neural head's 6/6 on real data, all need re-measuring on the next training
-> run — see the office-PC ACTIVE TASK in `.claude-notes/next-actions.md`. What
-> is NOT stale: the AICc side's **6/6 on real literature curves**, re-confirmed
-> with the 10-model bank on 2026-09-09, and the test count is now ~183.
+**Current state (2026-09-09, retrained) — these are 10-CLASS numbers.** 182
+tests pass (2 skipped) as of the retrain; `tests/test_star.py` grew to 31 with
+the later star.py fixes (all pass) but the full non-slow suite was not re-run
+after those — a laptop task, see next-actions. Retrained on the ten-class
+distribution after `star` was added (16k examples, 55 epochs, seed 1, office PC).
 
-**Current state (2026-09-07):** 151 tests pass (2 skipped). On synthetic data
-the classifier scores **0.917** (merged-pair 0.963, regime 0.999); **55% of all
-remaining error is the physically degenerate Zimm<->Rouse pair**, while the
-equally-nested cured_elastomer<->critical_gel pair now contributes zero. The
-**0.700 physics baseline this used to be quoted against is superseded** — it
-was measured while `wormlike_micelle` was generated but absent from
-`identify()`'s bank, making ~1/9 of the baseline's pool unanswerable; over the
-fixed 9-candidate bank a standalone re-measurement gives ~0.82 (n=90), so the
-real margin is roughly +0.10, not +0.217. The network's own number is
-unaffected — the ML pipeline only touches `identify()` for the baseline.
-Re-measure the pair on the next training run (next-actions §1h). Against real
-single-curve spectra it scores **6/6 literature curves correct** (Darby 2022
-cured silicones, Tixier 2004 critical gel, Pivokonsky 2006 LDPE). Read that 6/6
-carefully: six curves, three papers, all N=1, four of them the same material
-family — it confirms the BSW fix worked, it is not evidence of general
-real-world accuracy.
+On synthetic data the classifier scores **0.923** (merged-pair **0.968**,
+regime **0.999**) against an AICc physics baseline of **0.907** measured on the
+**same test split** — margin **+0.016**. That baseline pairing was the
+outstanding item from §1h and is now closed: the ~0.82 (n=90) standalone figure
+is superseded, and `skipped` was 0, confirming the bank covers all ten
+generated classes. **Do not read +0.016 as the network barely working** — the
+baseline rose from ~0.82 to 0.907 because the bank was fixed (wormlike_micelle,
+then star), so the network is being compared against a much stronger physics
+side than the old +0.217 and +0.10 margins were. Note also the two are not
+strictly comparable: the baseline sees ONE curve, the network sees the stack.
+
+**58% of all remaining error is still the physically degenerate Zimm<->Rouse
+pair** (107 errors), while cured_elastomer<->critical_gel again contributes
+**zero** — cured_elastomer is perfect (1.000) and critical_gel 0.992. Per class,
+the rest sit at 0.91-1.00; zimm (0.724) and rouse_screened (0.737) are the only
+weak entries and they are weak only against each other.
+
+**`star` classified at 0.996 (239/240) — the strongest non-trivial class in the
+bank, with its single error going to `wormlike_micelle`, not zimm/rouse and not
+branched.** Both hypotheses the retrain was set up to distinguish are therefore
+REJECTED: the network does not confuse stars with the linear-melt pair (so the
+AICc side's three-way tie does not reproduce here), and it does not confuse them
+with `branched` (so the two brains do NOT disagree about what absorbs stars).
+**`star` stays out of `AMBIGUOUS_PAIRS`** — the evidence that tempted it was
+AICc-side ties, and the network shows no such degeneracy. Note the asymmetry
+worth remembering: 2 zimm curves still leak *to* star, but no star leaks to
+zimm, so the overlap is one-directional and small.
+
+Abstention is well-calibrated: dropping the least-confident 10% lifts accuracy
+to 0.957, 20% to 0.982, 30% to 0.996. Stacks still beat single curves (0.898 at
+N=1 -> ~0.94 at N>=2).
+
+Against real single-curve spectra the retrained checkpoint scores **6/6
+literature curves correct** (Darby 2022 cured silicones, Tixier 2004 critical
+gel, Pivokonsky 2006 LDPE), raw == resampled so the density invariance holds.
+The AICc side's own 6/6 was re-confirmed with the 10-model bank on 2026-09-09.
+Read that 6/6 carefully: six curves, three papers, all N=1, four of them the
+same material family — it confirms the BSW fix worked, it is not evidence of
+general real-world accuracy. **`star` has NO real-data validation at all** —
+step 4, blocked on star melt data.
 
 **Both real temperature stacks tested so far (Edera 2024, Ricarte 2023 —
 vitrimers) confirm the STACK MECHANISM but fail the FINE CLASS.**

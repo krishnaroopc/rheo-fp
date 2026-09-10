@@ -11,9 +11,12 @@ Reference: Macromolecules 1997, 30, 2159 (originals/milner_mcleish1997_star.pdf)
 with Ball & McLeish 1989 (ball_mcleish1989.pdf) and Pearson & Helfand 1984
 (pearson_helfand1984.pdf) as the two precursors it builds on.
 """
+import time
+
 import numpy as np
 import pytest
 
+import rheofp.models.star as star
 from rheofp.models.star import (
     ALPHA_CR, STAR_MODELS, dueff_ds, fit_star, model_star, star_spectrum,
     tau_of_s, ueff, _tau_activated, _tau_early,
@@ -140,8 +143,72 @@ def test_terminal_scaling_is_maxwell_like():
 def test_plateau_recovers_G_N():
     # eq 25's weight (alpha+1)(1-s)^alpha integrates to 1 over [0,1], so the
     # mode weights sum to G_N and G' must approach it on a wide window.
-    Gp, _ = star_spectrum(W_WIDE, G_N_FIG1, Z_FIG1, TAU_E_FIG1)
+    # This is a property of the RETRACTION integral (eq 26) alone, so the
+    # arm-Rouse modes are switched off: they sit above the G'' minimum, are
+    # not part of MM's result, and deliberately carry G' above the plateau.
+    Gp, _ = star_spectrum(W_WIDE, G_N_FIG1, Z_FIG1, TAU_E_FIG1,
+                          arm_rouse=False)
     assert Gp.max() / G_N_FIG1 == pytest.approx(1.0, abs=0.06)
+
+
+def test_arm_rouse_modes_lift_G_prime_above_the_plateau():
+    """G_N stops being the maximum of G' once the arm's Rouse modes are on.
+
+    Guards against reading the fitted G_N as "the highest G' you will see".
+    Real G' does climb above the plateau toward the glassy zone, which is
+    exactly what these modes represent - but it means G_N is the plateau
+    LEVEL, not a bound on the curve.
+    """
+    bare, _ = star_spectrum(W_WIDE, G_N_FIG1, Z_FIG1, TAU_E_FIG1,
+                            arm_rouse=False)
+    full, _ = star_spectrum(W_WIDE, G_N_FIG1, Z_FIG1, TAU_E_FIG1,
+                            arm_rouse=True)
+    assert full.max() > 1.5 * bare.max()
+    # ...and they only ADD, never subtract, at every frequency.
+    assert np.all(full >= bare - 1e-9 * bare.max())
+
+
+def test_arm_rouse_modes_do_not_disturb_the_terminal_zone():
+    """The added modes are a HIGH-frequency term and must leave flow alone.
+
+    If they leaked into the terminal region they would corrupt the very
+    thing the star class is identified by, so this pins the separation.
+    """
+    w_term = np.logspace(-12, -9, 40)
+    bare = star_spectrum(w_term, G_N_FIG1, Z_FIG1, TAU_E_FIG1,
+                         arm_rouse=False)
+    full = star_spectrum(w_term, G_N_FIG1, Z_FIG1, TAU_E_FIG1,
+                         arm_rouse=True)
+    # Not exactly zero - a Maxwell mode's omega^1 tail reaches every
+    # frequency - but 1e-4 decades is four orders below digitizing scatter,
+    # so the terminal slopes and the flow behaviour are untouched.
+    for b, f in zip(bare, full):
+        assert np.max(np.abs(np.log10(f) - np.log10(b))) < 1e-4
+
+
+def test_arm_rouse_mode_sum_is_converged_and_bounded():
+    """The ladder truncation must be a converged approximation, not a cap.
+
+    MODE_TAU_FLOOR_DECADES stops the sum where modes stop mattering; loosening
+    it must not change the answer. It also has to stay fast for EVERY tau_e the
+    optimizer can reach - bounding the sum by tau_e instead of by the window
+    once reached ~3.7M modes and made a single fit take minutes.
+    """
+    w = np.logspace(-3, 3, 60)
+    ref = star_spectrum(w, 4e5, 9.4, 1e-6)
+    saved = star.MODE_TAU_FLOOR_DECADES
+    try:
+        star.MODE_TAU_FLOOR_DECADES = 4.0
+        loose = star_spectrum(w, 4e5, 9.4, 1e-6)
+    finally:
+        star.MODE_TAU_FLOOR_DECADES = saved
+    for r, l in zip(ref, loose):
+        assert np.allclose(np.log10(r), np.log10(l), atol=5e-3)
+
+    # A large tau_e must not blow the mode count up.
+    t0 = time.perf_counter()
+    star_spectrum(w, 4e5, 40.0, 1e3)
+    assert time.perf_counter() - t0 < 1.0
 
 
 def test_G_N_is_a_pure_amplitude():
