@@ -6,7 +6,86 @@ the end of each working session (what was discussed, decided, and changed).
 
 ---
 
-## 2026-09-09 (LAPTOP, latest) — laptop bootstrap + step 4 closed
+## 2026-09-09 (OFFICE PC, latest) — the second brain wired into the report
+
+Office PC (RTX A1000). Pulled `1108064`, worked through the three items
+next-actions listed as next: verify the unverified commit, build the neural
+column, connect the discard/unopposed-winner gap.
+
+**0. The unverified commit is verified.** `uv run pytest -m "not slow"` ->
+**213 passed, 2 skipped, 13:34** on the office PC, run over the NEW code (so it
+confirms the laptop's unverified commit and this session's work at once).
+Arithmetic: the laptop's expected 196 + this session's 17 new tests
+(3 in `test_report.py`, 14 in `test_neural_report.py`) = 213.
+
+**1. THE NEURAL HEAD IS NOW report.py's SECOND COLUMN** —
+`rheofp/neural_report.py` (new), `tests/test_neural_report.py` (14 tests),
+`--neural` / `--checkpoint` on `scripts/explain.py`.
+
+Design honoured exactly as DECISION 3 approved it: a NEW module, importing
+FROM `report.py` and never the other way, so `import rheofp.report` still
+costs no torch and the AICc pipeline keeps working on a machine with no
+checkpoint. `explain_with_neural()` returns explain()'s dict with two keys
+ADDED (`neural`, `agreement`) — a test asserts every pre-existing key is
+byte-identical, so no existing consumer moves. torch is imported lazily inside
+the two functions that need it.
+
+Four agreement outcomes, not two, and the middle one matters: `agree`,
+`agree_degenerate` (they split, but only across a known-inseparable pair —
+Zimm/Rouse, cured/gel — which must NOT be reported with the same alarm as a
+real split), `disagree_ranked` (network's class is a live AICc alternative,
+delta < 10), `disagree` (it is not even on the short list — also the shape
+out-of-taxonomy material produces, since each side falls back on its own
+least-bad class and they need not agree on which).
+
+**The payoff is measured, and it is better than expected.** On Milner-McLeish
+1998's seven-star set the agreement signal **separates the AICc hits from the
+AICc misses perfectly**:
+
+| | AICc says | network says | verdict |
+|---|---|---|---|
+| Ma11k..Ma47k (5 curves) | `star` (right) | `star` 0.99-1.00 | **agree** |
+| Ma95k, Ma105k (2 curves) | `branched` (WRONG) | `star` 0.99 | **disagree** |
+
+Both misses are true stars whose windows never reach terminal flow. AICc calls
+them `branched` at **delta 56.5 and 102.6** — decisive, and decisively wrong —
+with nothing in the AICc report expressing doubt, and the network's abstention
+head reads 0.00 on them. So NEITHER self-confidence flags these; only the
+comparison between the two does. That is the whole thesis of the column,
+confirmed on real data at n=7 with no counterexample.
+
+Also flagged: **Santangelo L176**, the linear PIB control that `identify()`
+returns as `star` at weight 1.000 with no alternative inside delta 10. The
+network does not say star, so the disagreement now carries the warning the
+AICc report could not.
+
+Both real benchmark curves and the Tixier gel come back **agree**, so the
+signal is not simply firing everywhere.
+
+**2. The discard / unopposed-winner link is built** — a new
+`unopposed_after_discard` item in `challenge()`, plus 3 tests. Fires only when
+an ABSENCE-grounded discard (currently just `reptation`, struck for want of a
+plateau) coincides with a winner that has no surviving alternative inside
+delta 10. It explicitly does NOT fire on discards resting on a positive
+observation (`terminal_reached` striking the network classes — flow was seen,
+and a permanent network cannot flow, so that comparison is settled, not
+missing). Tested on Ma36k, where both kinds of discard are present at once and
+only `reptation` may be named.
+
+**A claim in next-actions turned out to be wrong and is corrected, not
+propagated.** The notes said the L176 false positive happened because "the
+pre-filter struck `reptation`, so the plausibly correct class was never on the
+ballot". **It does not reproduce.** On L176 `signature_features` returns all
+ten classes allowed; `reptation` WAS fitted and lost on its own merits, at
+delta 429.8 / rms 0.256 against star's 0.043. So the L176 story is simply
+"star fits a linear PIB better than reptation does", which is a forward-model
+overlap, not a pre-filter deletion. The link built above is still correct and
+still valuable — it just fires on Pivokonsky E and MM1998 Ma36k rather than on
+the curve the notes cited.
+
+---
+
+## 2026-09-09 (LAPTOP) — laptop bootstrap + step 4 closed
 
 First session on the reformatted laptop (i7-10750H, 32 GB, GTX 1660 Ti).
 

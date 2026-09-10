@@ -5,26 +5,25 @@ kept in git so it syncs between the user's home and office PCs. When the user
 says something like "let's continue" / "do the next thing" / "pick up where we
 left off", this is where to look. Update + commit this file as items complete.
 
-Last updated: **2026-09-09 (LAPTOP, end of session).**
+Last updated: **2026-09-09 (OFFICE PC, end of session).**
 
 # >>> START HERE ON ANY PC <<<
 
 **On arrival, in order:** `git pull` → `uv sync` → `uv run pytest -m "not slow"`.
-Expect **196 passed, 2 skipped** (~12-15 min on the laptop, ~5 min office).
+Expect **213 passed, 2 skipped** (measured 13:34 on the office PC 2026-09-09;
+the laptop is slower). Note the office PC's old "~5 min" figure no longer
+holds — this session's 17 new tests include real-data `identify()` calls.
 Everything through `uv run`; there is no usable system Python (on the laptop
 `python` is a 0-byte Microsoft Store stub). On a fresh Windows PC also run
 **`gh auth setup-git`** or `git push` will hang forever with no error —
 see environment.md.
 
-## The ONE unverified thing, and it is the first job
+## ~~The ONE unverified thing~~ — VERIFIED 2026-09-09 (office PC)
 
-**The last commit's tests were NOT confirmed by a full-suite run.** The star
-caveat in `report.py` and its two tests were added at the very end of the
-laptop session; `uv run pytest tests/test_report.py` passed **25/25** (which
-does cover the changed code), but the full non-slow suite was **stopped
-mid-run** at the user's request before it finished. Expected count is 196
-(194 + the 2 new). **Run it first and confirm before building anything on
-top.** If it is green, delete this section.
+The laptop's unconfirmed commit was run against the full non-slow suite on the
+office PC and is green. The suite has since grown by the 17 tests added this
+session (3 in `test_report.py`, 14 in the new `test_neural_report.py`) — see
+the count at the bottom of the office-PC session entry.
 
 ## What the state actually is
 
@@ -47,32 +46,49 @@ top.** If it is green, delete this section.
 - Real data: **6/6** benchmark; `star` 5/7 on MM1998 (5/5 restricted to curves
   that reach terminal flow).
 
-## >>> THE NEXT TASK <<<
+## >>> ~~THE NEXT TASK~~ — BOTH ITEMS BUILT 2026-09-09 (office PC) <<<
 
-**Build the neural head as `report.py`'s second column.** This is the largest
-unbuilt item in this file and DECISION 3 (below) already approved the design.
-The reason it matters is the one line worth re-reading:
+**The neural head IS report.py's second column now** (`rheofp/neural_report.py`,
+`tests/test_neural_report.py`, `--neural` on `scripts/explain.py`), and the
+discard/unopposed-winner link IS built (`unopposed_after_discard` in
+`challenge()`). Details and the measured payoff are in `sessions.md` under the
+office-PC entry; read that before extending either.
 
-> the two brains are mathematically independent, so **whether they AGREE is a
-> better confidence signal than either one's own certainty** — and nothing
-> currently looks at this.
+**The one result to carry forward, because it is the strongest evidence this
+project has that the two-brain design was right:** on MM1998's seven-star set
+the agreement signal separates the AICc hits from the AICc misses PERFECTLY —
+agree on all 5 curves AICc gets right, disagree on both it gets wrong
+(Ma95k/Ma105k, true stars called `branched` at delta 56.5 and 102.6). Neither
+self-confidence flags those two: AICc is decisive, and the network's abstention
+head reads 0.00. Only the comparison does. n=7, so it is a strong indication,
+not a law — but there is no counterexample in it.
 
-Both self-confidences are known unreliable in the same way: the network's
-abstention is trained only against its own errors on the SYNTHETIC
-distribution, and AICc's weight reaches 1.000 even when the true class is
-absent from the bank entirely (§1h). Agreement between two independent methods
-is not subject to either failure, and it attacks the dominant error mode — a
-GOOD fit of the WRONG class — which no confidence score flags today.
+**A next-actions claim was found WRONG and corrected — do not re-propagate
+it.** This file said the L176 false positive arose because "the pre-filter
+struck `reptation`, so the plausibly correct class was never on the ballot".
+It does not reproduce: on L176 all ten classes are allowed, and `reptation`
+was fitted and lost on merit (delta 429.8, rms 0.256 vs star's 0.043). L176 is
+a forward-model overlap, not a pre-filter deletion. (The `unopposed_after_
+discard` link is still right and still useful — it fires on Pivokonsky E and
+MM1998 Ma36k, where a real absence-grounded discard really does coincide with
+an uncontested winner.)
 
-Needs a checkpoint (see above). Read DECISION 2 and DECISION 3 before starting:
-`identify()`'s return contract must NOT change; build alongside it.
+### What is genuinely next, in the order I would take it
 
-**A smaller, well-evidenced item found the same session and NOT done:** on
-Santangelo L176 the pre-filter struck `reptation` (no wide plateau) so the
-plausibly correct class was never on the ballot, and `star` won unopposed at
-weight 1.000. The report states both facts in separate paragraphs and never
-connects them. Linking "the class you might have wanted was discarded" to "and
-the winner is weak under exactly these conditions" is a real gap.
+1. **Measure the agreement signal on the SYNTHETIC test split.** The n=7 real
+   result above is the headline, but it is n=7. The honest question is: across
+   the 2400-curve test split, what is accuracy given `agree` vs given
+   `disagree`? If agreement is a usable reliability gate, that is where the
+   number comes from, and it is cheap — both brains already run over that
+   split in `scripts/train_classifier.py`'s baseline pass. Pre-register it:
+   the claim to test is "P(correct | agree) >> P(correct | disagree)".
+2. **Decide whether agreement should reach `identify()` at all.** Right now it
+   is reporting-only, deliberately (DECISION 2). If step 1 shows the gate is
+   strong, the question of whether a disagreement should raise abstention
+   becomes live — but that changes `identify()`'s contract, so it needs the
+   numbers first and a user decision second.
+3. The star caveat and the `unopposed_after_discard` link are both prose in
+   `challenge()`. Neither has been read by a rheologist other than the user.
 
 ---
 
@@ -200,12 +216,23 @@ any doubt whatsoever. Two tests pin it, including a counterpart on MM1998
 Ma36k asserting the caveat does NOT fire when flow was reached, so it cannot
 quietly become unconditional.
 
-**Second thing that run exposed, NOT yet addressed:** on L176 the pre-filter
-struck `reptation` (no plateau a decade wide), so the plausibly correct class
-for a linear entangled melt was never on the ballot, and `star` won unopposed.
-The report states both facts in separate paragraphs and never connects them.
-A "the class you might have wanted was discarded AND the winner is weak here"
-link is a real gap - worth considering if the report layer is revisited.
+**Second thing that run exposed — ADDRESSED 2026-09-09 (office PC), but the
+diagnosis above was WRONG and is corrected here.** The claim was that on L176
+the pre-filter struck `reptation`, leaving the plausibly correct class off the
+ballot. **That does not reproduce.** `signature_features` allows all ten
+classes on L176; `reptation` was fitted and lost badly on merit (delta 429.8,
+rms 0.256 against star's 0.043). So L176 is a forward-model overlap — the star
+model genuinely fits a linear PIB better than the reptation model does — not a
+pre-filter deletion, and the fix for it is the `star`+no-terminal-flow caveat
+already built, plus the neural disagreement that now also flags it.
+
+The general "discarded class AND uncontested winner" link WAS still worth
+building and is built (`unopposed_after_discard` in `challenge()`, 3 tests).
+It fires where the reasoning actually applies — Pivokonsky E and MM1998 Ma36k,
+where `reptation` really is struck for want of a plateau and the winner really
+does run with no alternative inside delta 10 — and deliberately does NOT fire
+on discards grounded in a positive observation (`terminal_reached` striking the
+network classes), because a settled comparison is not a missing one.
 
 **`Z` IS NOT A REPORTABLE OUTPUT** and that has not changed: still biased
 +17-84% on mm1998. The class says "star", never "Z = ...".
@@ -700,9 +727,10 @@ window limits (no terminal flow / no shoulder). Rendered as "DON'T THINK IT'S
 X? THIS MAY BE WHY", with a footer explaining why it is always present so its
 appearance is not misread as a warning.
 
-**Still to do here:** the neural head as a second column (needs a checkpoint;
-`identify()`'s reasons + the network's better ranking, and their AGREEMENT as
-the confidence signal neither self-confidence can provide).
+**~~Still to do here~~ — BUILT 2026-09-09 (office PC).** The neural head is a
+second column in `rheofp/neural_report.py`, with the AGREEMENT between the two
+brains reported as the confidence signal neither self-confidence can provide.
+See the top of this file and the office-PC entry in `sessions.md`.
 
 ### original brief (kept for reference)
 

@@ -315,14 +315,13 @@ removing the network classes; `wide_plateau` gating reptation).
    regress) with a learned abstention head, on the frozen architecture.
 
 **Current state (2026-09-09, retrained) — these are 10-CLASS numbers.**
-**194 tests pass, 2 skipped** — the full non-slow suite re-run on the laptop
-after the two `star.py` fixes and the step-4 real-data tests (12:15 on an
-i7-10750H; it was 185 before those 9 tests were added). **Two more tests were
-added after that run (the star window caveat, 196 expected) and the confirming
-full-suite run was stopped early — `tests/test_report.py` passed 25/25 on its
-own, but run the full suite first on the next session.** Retrained on
-the ten-class distribution after `star` was added (16k examples, 55 epochs,
-seed 1, office PC).
+**213 tests pass, 2 skipped** — the full non-slow suite, run on the office PC
+2026-09-09 in 13:34 (RTX A1000 box; the laptop is slower). This run confirms
+the previously-unverified star-caveat commit AND the same session's neural
+second column at once: 194 after the step-4 tests, + 2 for the star window
+caveat, + 17 this session (3 in `test_report.py`, 14 in the new
+`test_neural_report.py`) = 213. Retrained on the ten-class distribution after
+`star` was added (16k examples, 55 epochs, seed 1, office PC).
 
 On synthetic data the classifier scores **0.923** (merged-pair **0.968**,
 regime **0.999**) against an AICc physics baseline of **0.907** measured on the
@@ -394,6 +393,25 @@ alternatives by delta AICc (not the misleading Akaike weight), and prints an
 UNCONDITIONAL "don't think it's X? this may be why" section on every result —
 including confident, correct ones — because most of this classifier's errors
 are GOOD fits of the WRONG class, which no confidence score flags.
+
+**The two brains' AGREEMENT is the confidence signal neither one can give
+alone (`rheofp/neural_report.py`, 2026-09-09).** The AICc bank and the network
+share no machinery — closed-form model fitting ranked by penalised likelihood
+versus a conv encoder over a resampled grid — so a divergence is not subject to
+either side's known overconfidence failure (the network's abstention is trained
+only on its own synthetic errors; AICc's weight hits 1.000 even when the true
+class is absent from the bank). Four outcomes are reported, not two: `agree`,
+`agree_degenerate` (a split across a known-inseparable pair, which must NOT be
+alarmed like a real one), `disagree_ranked`, `disagree`. **Measured payoff on
+MM1998's seven-star set: the signal separates the AICc hits from the AICc
+misses perfectly** — agree on all 5 AICc gets right, disagree on both it gets
+wrong (Ma95k/Ma105k, true stars called `branched` at ΔAICc 56.5 and 102.6,
+where AICc is decisive and the network's abstention head reads 0.00, so
+neither self-confidence flags them). It also flags Santangelo's linear control
+that `identify()` returns as `star` at weight 1.000. n=7 — a strong
+indication, not a law. This is REPORTING ONLY: `identify()`'s contract is
+untouched, and `report.py` still imports no torch (the dependency runs
+`neural_report` → `report`, never back).
 
 **Uploads are density-agnostic by construction**: any point count and any
 frequency range are resampled onto a fixed internal log-omega grid in

@@ -115,6 +115,36 @@ window limits, and the out-of-taxonomy risk that apply to THIS measurement.
 that class on your data - even one the pre-filter struck off - and reports its
 delta, its fit, and whether anything measured actually contradicts it.
 
+### A second, independent opinion
+
+```
+python scripts/explain.py data/mm1998.npz --sample PI4_Ma95k --neural
+```
+
+`--neural` runs the trained network alongside the model fitting and reports
+**whether the two agree**. That agreement is a better confidence signal than
+either one's own certainty, because both self-confidences fail in the same
+direction on unfamiliar material: the network's abstention head is trained only
+against its own errors on the synthetic distribution, and the Akaike weight
+reaches 1.000 even when the true class is absent from the bank entirely. The
+two methods share no machinery, so a divergence is information neither can
+produce alone - and it attacks the dominant error mode, a good fit of the wrong
+class, which no confidence score flags.
+
+It reports four outcomes rather than two, because a split across a
+known-inseparable pair (Zimm vs Rouse, cured elastomer vs critical gel) is the
+taxonomy's documented blind spot and should not be alarmed like a genuine
+conflict.
+
+Measured on the seven-star Milner-McLeish 1998 set, the signal separates the
+fitter's hits from its misses exactly: the two curves it gets wrong (true
+stars called `branched`, at delta AICc 56.5 and 102.6 - decisive, and decisively
+wrong, with the abstention head reading 0.00) are the two where the network
+disagrees, and it agrees on all five it gets right. That is n=7: a strong
+indication, not a law. Requires a trained checkpoint, which is gitignored and
+reproducible; without one the flag prints how to make one and the rest of the
+report is unaffected.
+
 ## Generating data and training the classifier
 
 ```

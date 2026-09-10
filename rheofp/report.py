@@ -123,6 +123,14 @@ _DISCARD_RULES = {
 # wording above rather than a claim about exactly which test tripped.)
 _INVERTED_RULES = frozenset({"has_plateau"})
 
+# Classes whose discard reasons from an ABSENCE (a plateau not seen) rather
+# than from a positive observation (flow seen, which a permanent network
+# cannot do). Only these can be silently wrong in the direction that matters -
+# the feature might be missing because the material lacks it, or because the
+# window does not reach it - so only these are worth linking to an unopposed
+# winner. See the unopposed_after_discard item in challenge().
+_ABSENCE_DISCARD_CLASSES = frozenset({"reptation"})
+
 # --- branched-vs-vitrimer-power-law-regime contradiction (2026-09-07) ------
 # Investigated in scripts/diagnose_sticky_models.py, next-actions 2b: on two
 # real dioxaborolane-vitrimer temperature stacks (Ricarte 2023), every curve
@@ -422,11 +430,55 @@ def challenge(result, max_named=3, w=None, Gp=None, Gpp=None):
         items.append({"kind": "vitrimer_powerlaw", "text": contradiction["text"]})
 
     # 3. Classes that were never fitted at all.
-    for d in explain_discards(result):
+    discards = explain_discards(result)
+    for d in discards:
         items.append({
             "kind": "discarded",
             "text": (f"{', '.join(d['classes'])} was never fitted, "
                      f"because {d['because']}. {d['reasoning']}"),
+        })
+
+    # 3b. The CONNECTION between an unopposed winner and a discarded
+    # candidate. Both facts were already printed above, in separate
+    # paragraphs, and the reader was left to join them - which is exactly the
+    # case where they should not have to.
+    #
+    # The case that forced this (Santangelo L176, a LINEAR PIB control):
+    # the pre-filter struck `reptation` for want of a decade-wide plateau, so
+    # the plausibly correct class for a linear entangled melt was never on the
+    # ballot; `star` then won at weight 1.000 with a 0.036-decade fit, with NO
+    # alternative inside delta 10 - so the alternatives section was EMPTY and
+    # nothing in the report expressed any doubt at all. Three separate things
+    # each looked reassuring on their own (good fit, no rival, clean
+    # pre-filter note) and together they were an artefact.
+    #
+    # Note this fires on absence-grounded discards only. A discard resting on
+    # a POSITIVE observation (terminal_reached striking the network classes -
+    # flow was seen, and a permanent network cannot flow) is not weakened by
+    # the winner running unopposed, so joining those two would be false alarm.
+    absence_discards = [d for d in discards
+                        if any(c in _ABSENCE_DISCARD_CLASSES
+                               for c in d["classes"])]
+    unopposed = len(ranking) == 1 or ranking[1]["delta"] > 10
+    if absence_discards and unopposed:
+        struck = sorted({c for d in absence_discards for c in d["classes"]
+                         if c in _ABSENCE_DISCARD_CLASSES})
+        items.append({
+            "kind": "unopposed_after_discard",
+            "text": (
+                f"Those two facts belong together, and the report has so far "
+                f"stated them apart: {', '.join(struck)} never reached the "
+                f"fitting stage, AND {winner['name']} then won with no "
+                f"surviving alternative inside delta AICc 10. So the margin "
+                f"you see is a margin over the candidates that were LEFT, not "
+                f"over the full bank - a comparison that was never run cannot "
+                f"come out close. Unlike the flow test, that discard reasons "
+                f"from something ABSENT from your window rather than "
+                f"something observed, so widening the window can put the "
+                f"class back. If {', '.join(struck)} is what you expected, "
+                f"run contest(w, Gp, Gpp, '{struck[0]}') - it fits the class "
+                f"on this same data and reports its own numbers, which is the "
+                f"only way to see what the ranking would have looked like."),
         })
 
     # 4. The standing limits of the method, which no single result can escape.

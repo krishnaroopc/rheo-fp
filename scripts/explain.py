@@ -4,6 +4,14 @@
     python scripts/explain.py data/pivo2006.npz --sample E
     python scripts/explain.py data/tixier2004.npz --why-not cured_elastomer
     python scripts/explain.py data/darby2022.npz --stack     # all samples as a T stack
+    python scripts/explain.py data/mm1998.npz --sample PI4_Ma95k --neural
+
+--neural adds the trained network as a SECOND, independent opinion and reports
+whether the two methods agree. That agreement is a better confidence signal
+than either one's own certainty: the network's abstention is trained only
+against its own errors on the synthetic distribution, and AICc's weight reaches
+1.000 even when the true class is absent from the bank entirely, but the two
+share no machinery, so a divergence is information neither can produce alone.
 
 Reads .npz (rheofp.io.data convention) or .xlsx (column 0 = omega, paired
 "<sample> G' (Pa)" / "<sample> G'' (Pa)" columns).
@@ -42,6 +50,14 @@ def main(argv=None):
     ap.add_argument("--omega-hz", action="store_true",
                     help="input frequency column is Hz, not rad/s")
     ap.add_argument("--restarts", type=int, default=12)
+    ap.add_argument("--neural", action="store_true",
+                    help="also run the trained network as a second, "
+                         "independent opinion and report whether the two "
+                         "methods AGREE - a better confidence signal than "
+                         "either one's own certainty")
+    ap.add_argument("--checkpoint", default=None,
+                    help="path to the trained checkpoint (default: "
+                         "checkpoints/rheonet.pt); implies --neural")
     args = ap.parse_args(argv)
 
     data = load_any(args.path, omega_hz=args.omega_hz)
@@ -50,6 +66,8 @@ def main(argv=None):
 
     if args.why_not and args.why_not not in ALL_MODELS:
         ap.error(f"unknown class {args.why_not!r}; known: {sorted(ALL_MODELS)}")
+
+    want_neural = args.neural or args.checkpoint is not None
 
     if args.stack:
         stack = [dict(omega=s["omega"], Gp=s["Gp"], Gpp=s["Gpp"],
@@ -60,6 +78,7 @@ def main(argv=None):
                   "cannot.\n", file=sys.stderr)
         out = identify_stack(stack, n_restarts=args.restarts)
         w = stack[0]["omega"]; Gp = stack[0]["Gp"]; Gpp = stack[0]["Gpp"]
+        curves = stack
         label = f"{args.path} ({len(stack)} curves as one T stack)"
     else:
         name = args.sample if args.sample is not None else next(iter(data))
@@ -69,11 +88,31 @@ def main(argv=None):
         s = data[name]
         w, Gp, Gpp = s["omega"], s["Gp"], s["Gpp"]
         out = identify(w, Gp, Gpp, n_restarts=args.restarts)
+        curves = [dict(omega=w, Gp=Gp, Gpp=Gpp,
+                       T_K=float(s.get("T_K", np.nan)))]
         label = f"{args.path} :: {name}"
 
     print(f"\n{label}   ({len(w)} points, "
           f"{np.log10(w.max() / w.min()):.1f} decades)\n")
-    print(format_report(explain(out, w=w, Gp=Gp, Gpp=Gpp)))
+    rep = explain(out, w=w, Gp=Gp, Gpp=Gpp)
+    print(format_report(rep))
+
+    if want_neural:
+        # Imported here so the AICc path stays usable with no torch and no
+        # checkpoint - checkpoints/ is gitignored and does not travel.
+        from rheofp.neural_report import (
+            DEFAULT_CHECKPOINT, explain_with_neural, format_neural,
+        )
+        ckpt = args.checkpoint or DEFAULT_CHECKPOINT
+        try:
+            rep = explain_with_neural(out, curves, checkpoint=ckpt, base=rep)
+        except FileNotFoundError:
+            print(f"\n(no checkpoint at {ckpt} - skipping the neural column. "
+                  f"It is gitignored and reproducible:\n"
+                  f"    uv run python scripts/train_classifier.py "
+                  f"-n 16000 --epochs 55)", file=sys.stderr)
+        else:
+            print(format_neural(rep))
 
     if args.why_not:
         print()

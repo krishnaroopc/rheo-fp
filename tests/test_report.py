@@ -396,3 +396,69 @@ def test_contradiction_has_zero_false_positives_on_a_mixed_population():
                     flagged += 1
     assert checked > 10, "test did not exercise enough branched winners"
     assert flagged == 0
+
+
+def test_an_unopposed_winner_after_an_absence_discard_is_linked_to_it():
+    """The two facts have to be JOINED, not merely both printed.
+
+    Real case, Pivokonsky LDPE E: `reptation` is struck for want of a
+    decade-wide plateau, and `branched` then wins with nothing surviving
+    inside delta AICc 10 - so the alternatives section is empty and every
+    individual paragraph reads reassuringly. The margin the reader sees is a
+    margin over the candidates that were LEFT, and the report has to say so,
+    because a comparison that was never run cannot come out close.
+    """
+    s = load_npz("data/pivo2006.npz")["E"]
+    w, gp, gpp = s["omega"], s["Gp"], s["Gpp"]
+    out = identify(w, gp, gpp)
+    rep = explain(out, w=w, Gp=gp, Gpp=gpp)
+
+    # the preconditions the link reasons about, asserted rather than assumed
+    assert "reptation" not in out["allowed"]
+    assert all(r["delta"] > 10 for r in out["ranking"][1:])
+
+    linked = [c for c in rep["challenge"]
+              if c["kind"] == "unopposed_after_discard"]
+    assert len(linked) == 1
+    text = linked[0]["text"]
+    assert "reptation" in text and rep["winner"] in text
+    assert "contest(" in text          # names the way to actually check it
+
+
+def test_the_link_does_not_fire_when_a_live_alternative_survived():
+    """No missing comparison, no complaint.
+
+    The Tixier gel keeps `cured_elastomer` at delta ~2.4, so the winner was
+    genuinely contested and the reader can see the runner-up's own numbers.
+    """
+    s = list(load_npz("data/tixier2004.npz").values())[0]
+    out = identify(s["omega"], s["Gp"], s["Gpp"])
+    rep = explain(out, w=s["omega"], Gp=s["Gp"], Gpp=s["Gpp"])
+    assert any(r["delta"] <= 10 for r in out["ranking"][1:])
+    assert not [c for c in rep["challenge"]
+                if c["kind"] == "unopposed_after_discard"]
+
+
+def test_the_link_ignores_discards_that_rest_on_a_positive_observation():
+    """A discard grounded in something OBSERVED is not weakened by an
+    unopposed winner, so joining the two would be a false alarm.
+
+    MM1998 Ma36k reaches terminal flow, which strikes both network classes -
+    and a permanent network cannot flow at any temperature, so that comparison
+    is not "missing", it is settled. Only the absence-grounded `reptation`
+    discard may be named here.
+    """
+    s = load_npz("data/mm1998.npz")["PI4_Ma36k"]
+    w, gp, gpp = s["omega"], s["Gp"], s["Gpp"]
+    out = identify(w, gp, gpp)
+    rep = explain(out, w=w, Gp=gp, Gpp=gpp)
+
+    assert out["features"]["terminal_reached"]
+    assert not {"cured_elastomer", "critical_gel"} & set(out["allowed"])
+
+    linked = [c for c in rep["challenge"]
+              if c["kind"] == "unopposed_after_discard"]
+    assert len(linked) == 1
+    text = linked[0]["text"]
+    assert "reptation" in text
+    assert "cured_elastomer" not in text and "critical_gel" not in text
