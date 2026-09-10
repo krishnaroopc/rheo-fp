@@ -74,6 +74,26 @@ NEURAL_UNSURE_P = 0.40
 # module docstring for why that is not a general reliability statement.
 ABSTAIN_HIGH = 0.30
 
+# --- what the agreement flag is actually worth, measured -------------------
+# scripts/measure_agreement.py, 200 planted curves (20/class, seed 7),
+# 2026-09-09; full output in docs/agreement_measurement_2026-09-09.txt. These
+# are quoted in the user-facing text, so they must not drift from the file
+# they came from - a test pins them against it.
+#
+# Read them honestly. The first pre-registered claim HOLDS: a disagreement
+# more than halves the fitting side's accuracy (0.923 -> 0.389). The second
+# DOES NOT: gating on agreement reaches 0.940 against 0.934 for simply
+# trusting the network's own top-class probability at matched coverage -
+# +0.006 at n=200, well inside sampling error, and only 18 of those 200 curves
+# landed in the disagree arm. So agreement is INDEPENDENT of both
+# self-confidences and fails differently from them; it is not measurably
+# better, and nothing in this module may say that it is.
+AGREE_N = 200
+AGREE_ACC_PHYS = 0.923          # physics side, where the two agree
+AGREE_ACC_NEURAL = 0.940        # network, where the two agree
+AGREE_ACC_GATE_BASELINE = 0.934  # network's own p as a gate, matched coverage
+DISAGREE_ACC_PHYS = 0.389       # physics side, where they disagree
+
 
 def load_checkpoint(path=DEFAULT_CHECKPOINT, device="cpu"):
     """Load the trained RheoNet checkpoint.
@@ -201,6 +221,10 @@ def agreement(physics_winner, neural, physics_ranking=None):
         "degeneracy_note": DEGENERATE_PAIRS.get(
             frozenset({n_win, physics_winner})),
         "text": _agreement_text(kind, physics_winner, neural, delta),
+        # What the PAIR is worth, where there is a pair. See pair_note().
+        "pair": sorted({physics_winner, n_win}) if n_win != physics_winner
+                else None,
+        "pair_note": pair_note(kind),
     }
 
 
@@ -217,12 +241,18 @@ def _agreement_text(kind, physics_winner, neural, delta):
             f"BOTH methods independently say {physics_winner} "
             f"(the network puts {p:.0%} of its probability there). "
             + independence +
-            "Reaching the same class from opposite directions is stronger "
-            "evidence than either one's own confidence score, because both of "
-            "those are known to stay high on material the bank does not "
-            "contain. It is still not proof: they were built against the same "
-            "taxonomy and the same physics, so a material outside that "
-            "taxonomy can fool both at once.")
+            "So this is corroboration from two directions rather than one "
+            "method repeating itself, and it is INDEPENDENT of both "
+            "confidence scores - which matters because both of those stay "
+            "high on material the bank does not contain. Read it as a signal "
+            f"that fails DIFFERENTLY from those, not as one that is "
+            f"measurably better: on {AGREE_N} planted curves, agreement "
+            f"gated accuracy to {AGREE_ACC_NEURAL:.2f}, against "
+            f"{AGREE_ACC_GATE_BASELINE:.2f} for simply trusting the "
+            "network's own probability at the same coverage. And it is not "
+            "proof at all - both were built against the same taxonomy and "
+            "the same physics, so material outside that taxonomy can fool "
+            "them both at once.")
 
     if kind == "agree_degenerate":
         return (
@@ -232,7 +262,11 @@ def _agreement_text(kind, physics_winner, neural, delta):
             "Treat the regime-level answer as corroborated and this "
             "particular split as unresolved by this measurement; the "
             "disagreement reflects the taxonomy's known blind spot, not a "
-            "conflict about the material.")
+            "conflict about the material. Worth knowing where this lands in "
+            "practice: on planted curves in exactly this situation, one of "
+            "the two labels was the right one EVERY time, even though each "
+            "method on its own was right well under half the time. The pair "
+            "is trustworthy here; the choice between them is not.")
 
     if kind == "disagree_ranked":
         return (
@@ -253,13 +287,56 @@ def _agreement_text(kind, physics_winner, neural, delta):
            "a live alternative on that side. "
            if delta is not None else
            "a class fitting never even put on the ballot. ")
-        + "Two independent methods reaching different classes is the one "
-        "signal here that neither self-confidence can produce, and it is "
-        "worth more than either. Do not accept either label without "
-        "checking the evidence below by eye. This pattern is also what "
-        "material from OUTSIDE the taxonomy tends to produce, since each "
-        "method then falls back on whichever of its own classes is least "
-        "bad, and they need not pick the same one.")
+        + "Two independent methods reaching different classes is a signal "
+        "neither self-confidence can produce, and it is the one case where "
+        "you should not accept either label without checking the evidence "
+        "below by eye. Measured on planted curves, a disagreement more than "
+        f"HALVES the fitting side's accuracy ({DISAGREE_ACC_PHYS:.2f} against "
+        f"{AGREE_ACC_PHYS:.2f} where the two agree). This pattern is also "
+        "what material from OUTSIDE the taxonomy tends to produce, since "
+        "each method then falls back on whichever of its own classes is "
+        "least bad, and they need not pick the same one.")
+
+
+def pair_note(kind):
+    """What the PAIR of labels is worth, as distinct from either label.
+
+    The most robust thing the n=200 measurement produced, and it was not the
+    thing being measured. Across every group, one of the two labels is the
+    correct one far more often than either method alone is right:
+
+        where they agree           96%   (either brain right)
+        where they disagree        89%
+        across the degenerate pair 100%
+
+    against 88% / 90% for the two methods taken singly over the whole set. So
+    even when the pair cannot be resolved, it is usually the right SHORTLIST -
+    which is a genuinely useful thing to hand a rheologist who knows their own
+    sample, and it is exactly what a single averaged verdict would destroy.
+    That is the argument for printing both labels prominently on a
+    disagreement rather than trying to pick a winner.
+
+    Returns None where the two agree on one class, since there is no pair.
+    """
+    if kind == "agree":
+        return None
+    if kind == "agree_degenerate":
+        return (
+            "TAKE THE TWO TOGETHER. On planted curves that split across this "
+            "known-degenerate pair, one of the two labels was correct in 100% "
+            "of cases - while the fitting side alone was right in only ~36% "
+            "of them. If you can tell these two apart by any other means "
+            "(solvent quality, whether the sample was crosslinked), that "
+            "outside knowledge settles it, and the pair above is a reliable "
+            "shortlist to apply it to.")
+    return (
+        "TAKE THE TWO TOGETHER. Measured on planted curves, one of the two "
+        "labels offered here is the correct one about 89% of the time, even "
+        "though on these disagreement cases each method ALONE is right only "
+        "about 39-50% of the time. So the pair is much more trustworthy than "
+        "the choice between them: treat this as a two-item shortlist to "
+        "settle with what you already know about your sample, not as one "
+        "answer with a dissent attached.")
 
 
 def explain_with_neural(result, curves, model=None, norm=None, classes=None,
@@ -338,6 +415,16 @@ def format_neural(rep, width=76):
     if agree["degeneracy_note"]:
         L.append("")
         for chunk in _wrap(agree["degeneracy_note"], width - 4):
+            L.append(f"    {chunk}")
+
+    # The pair, printed as a shortlist. This is the most robust thing the
+    # measurement produced: one of these two labels is usually right even
+    # where neither method individually is, so the pair is worth more than
+    # the argument about which of them wins.
+    if agree["pair_note"]:
+        L.append("")
+        L.append(f"  YOUR SHORTLIST: {' or '.join(agree['pair'])}")
+        for chunk in _wrap(agree["pair_note"], width - 4):
             L.append(f"    {chunk}")
     L.append("=" * width)
     return "\n".join(L)

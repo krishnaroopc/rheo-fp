@@ -426,6 +426,18 @@ from MM1998, so the real-data pattern does not generalise.
 there, and either-brain-right 1.000, i.e. it is the Zimm↔Rouse pair and folding
 it into plain "agree" would have inflated the headline.
 
+**The most robust result was NOT the one being measured — the PAIR beats
+either member.** One of the two labels is correct **96%** (agree), **89%**
+(disagree), **100%** (degenerate pair), against 0.875/0.900 for the two methods
+taken singly over the whole set. So even where neither brain is individually
+reliable, the pair is usually the right *shortlist*. `report.py`'s renderer
+therefore prints `YOUR SHORTLIST: A or B` on any disagreement and frames it as
+a two-item list to settle with outside knowledge — never a winner with a
+dissent attached, and never averaged into one verdict, which would destroy
+exactly this. `pair_note()` in `neural_report.py`; the quoted constants are
+pinned against `docs/agreement_measurement_2026-09-09.txt` by a test so the
+user-facing numbers cannot drift from the run they came from.
+
 This is REPORTING ONLY: `identify()`'s contract is untouched, and `report.py`
 still imports no torch (the dependency runs `neural_report` → `report`, never
 back).

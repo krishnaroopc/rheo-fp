@@ -267,3 +267,86 @@ def test_a_temperature_stack_goes_through_the_same_path_as_one_curve():
     p_one, _ = predict(model, norm, classes, curves[:1])
     assert p_stack.shape == p_one.shape == (len(classes),)
     assert np.isclose(p_stack.sum(), 1.0) and np.isclose(p_one.sum(), 1.0)
+
+
+# ── what the PAIR is worth, as distinct from either label ────────────────
+
+def test_a_disagreement_offers_the_two_labels_as_a_shortlist():
+    """The most robust thing the n=200 measurement produced, and it was not
+    the thing being measured: one of the two labels is right ~89% of the time
+    on disagreements, where each method ALONE is right 39-50%. So the pair is
+    worth much more than the argument about which of them wins, and the report
+    has to hand it over as a shortlist rather than a winner plus a dissent."""
+    n = neural_column(_probs(cured_elastomer=0.8), CLASSES, 0.1)
+    a = agreement("branched", n, [{"name": "branched", "delta": 0.0},
+                                  {"name": "cured_elastomer", "delta": 300.0}])
+    assert a["pair"] == ["branched", "cured_elastomer"]      # sorted, both named
+    assert a["pair_note"] and "TAKE THE TWO TOGETHER" in a["pair_note"]
+
+
+def test_agreement_on_one_class_offers_no_pair():
+    """There is no shortlist when both methods named the same class."""
+    n = neural_column(_probs(branched=0.9), CLASSES, 0.02)
+    a = agreement("branched", n, [{"name": "branched", "delta": 0.0}])
+    assert a["pair"] is None
+    assert a["pair_note"] is None
+
+
+def test_the_degenerate_pair_gets_its_own_stronger_shortlist_claim():
+    """On the known-degenerate split the measurement is stronger still - one
+    of the two was right in 100% of planted cases, against ~36% for the
+    fitting side alone - and the actionable advice is different: outside
+    knowledge (solvent quality, whether it was crosslinked) settles it."""
+    n = neural_column(_probs(rouse_screened=0.8), CLASSES, 0.05)
+    a = agreement("zimm", n, [{"name": "zimm", "delta": 0.0},
+                              {"name": "rouse_screened", "delta": 0.4}])
+    assert a["pair"] == ["rouse_screened", "zimm"]
+    assert "100%" in a["pair_note"]
+
+
+def test_no_text_claims_agreement_beats_the_other_confidence_scores():
+    """The n=200 measurement REFUTED that claim (0.940 vs 0.934 at matched
+    coverage, +0.006, inside sampling error), and an earlier draft of this
+    module asserted it in two places. The honest framing is that agreement is
+    INDEPENDENT of both and so fails differently - never that it is better."""
+    from rheofp.neural_report import _agreement_text
+    for kind in ("agree", "agree_degenerate", "disagree_ranked", "disagree"):
+        n = neural_column(_probs(star=0.8), CLASSES, 0.1)
+        txt = _agreement_text(kind, "branched", n, 5.0).lower()
+        assert "worth more than either" not in txt
+        assert "stronger evidence than either" not in txt
+
+
+def test_the_quoted_accuracies_match_the_committed_measurement():
+    """The user-facing text quotes measured numbers, so they must not drift
+    from the run they came from. Pins them against the committed output of
+    scripts/measure_agreement.py rather than against a copy of the numbers."""
+    import re
+    from rheofp import neural_report as nr
+
+    path = "docs/agreement_measurement_2026-09-09.txt"
+    text = open(path, encoding="utf-8").read()
+
+    m = re.search(r"^(\d+) planted curves", text, re.M)
+    assert m and int(m.group(1)) == nr.AGREE_N
+
+    def row(label):
+        m = re.search(rf"^{re.escape(label)}\s+(\d+)\s+([\d.]+)\s+([\d.]+)",
+                      text, re.M)
+        assert m, f"row {label!r} not found in {path}"
+        return float(m.group(2)), float(m.group(3))
+
+    phys_a, neur_a = row("agree (any kind)")
+    phys_d, _ = row("disagree (any)")
+    assert phys_a == nr.AGREE_ACC_PHYS
+    assert neur_a == nr.AGREE_ACC_NEURAL
+    assert phys_d == nr.DISAGREE_ACC_PHYS
+
+    m = re.search(r"keep top \d+% by network p\s*:\s*neural acc ([\d.]+)", text)
+    assert m and float(m.group(1)) == nr.AGREE_ACC_GATE_BASELINE
+
+    # and the honest reading of those two numbers must still hold
+    assert nr.DISAGREE_ACC_PHYS < 0.5 * nr.AGREE_ACC_PHYS + 0.1, \
+        "disagreement should more than halve the physics side"
+    assert abs(nr.AGREE_ACC_NEURAL - nr.AGREE_ACC_GATE_BASELINE) < 0.02, \
+        "the gate margin is inside noise; do not claim agreement is better"

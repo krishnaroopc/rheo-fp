@@ -152,6 +152,17 @@ self-confidences, and therefore fails differently from them - not as one that
 is measurably better. Full numbers in
 `docs/agreement_measurement_2026-09-09.txt`.
 
+**The most useful thing that measurement produced was not the thing being
+measured.** Taking the two labels *together*, one of them is the correct one
+**96%** of the time where the methods agree, **89%** where they disagree, and
+**100%** across the known-degenerate pair - even though on those disagreement
+cases each method alone is right only 39-50% of the time. So the pair is far
+more trustworthy than the argument about which member of it wins. On a
+disagreement the report therefore prints **`YOUR SHORTLIST: A or B`** and says
+plainly that this is a two-item list to settle with what you already know about
+your sample, not one answer with a dissent attached. A single averaged verdict
+would have destroyed exactly that.
+
 Requires a trained checkpoint, which is gitignored and reproducible; without
 one the flag prints how to make one and the rest of the report is unaffected.
 

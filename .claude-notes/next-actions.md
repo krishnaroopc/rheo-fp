@@ -88,23 +88,29 @@ an uncontested winner.)
 
 ### What is genuinely next, in the order I would take it
 
-1. ~~Measure the agreement signal on synthetic data~~ — **DONE, n=200, see
-   above.** If it is ever re-run, the obvious next step is **more n on the
-   disagree arm specifically** (only 18 of 200 curves landed there, which is
-   why the gate comparison cannot separate +0.006 from noise). n=60/class would
-   put ~54 curves in that arm. Rerun cost is ~11 s/curve, so n=60/class is
-   roughly 2 hours — background it.
+1. ~~Measure the agreement signal on synthetic data~~ — **DONE at n=200
+   (seed 7), and RE-RUN at n=600 (60/class, seed 11) on 2026-09-10** to put
+   ~54 curves in the disagree arm instead of 18, which is what the n=200 gate
+   comparison could not resolve. **If the n=600 numbers are not yet written
+   into this file, the run did not finish — re-run it:**
+   `uv run python scripts/measure_agreement.py -n 60 --restarts 8 --seed 11`
+   (~2 h; background it). Seed 11 is deliberately NOT seed 7, so the two runs
+   are independent samples rather than nested.
 2. **Do NOT wire agreement into `identify()` yet.** The n=200 result does not
    justify it: the flag is not measurably better than the network's own
    confidence, and `identify()`'s contract is depended on by the tests, the
-   validation scripts and the ML baseline (DECISION 2). Revisit only if a
+   validation scripts and the ML baseline (DECISION 2). Revisit only if the
    larger disagree arm shows a real margin.
-3. **A cheaper idea the measurement actually supports:** `either right` is
-   **0.962** where the two agree and **0.889** even where they disagree, and
-   **1.000** on the `agree_degenerate` group. So the pair of brains together
-   almost always contains the right answer even when neither is individually
-   reliable — which argues for reporting BOTH labels prominently on a
-   disagreement (already done) rather than trying to pick a winner.
+3. ~~Report both labels as a shortlist~~ — **DONE 2026-09-10.** `pair_note()`
+   in `neural_report.py`; the renderer prints `YOUR SHORTLIST: A or B` on any
+   disagreement, with the measured worth of the pair (96% agree / 89% disagree
+   / 100% degenerate, against 0.875-0.900 for either method alone). Framed as
+   a two-item list to settle with outside knowledge, never as a winner with a
+   dissent, and never averaged — averaging would destroy the one robust
+   result here. 5 tests, one of which **pins the quoted constants against
+   `docs/agreement_measurement_2026-09-09.txt`** so user-facing numbers cannot
+   drift from the run they came from, and one of which asserts no text ever
+   re-acquires the refuted "better than either confidence score" claim.
 4. The star caveat and the `unopposed_after_discard` link are both prose in
    `challenge()`. Neither has been read by a rheologist other than the user.
 
