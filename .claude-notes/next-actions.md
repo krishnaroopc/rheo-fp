@@ -110,12 +110,31 @@ an uncontested winner.)
    n=200 verdict was WITHDRAWN by the larger run — see the summary at the
    top of this file, and do not quote the n=200 numbers as current.**
 2. **Still do NOT wire agreement into `identify()`.** The margin improved
-   (+0.006 → +0.019, ~1.7 SE) but 1.7 SE is not a basis for changing a
-   contract the tests, validation scripts and ML baseline all depend on
-   (DECISION 2). **What would settle it:** another independent seed at
-   n=60/class. If the gate margin lands ≥ +0.015 again, that is two
-   independent runs agreeing and the case is made; if it collapses toward
-   zero, n=600 was the fluke. ~2 h, background it.
+   (+0.006 → +0.019, ~1.8 SE) but that is not a basis for changing a contract
+   the tests, validation scripts and ML baseline all depend on (DECISION 2).
+
+   **THIRD RUN IN FLIGHT — seed 23, n=60/class, started 2026-09-10.** Output
+   goes to `docs/agreement_measurement_seed23_*.txt`. **If that file is not in
+   the repo, the run did not finish — re-run it:**
+   `uv run python scripts/measure_agreement.py -n 60 --restarts 8 --seed 23`
+   (~2 h; background it).
+
+   **>>> PRE-REGISTERED DECISION RULE, written BEFORE the numbers existed <<<**
+   The quantity is the gate margin = (neural accuracy where the two agree)
+   − (neural accuracy keeping the top-N% by the network's own probability, at
+   matched coverage). Prior runs: seed 7 **+0.006** (0.3 SE), seed 11
+   **+0.019** (1.8 SE). SE at n=600 is ~0.011.
+
+   | seed-23 margin | verdict | action |
+   |---|---|---|
+   | **≥ +0.015** | CONFIRM | two independent runs agree; the case is made, and wiring it into `identify()` becomes a live proposal to put to the user |
+   | **≤ +0.005** | REFUTE | seed 11 was the fluke; revert to the n=200 reading and say so plainly |
+   | between | AMBIGUOUS | report as unresolved; **do NOT pick a side** |
+
+   This rule exists because the same mistake has now been made twice in this
+   file (see the "4th instance" note in the recurring-lessons memory): a result
+   was read after the fact as whatever it happened to be. Do not renegotiate
+   the thresholds once the number is known.
 3. ~~Report both labels as a shortlist~~ — **DONE 2026-09-10.** `pair_note()`
    in `neural_report.py`; the renderer prints `YOUR SHORTLIST: A or B` on any
    disagreement, with the measured worth of the pair (96% agree / 89% disagree
