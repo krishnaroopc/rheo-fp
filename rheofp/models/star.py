@@ -146,12 +146,41 @@ wrong by a median 44%:
   pins this.
 
 Z IS STILL BIASED HIGH by 17-84% on that set and is NOT a quantitative output.
-Two separate reasons, both real: the mid-Z samples (Z ~ 7-9) do not have
-enough barrier for the retraction picture to dominate - the terminal peak and
-the Rouse regime sit about a decade apart, with no window between them - and
-`Z_BOUNDS` starts at 4, so genuinely weakly-entangled arms (the Ma 17k and
-11.4k samples, true Z 3.4 and 2.2) cannot be fitted correctly at all. Report
-"star", not "Z = ...", until this is resolved.
+Report "star", not "Z = ...".
+
+  THE CAUSE IS NOT `Z_BOUNDS`, and an earlier version of this docstring said
+  it was - corrected 2026-09-09 after measuring it. The claim was that the
+  floor of 4 makes the weakly-entangled arms (Ma 17k and 11.4k, true Z 3.4 and
+  2.2) "unfittable by construction". It does not: those two fit at Z = 9.12 and
+  6.66, both far ABOVE the floor, and dropping the floor to 3 or 2 moves
+  neither (a test pins this). What actually happens is that below Z ~ 4 the
+  retraction barrier is only ~1-2 kBT and the activated terminal time sits
+  under a decade above the arm's own Rouse time Z^2 tau_e, so there is no
+  star-specific shape left in the curve and the cost is FLAT in Z. Z is
+  unidentifiable there whatever the bound - which is what the floor was
+  asserting in the first place. Leave it at 4.
+
+REAL-DATA SCOPE, measured on MM1998's seven-star set (scripts/
+validate_star_real.py). `identify()` returns `star` on 5/7, and the split is
+not about Z - it is about whether the window reaches TERMINAL FLOW:
+
+  Z 3.4 - 9.4, terminal flow observed   ->  star wins by dAICc 93-225,
+                                            rms 0.024-0.041. Decisive; this
+                                            band is where the class is earned.
+  Z 2.2, terminal flow observed         ->  star wins, but by dAICc 4.8 with
+                                            its rms TIED to branched's. Won on
+                                            parsimony (k=3 vs 5), not on fit.
+  Z 19, 21, no terminal flow            ->  LOST to branched by dAICc 57 and
+                                            103. star's 3 parameters cannot
+                                            bend to a truncated terminal zone;
+                                            BSW's two free wedges can.
+
+All four real-data failures across both datasets - these two misses, plus
+Santangelo's S490 and its LINEAR control returned as `star` - are curves with
+terminal_reached = False. Where flow IS observed the class is 5/5.
+DO NOT turn that into a pre-filter discard: an unobserved terminal zone is
+missing evidence, not evidence against a star, which is the exact fallacy
+already removed once from `has_shoulder`. It belongs in the report.
 
 KNOWN LIMIT, not yet resolved: the terminal time moves only ~0.16 decades
 between alpha = 1 and alpha = 4/3, where Ueff(1) alone would imply ~1.03. The
@@ -207,7 +236,13 @@ MODE_COUNT_CAP = 4000
 
 # Entanglements per arm. The lower end is where "star melt" stops meaning
 # anything - below ~4 entanglements there is no barrier to speak of and the
-# arm is effectively Rouse. The upper end is set by what SAOS can carry: at
+# arm is effectively Rouse. MEASURED 2026-09-09, so this is not a guess:
+# Ueff(1) is 1.9 kBT at Z = 4 and 1.1 kBT at Z = 2.3, and the activated
+# terminal time sits only 1.1 / 0.75 decades above the arm's own Rouse time
+# Z^2 tau_e. Lowering this floor does NOT improve Z recovery on the real
+# weakly-entangled arms - it is not what binds them (see the docstring and
+# test_lowering_the_Z_bounds_floor_does_not_rescue_weakly_entangled_arms).
+# The upper end is set by what SAOS can carry: at
 # Z ~ 60 the terminal time is already ~13 decades above tau_e, so the terminal
 # zone leaves any realistic window and Z stops being measurable from the
 # spectrum shape. Kept linear (not log10) because the barrier is linear in Z.
@@ -516,8 +551,10 @@ STAR_BNDS = [(-4, 9), Z_BOUNDS, (-10, 2)]
 
 # registry: name -> (forward, p0, bounds, k_params), same shape as
 # rheofp.models.solutions.MODELS and network.NETWORK_MODELS so the banks can be
-# merged by identify(). NOT yet merged into ALL_MODELS - the cannibalisation
-# check against `branched` has to run first (next-actions, star task step 3).
+# merged by identify(). MERGED into ALL_MODELS 2026-09-09, after the
+# cannibalisation check against `branched` passed (see
+# scripts/check_star_cannibalisation.py; `branched` was silently absorbing
+# 25/30 planted star melts before this class existed).
 STAR_MODELS = {
     "star": (model_star, STAR_P0, STAR_BNDS, 3),
 }

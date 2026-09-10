@@ -354,3 +354,87 @@ def test_identify_recovers_a_planted_star_melt():
     w = np.logspace(-2, 4, 60)
     Gp, Gpp = star_spectrum(w, 1e6, 20.0, 1e-5)
     assert identify(w, Gp, Gpp, n_restarts=8)["best"] == "star"
+
+
+# --- real data: the class's measured scope (step 4, 2026-09-09) -------------
+#
+# Milner-McLeish 1998's own seven-star validation set, Z = Ma/Me known from
+# GPC. identify() returns `star` on five of the seven; the two misses are the
+# two largest arms, and they are exactly the two curves whose window never
+# reaches terminal flow. The tests below pin that split, because it IS the
+# class's real-data warrant and it would otherwise regress silently.
+
+# sample -> (Z_true, terminal flow observed?)
+MM1998_SAMPLES = {
+    "PI4_Ma11k": (2.20, True), "PI4_Ma17k": (3.40, True),
+    "PI4_Ma36k": (7.20, True), "PI4_Ma44k": (8.80, True),
+    "PI4_Ma47k": (9.40, True), "PI4_Ma95k": (19.00, False),
+    "PI4_Ma105k": (21.00, False),
+}
+
+
+@pytest.mark.parametrize("sample", list(MM1998_SAMPLES))
+def test_mm1998_terminal_flow_splits_exactly_at_the_two_largest_arms(sample):
+    """Cheap (features only) and it is the precondition the class depends on.
+
+    Every MM1998 curve the class gets right reaches terminal flow; both misses
+    do not. Note this must NOT become a pre-filter discard - an unobserved
+    terminal zone is missing evidence, not evidence against a star (the
+    `has_shoulder` lesson, see next-actions).
+    """
+    from rheofp.io.data import load_npz
+    from rheofp.fitting.identify import signature_features
+    s = load_npz("data/mm1998.npz")[sample]
+    feats, _ = signature_features(s["omega"], s["Gp"], s["Gpp"])
+    # signature_features returns np.bool_, so compare by value not identity.
+    assert bool(feats["terminal_reached"]) is MM1998_SAMPLES[sample][1]
+
+
+def test_mm1998_mid_band_star_is_identified_decisively_on_real_data():
+    """Ma36k, Z = 7.2: the cleanest of the five hits.
+
+    star wins by dAICc 225 with rms 0.025 against branched's 0.062 - a
+    decisive win on real data from a paper that measured Z independently, not
+    a parsimony tie. Contrast the Z = 2.2 arm, where star still wins but only
+    by dAICc ~5 with the rms tied, because below Z ~ 4 the retraction barrier
+    is ~1 kT and there is no star-specific shape left to detect.
+    """
+    from rheofp.io.data import load_npz
+    from rheofp.fitting.identify import identify
+    s = load_npz("data/mm1998.npz")["PI4_Ma36k"]
+    out = identify(s["omega"], s["Gp"], s["Gpp"], n_restarts=8)
+    assert out["best"] == "star"
+    star_row = next(r for r in out["ranking"] if r["name"] == "star")
+    assert star_row["rms_log"] < 0.04
+    runner_up = out["ranking"][1]
+    assert runner_up["delta"] > 50.0
+
+
+def test_lowering_the_Z_bounds_floor_does_not_rescue_weakly_entangled_arms():
+    """The floor of 4 is a scope statement, not the thing clamping these fits.
+
+    Measured 2026-09-09 on the two genuinely weakly-entangled arms (true Z
+    3.40 and 2.20): the fitted Z sits at 9.12 and 6.66, both far ABOVE the
+    floor, and dropping the floor to 3 or 2 moves neither. So the earlier note
+    that the floor makes these "unfittable by construction" was wrong - what
+    actually happens is that below Z ~ 4 the cost is flat in Z (no barrier, no
+    distinguishable shape), so Z is unidentifiable there whatever the bound.
+    identify() still returns `star` for both; only Z is wrong, and Z is
+    already declared a non-reportable output.
+    """
+    from rheofp.io.data import load_npz
+    d = load_npz("data/mm1998.npz")
+    orig = star.Z_BOUNDS
+    try:
+        for sample in ("PI4_Ma17k", "PI4_Ma11k"):
+            s = d[sample]
+            fits = {}
+            for floor in (4.0, 2.0):
+                star.Z_BOUNDS = (floor, orig[1])
+                fits[floor] = fit_star(s["omega"], s["Gp"], s["Gpp"],
+                                       n_restarts=16, seed=0)
+            # Not sitting on the bound at either setting, and unmoved by it.
+            assert fits[4.0]["Z"] > 4.5, sample
+            assert fits[2.0]["Z"] == pytest.approx(fits[4.0]["Z"], rel=0.05)
+    finally:
+        star.Z_BOUNDS = orig

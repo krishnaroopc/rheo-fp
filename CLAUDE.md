@@ -210,16 +210,40 @@ planted curves — which would have taught the classifier that stars never flow,
 a spurious discriminator of exactly the shape of the fixed-density bug. Range
 is now (-3, 1), measured at 51% terminal_reached (n=120); **re-measure that
 fraction if the range is ever touched.**
-**Real-data validation (step 4) — started 2026-09-09, PARTIAL.** Two datasets
-prep'd and committed: `data/mm1998.npz` (7 monodisperse four-arm PI stars, Z
-known from Ma/Me; Milner-McLeish 1998) and `data/santangelo1999.npz` (2 six-arm
-PIB stars + a LINEAR control). `identify()` returns `star` for **5/7** MM1998
-stars; the two misses are the highest-Z arms → `branched`. **`Z` is NOT a
-reportable output** — biased +17-84% — for two real reasons: mid-Z arms lack
-enough barrier, and `Z_BOUNDS` floors at 4. Report "star", never "Z = ...".
-Santangelo's window never reaches flow (its own caption: ω² "not attained ...
-due to polydispersity") so it can't test Z, and its linear control is a
-documented false positive. `star` is deliberately NOT in `AMBIGUOUS_PAIRS` —
+**Real-data validation (step 4) — COMPLETE 2026-09-09.** Two datasets prep'd
+and committed: `data/mm1998.npz` (7 monodisperse four-arm PI stars, Z known
+from Ma/Me; Milner-McLeish 1998) and `data/santangelo1999.npz` (2 six-arm PIB
+stars + a LINEAR control). `identify()` returns `star` for **5/7** MM1998
+stars.
+
+**The split is governed by TERMINAL FLOW, not by Z** — this is the class's
+real operating envelope and it was measured, not assumed. Where flow is
+observed the class is **5/5**; where it is not it is **1/5**, and all four
+real-data failures across both datasets sit on the wrong side of that line:
+the two MM1998 misses (Z 19 and 21 → `branched`, ΔAICc 57 and 103 — genuine
+losses with star's rms 20-55% worse, NOT zimm-style ties), Santangelo's S490,
+and Santangelo's **linear control returned as `star`**. A non-terminal window
+makes the class fail in both directions. The cause is truncation, not narrow
+windows — MM1998's windows cover 104-211% of the model's own predicted
+spectrum width; it is the low-frequency asymptote that is missing (Ma105k's
+terminal slopes are 1.40/0.70 against 2.0/1.0). In the good band the wins are
+decisive: ΔAICc 93-225 at rms 0.024-0.041, except the Z = 2.2 arm which wins
+by only ΔAICc 4.8 with its rms tied to `branched` — won on parsimony, because
+below Z ≈ 4 there is no star-specific shape left.
+**This must NOT become a pre-filter discard** (`if not terminal_reached: drop
+star`) — that is the `has_shoulder` missing-evidence fallacy again, and it
+would delete the class exactly where a real star is hardest to see. It belongs
+in `report.py`; whether to add a star-specific caveat there is the one open
+item, see next-actions.
+
+**`Z` is NOT a reportable output** — biased +17-84%. Report "star", never
+"Z = ...". **The cause is NOT `Z_BOUNDS`' floor of 4**, and an earlier version
+of this file said it was: refitting at floors 4/3/2/1 leaves the two
+weakly-entangled arms at Z = 9.12 and 6.66, far above the floor and unmoved by
+it. Below Z ≈ 4 the cost is simply FLAT in Z (Ueff(1) ≈ 1-2 k_BT; the
+activated time sits under ~1 decade above the arm's own Rouse time), so Z is
+unidentifiable there whatever the bound — which is what the floor was
+asserting. Leave it at 4. `star` is deliberately NOT in `AMBIGUOUS_PAIRS` —
 see next-actions.
 
 **Two bugs in `rheofp/models/star.py` found and fixed by that validation
@@ -282,11 +306,13 @@ removing the network classes; `wide_plateau` gating reptation).
    Two-head set model (conv encoder -> masked attention pool -> classify +
    regress) with a learned abstention head, on the frozen architecture.
 
-**Current state (2026-09-09, retrained) — these are 10-CLASS numbers.** 182
-tests pass (2 skipped) as of the retrain; `tests/test_star.py` grew to 31 with
-the later star.py fixes (all pass) but the full non-slow suite was not re-run
-after those — a laptop task, see next-actions. Retrained on the ten-class
-distribution after `star` was added (16k examples, 55 epochs, seed 1, office PC).
+**Current state (2026-09-09, retrained) — these are 10-CLASS numbers.**
+**194 tests pass, 2 skipped** — the full non-slow suite re-run on the laptop
+after the two `star.py` fixes and the step-4 real-data tests (12:15 on an
+i7-10750H; it was 185 before those 9 tests were added), so the suite is green
+against the current code, not just against the retrain snapshot. Retrained on
+the ten-class distribution after `star` was added (16k examples, 55 epochs,
+seed 1, office PC).
 
 On synthetic data the classifier scores **0.923** (merged-pair **0.968**,
 regime **0.999**) against an AICc physics baseline of **0.907** measured on the
@@ -326,8 +352,11 @@ gel, Pivokonsky 2006 LDPE), raw == resampled so the density invariance holds.
 The AICc side's own 6/6 was re-confirmed with the 10-model bank on 2026-09-09.
 Read that 6/6 carefully: six curves, three papers, all N=1, four of them the
 same material family — it confirms the BSW fix worked, it is not evidence of
-general real-world accuracy. **`star` has NO real-data validation at all** —
-step 4, blocked on star melt data.
+general real-world accuracy. **`star` now HAS real-data validation** (step 4
+complete, 2026-09-09): 5/7 on Milner-McLeish 1998's own seven-star set, and
+5/5 restricted to curves that reach terminal flow — but read the envelope in
+the star paragraph above, and note that the 6/6 benchmark figure does not
+include any star curve.
 
 **Both real temperature stacks tested so far (Edera 2024, Ricarte 2023 —
 vitrimers) confirm the STACK MECHANISM but fail the FINE CLASS.**

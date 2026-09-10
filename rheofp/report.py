@@ -385,8 +385,9 @@ def challenge(result, max_named=3, w=None, Gp=None, Gpp=None):
             "text": (
                 f"No model in the bank fits this data well - the best is "
                 f"{winner['name']} at {winner['rms_log']:.3f} decades, which "
-                "is poor in absolute terms. A material outside the nine "
-                "classes looks exactly like this. Treat the label as a guess."),
+                f"is poor in absolute terms. A material outside the bank's "
+                f"{len(ALL_MODELS)} classes looks exactly like this. Treat "
+                f"the label as a guess."),
         })
     else:
         items.append({
@@ -432,12 +433,13 @@ def challenge(result, max_named=3, w=None, Gp=None, Gpp=None):
     items.append({
         "kind": "out_of_taxonomy",
         "text": (
-            "Only nine classes exist in this bank. Polymer blends, block "
-            "copolymers, star and comb architectures, semicrystalline and "
-            "filled melts are NOT among them, and none of them are visible "
-            "by eye either. If your sample is one of those, the classifier "
-            "will still return one of its nine - and if the wrong class "
-            "happens to fit well, nothing here will say so."),
+            f"Only {len(ALL_MODELS)} classes exist in this bank. Polymer "
+            f"blends, block copolymers, comb architectures, semicrystalline "
+            f"and filled melts are NOT among them, and none of them are "
+            f"visible by eye either. If your sample is one of those, the "
+            f"classifier will still return one of its {len(ALL_MODELS)} - and "
+            f"if the wrong class happens to fit well, nothing here will say "
+            f"so."),
     })
     if not feats["terminal_reached"]:
         items.append({

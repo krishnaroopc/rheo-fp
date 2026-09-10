@@ -23,17 +23,23 @@ are now 10-class and current: **0.923** synthetic, **0.907** paired physics
 baseline, **6/6** real data, `star` at **0.996**. See the RETRAIN DONE section
 below for the full table and the three decisions it settled.
 
-**>>> ACTIVE TASK (set 2026-09-09 end of session, FOR THE LAPTOP) <<<**
+**>>> ~~ACTIVE TASK FOR THE LAPTOP~~ — BOOTSTRAP + STEP 4 BOTH DONE 2026-09-09 <<<**
 
-**The laptop was formatted and reinstalled with Windows 11.** Before anything
-else, follow **">>> BOOTSTRAP A FRESHLY-FORMATTED WINDOWS PC <<<"** at the top
-of `.claude-notes/environment.md` (install git + uv + VS Code; do NOT install
-Python; clone; `uv sync`; `uv run pytest -m "not slow"`).
+**Laptop bootstrap COMPLETE** (i7-10750H, 32 GB, GTX 1660 Ti). Installed uv
+0.12.12 via winget; git + GitHub CLI + VS Code were already present; set the
+global git identity; `uv sync` reproduced the env first try (Python 3.12.14,
+`torch 2.13.0+cpu` as designed on Windows). **`uv run pytest -m "not slow"` ->
+185 passed, 2 skipped in 14:31.** Note the repo lives at
+`C:\Users\krish\repos\rheo-fp` on this machine, not the `C:\Users\krish\rheo-fp`
+the bootstrap section assumes — harmless, but absolute paths in notes will be
+off by one directory here. `originals/` junction NOT set up (optional; nothing
+is blocked by it).
 
-**Then: finish the `star` real-data validation.** Step 4 was started and got a
-long way — two real bugs found and fixed in `rheofp/models/star.py` — but it is
-NOT finished. Read the 2026-09-09 part-2 entry in `sessions.md` first; the
-short version:
+**STEP 4 IS NOW CLOSED — see "STEP 4 RESOLVED" below for the numbers.** Both
+open questions turned out to have answers that contradicted the guesses in
+this file, so read that section rather than the brief that follows it.
+
+The original brief, kept because its items 1-3 are the record:
 
 1. **CANNIBALISATION CHECK — DONE, PASSED.** Matched before/after, identical
    seed 11 and n=20/class, 12 restarts, the OLD forward model reproduced
@@ -49,23 +55,88 @@ short version:
    diff is one line. NOTE this n=20/seed-11 run is NOT comparable to the
    published 0.885 (n=30, different seeds) — it is an internal before/after
    only. If you want a headline number, re-run at n=30 with the standard seeds.
-2. **Run the full suite** — `uv run pytest -m "not slow"`. It was interrupted
-   at session end (user stopped for the day). `tests/test_star.py` alone was
-   31/31; the rest is expected to pass but was NOT confirmed this session.
-   Expect ~185 passed, 2 skipped.
+2. **Run the full suite** — **DONE on the laptop: 185 passed, 2 skipped, 14:31
+   at bootstrap; 194 passed, 2 skipped, 12:15 after the 9 step-4 tests below.**
+   `tests/test_star.py` is now **40** (was 31), running in 54 s.
 3. **Real data held 6/6** at session end; MM1998 was 5/7 on `identify()`.
-4. Then decide what to do about the two misses (highest-Z arms -> `branched`)
-   and about `Z_BOUNDS`' floor of 4, which makes genuinely weakly-entangled
-   arms unfittable by construction.
-5. Update CLAUDE.md's "Star-polymer melts" paragraph and "Current state" with
-   the star.py fixes once the suite is confirmed green.
+   Both reconfirmed on the laptop.
+4. ~~Decide about the two misses and `Z_BOUNDS`~~ — **RESOLVED, see below.**
+5. ~~Update CLAUDE.md~~ — **DONE.**
+
+### STEP 4 RESOLVED 2026-09-09 (laptop) — both answers contradicted the guess
+
+**(a) `Z_BOUNDS`' floor of 4 is NOT what binds the weakly-entangled arms, and
+this file's claim that it makes them "unfittable by construction" was WRONG.**
+Measured by refitting at floors 4 / 3 / 2 / 1:
+
+| sample | Z_true | flr=4 | flr=3 | flr=2 | flr=1 |
+|---|---|---|---|---|---|
+| PI4_Ma17k | 3.40 | 9.12 | 9.12 | 9.12 | 9.12 |
+| PI4_Ma11k | 2.20 | 6.66 | 6.66 | 6.66 | 2.45 |
+
+Neither fit ever sits ON the floor, so nothing is being clamped. The real
+cause is that **below Z ~ 4 the cost is FLAT in Z**: `Ueff(1)` is 1.9 kBT at
+Z = 4 and 1.1 kBT at Z = 2.3, and the activated terminal time sits only
+1.1 / 0.75 decades above the arm's own Rouse time `Z^2 tau_e`, so there is no
+star-specific shape left to measure. (Ma11k's jump to 2.45 at floor 1 is a
+second, equally-good minimum — rms 0.0311 vs 0.0313 — that happens to land
+near truth for one of two samples. Luck, not recovery.) **Decision: leave the
+floor at 4.** It was asserting exactly the right thing. Pinned by
+`test_lowering_the_Z_bounds_floor_does_not_rescue_weakly_entangled_arms`, and
+`identify()` returns `star` for both samples anyway — only Z is wrong, and Z
+is already non-reportable.
+
+**(b) The two misses are DECISIVE losses, not ties — and the real predictor is
+`terminal_reached`, not Z.** Full rankings:
+
+| sample | Z_true | terminal? | winner | star's dAICc | star rms | branched rms |
+|---|---|---|---|---|---|---|
+| Ma11k | 2.20 | yes | **star** | 0.00 | 0.0307 | 0.0308 (d 4.8) |
+| Ma17k | 3.40 | yes | **star** | 0.00 | 0.0242 | 0.0551 (d 202) |
+| Ma36k | 7.20 | yes | **star** | 0.00 | 0.0246 | 0.0616 (d 225) |
+| Ma44k | 8.80 | yes | **star** | 0.00 | 0.0334 | 0.0735 (d 194) |
+| Ma47k | 9.40 | yes | **star** | 0.00 | 0.0407 | 0.0590 (d 93) |
+| Ma95k | 19.0 | **no** | branched | **56.6** | 0.0986 | 0.0765 |
+| Ma105k | 21.0 | **no** | branched | **102.6** | 0.1282 | 0.0822 |
+
+Not the zimm-style exact tie: star's rms is 20-55% worse on the two misses.
+Cause is truncation of the terminal zone — star has 3 parameters and cannot
+bend to a cropped terminal, BSW's two free power-law wedges can. Windows are
+NOT too narrow (104-211% of the model's own predicted spectrum width at the
+true Z); it is specifically the low-frequency asymptote that is missing
+(Ma105k's terminal slopes are 1.40 / 0.70 against the 2.0 / 1.0 limit).
+
+**The unified finding, and the useful one: `terminal_reached` predicts the
+class's correctness on real data almost perfectly.**
+
+| terminal_reached | correct | wrong |
+|---|---|---|
+| True (5 curves) | **5/5** | 0 |
+| False (5 curves) | 1/5 | **4** |
+
+All four real-data failures across BOTH datasets sit in the False row — the
+two MM1998 misses, Santangelo's S490, and (the one that matters most)
+Santangelo's **LINEAR control returned as `star`**. So a non-terminal window
+makes the class fail in both directions.
+
+**DO NOT turn that into a pre-filter discard.** `if not terminal_reached:
+allowed -= {star}` would be the `has_shoulder` fallacy a fourth time — an
+unobserved terminal zone is missing evidence, not evidence against a star, and
+it would delete the class on exactly the curves where a real star is hardest
+to see. It belongs in the REPORT. n=10 curves, so state it as a strong
+indication, not a law.
+
+**OPEN, needs a user decision (the only thing left here):** should
+`report.py` add a star-specific caveat when a `star` winner comes off a
+`terminal_reached = False` window — something like *"this star call rests on a
+window that never reached flow; the one linear control tested under that
+condition was also returned as star"*? Evidence for: 1 false positive in 1
+opportunity, and the report layer exists precisely for good-fits-of-the-wrong-
+class. Evidence against: n=1 on the false positive, and there is already a
+generic "window does not reach terminal flow" item in `challenge()`.
 
 **`Z` IS NOT A REPORTABLE OUTPUT** and that has not changed: still biased
 +17-84% on mm1998. The class says "star", never "Z = ...".
-
-**Nothing from this session is committed** — 7 modified + 5 new files in the
-tree. Commit before/while starting on the laptop, or pull whatever the office
-PC pushed.
 
 The preceding 2026-09-07 session (home PC, RTX A1000) closed the model-only
 tier, fixed a latent NaN in the AICc ranking, fixed the `has_shoulder`

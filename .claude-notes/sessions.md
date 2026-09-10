@@ -6,7 +6,67 @@ the end of each working session (what was discussed, decided, and changed).
 
 ---
 
-## 2026-09-09 (office PC, latest, part 2) — star REAL-DATA validation: two bugs found and fixed
+## 2026-09-09 (LAPTOP, latest) — laptop bootstrap + step 4 closed
+
+First session on the reformatted laptop (i7-10750H, 32 GB, GTX 1660 Ti).
+
+**Bootstrap.** git + GitHub CLI + VS Code were already installed; uv was not,
+and `.venv/` was absent. Installed uv 0.12.12 via winget, set the global git
+identity, `uv sync` reproduced the env first try (Python 3.12.14,
+`torch 2.13.0+cpu` — the intended Windows resolution, not a fault).
+**`uv run pytest -m "not slow"` -> 185 passed, 2 skipped, 14:31** (and 194
+passed, 2 skipped, 12:15 at end of session with the 9 new tests). Repo is at
+`C:\Users\krish\repos\rheo-fp` here, not the `C:\Users\krish\rheo-fp` the
+bootstrap section assumes. `originals/` junction not set up (optional).
+
+**Step 4 (star real-data validation) CLOSED. Both open questions had answers
+that contradicted what next-actions had guessed**, which is the reason this
+entry is worth reading rather than skimming.
+
+1. **`Z_BOUNDS`' floor of 4 was NOT making the weakly-entangled arms
+   unfittable.** That claim was in this file, in next-actions AND in star.py's
+   docstring, and it was wrong in all three. Refit at floors 4/3/2/1: the two
+   arms sit at Z = 9.12 and 6.66 regardless — far ABOVE the floor, never on it.
+   The actual cause is that below Z ~ 4 the cost is FLAT in Z, because
+   Ueff(1) is only 1-2 kBT there and the activated terminal time sits under a
+   decade above the arm's own Rouse time. So the floor was asserting exactly
+   the right thing and stays at 4. **The lesson is the project's recurring
+   one:** a plausible mechanical explanation ("a bound is clamping it") that
+   nobody had actually measured, and the measurement said otherwise. Cost of
+   checking: one 4-column table.
+2. **The two misses are decisive losses, not zimm-style ties** (dAICc 57 and
+   103, star's rms 20-55% worse), and **the predictor is `terminal_reached`,
+   not Z.** Where terminal flow is observed the class is 5/5; where it is not,
+   1/5 — and all four real-data failures across both datasets are in that
+   second row, including Santangelo's LINEAR control coming back as `star`.
+   A non-terminal window breaks the class in both directions.
+   Ruled out as the cause: narrow windows (MM1998 covers 104-211% of the
+   model's own predicted spectrum width at the true Z). It is specifically the
+   missing low-frequency asymptote.
+   **Explicitly NOT turned into a pre-filter discard** — that would be the
+   `has_shoulder` missing-evidence fallacy a fourth time. Left for the report
+   layer, with the decision put to the user.
+
+**Also found and fixed while in there: `report.py` was telling users, in
+user-facing output, that "only nine classes exist in this bank" and that "star
+and comb architectures" are NOT among them.** Both false since `star` was
+wired in. Now derived from `len(ALL_MODELS)` so it cannot go stale again, and
+"star" removed from the out-of-taxonomy list. The test that covers that block
+only asserted the item's `kind`, never its text, which is how it survived.
+
+**Files:** `tests/test_star.py` 31 -> **40** (7 parametrized terminal-flow
+tests + a decisive-win test on Ma36k + a Z_BOUNDS test that pins finding 1);
+docstring/bounds comment corrections in `rheofp/models/star.py`; the stale
+"NOT yet merged into ALL_MODELS" comment on `STAR_MODELS` fixed; `report.py`
+text fix; CLAUDE.md star paragraph + "Current state" rewritten with the real
+envelope.
+
+**Left open, needs a user decision:** whether `report.py` should add a
+star-specific caveat when a `star` winner comes off a non-terminal window.
+
+---
+
+## 2026-09-09 (office PC, part 2) — star REAL-DATA validation: two bugs found and fixed
 
 Continued the same session. User supplied two papers into `originals/`
 (`ma9815556.pdf` Santangelo-Roland-Puskas 1999; `ma980060d.pdf` Milner-McLeish
