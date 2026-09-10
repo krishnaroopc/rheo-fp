@@ -140,10 +140,20 @@ Measured on the seven-star Milner-McLeish 1998 set, the signal separates the
 fitter's hits from its misses exactly: the two curves it gets wrong (true
 stars called `branched`, at delta AICc 56.5 and 102.6 - decisive, and decisively
 wrong, with the abstention head reading 0.00) are the two where the network
-disagrees, and it agrees on all five it gets right. That is n=7: a strong
-indication, not a law. Requires a trained checkpoint, which is gitignored and
-reproducible; without one the flag prints how to make one and the rest of the
-report is unaffected.
+disagrees, and it agrees on all five it gets right.
+
+That is n=7, and the larger synthetic measurement is more sober -
+`scripts/measure_agreement.py` over 200 planted curves gives 0.923/0.940
+accuracy where the two agree against 0.389/0.500 where they disagree, so a
+disagreement more than halves the fitter's accuracy, but the flag does **not**
+clearly beat the network's own confidence as a gate (0.940 vs 0.934 at matched
+coverage). Read it as a signal that is genuinely *independent* of both
+self-confidences, and therefore fails differently from them - not as one that
+is measurably better. Full numbers in
+`docs/agreement_measurement_2026-09-09.txt`.
+
+Requires a trained checkpoint, which is gitignored and reproducible; without
+one the flag prints how to make one and the rest of the report is unaffected.
 
 ## Generating data and training the classifier
 

@@ -1,0 +1,46 @@
+  zimm               done (20)
+  rouse_screened     done (20)
+  reptation          done (20)
+  sticky_rouse       done (20)
+  sticky_reptation   done (20)
+  cured_elastomer    done (20)
+  critical_gel       done (20)
+  wormlike_micelle   done (20)
+  branched           done (20)
+  star               done (20)
+
+200 planted curves, 20/class, seed 7
+
+group                      n  phys acc  neural acc  either right
+----------------------------------------------------------------
+agree (any kind)         182     0.923       0.940         0.962
+  agree (exact)          171     0.959       0.959         0.959
+  agree_degenerate        11     0.364       0.636         1.000
+disagree (any)            18     0.389       0.500         0.889
+  disagree_ranked          6     0.333       0.500         0.833
+  disagree (sharp)        12     0.417       0.500         0.917
+ALL                      200     0.875       0.900         0.955
+
+GATE COMPARISON at matched coverage (91.0% of curves kept)
+----------------------------------------------------------------
+  keep where the two AGREE      : neural acc 0.940
+  keep top 91% by network p    : neural acc 0.934   (p >= 0.590)
+  keep top 91% by abstention   : neural acc 0.934   (abstain <= 0.352)
+
+  Agreement is only worth reporting if it competes with these -
+  it is INDEPENDENT of both, which the others cannot claim.
+
+MOST COMMON DISAGREEMENTS  (true -> phys / neural)
+----------------------------------------------------------------
+    3x  star               star               branched            right: phys
+    2x  rouse_screened     star               rouse_screened      right: neural
+    2x  reptation          zimm               reptation           right: neural
+    1x  zimm               star               zimm                right: neural
+    1x  zimm               zimm               branched            right: phys
+    1x  zimm               branched           rouse_screened      right: NEITHER
+    1x  rouse_screened     branched           wormlike_micelle    right: NEITHER
+    1x  reptation          reptation          sticky_rouse        right: phys
+    1x  sticky_reptation   sticky_rouse       sticky_reptation    right: neural
+    1x  sticky_reptation   reptation          sticky_reptation    right: neural
+    1x  sticky_reptation   rouse_screened     sticky_reptation    right: neural
+    1x  critical_gel       branched           critical_gel        right: neural

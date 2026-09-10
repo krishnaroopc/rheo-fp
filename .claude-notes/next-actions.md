@@ -54,14 +54,27 @@ discard/unopposed-winner link IS built (`unopposed_after_discard` in
 `challenge()`). Details and the measured payoff are in `sessions.md` under the
 office-PC entry; read that before extending either.
 
-**The one result to carry forward, because it is the strongest evidence this
-project has that the two-brain design was right:** on MM1998's seven-star set
+**READ BOTH MEASUREMENTS, NOT JUST THE PRETTY ONE.** On MM1998's seven-star set
 the agreement signal separates the AICc hits from the AICc misses PERFECTLY —
-agree on all 5 curves AICc gets right, disagree on both it gets wrong
-(Ma95k/Ma105k, true stars called `branched` at delta 56.5 and 102.6). Neither
-self-confidence flags those two: AICc is decisive, and the network's abstention
-head reads 0.00. Only the comparison does. n=7, so it is a strong indication,
-not a law — but there is no counterexample in it.
+agree on all 5 AICc gets right, disagree on both it gets wrong (Ma95k/Ma105k,
+true stars called `branched` at delta 56.5 and 102.6, where AICc is decisive
+and the abstention head reads 0.00, so neither self-confidence flags them).
+
+**Then it was measured at n=200 the same session and the headline did not
+hold** (`scripts/measure_agreement.py`, output in
+`docs/agreement_measurement_2026-09-09.txt`). Agree -> physics 0.923 / neural
+0.940; disagree -> 0.389 / 0.500. **A disagreement really does more than halve
+the physics side's accuracy — but the flag does NOT clearly beat the network's
+own top-class probability as a gate: 0.940 vs 0.934 at matched 91% coverage,
++0.006, inside sampling error at n=200.** The pre-registered claim is
+half-supported.
+
+**State it this way and do not upgrade it without more n:** agreement is
+INDEPENDENT of both self-confidences and so fails DIFFERENTLY from them; it is
+not measurably BETTER than them. Also: `star -> branched` shows up 3x in the
+synthetic disagreements with the PHYSICS side right — the opposite direction
+from MM1998 — so the real-data pattern does not generalise, and the n=7 result
+is a striking observation, not the general behaviour.
 
 **A next-actions claim was found WRONG and corrected — do not re-propagate
 it.** This file said the L176 false positive arose because "the pre-filter
@@ -75,19 +88,24 @@ an uncontested winner.)
 
 ### What is genuinely next, in the order I would take it
 
-1. **Measure the agreement signal on the SYNTHETIC test split.** The n=7 real
-   result above is the headline, but it is n=7. The honest question is: across
-   the 2400-curve test split, what is accuracy given `agree` vs given
-   `disagree`? If agreement is a usable reliability gate, that is where the
-   number comes from, and it is cheap — both brains already run over that
-   split in `scripts/train_classifier.py`'s baseline pass. Pre-register it:
-   the claim to test is "P(correct | agree) >> P(correct | disagree)".
-2. **Decide whether agreement should reach `identify()` at all.** Right now it
-   is reporting-only, deliberately (DECISION 2). If step 1 shows the gate is
-   strong, the question of whether a disagreement should raise abstention
-   becomes live — but that changes `identify()`'s contract, so it needs the
-   numbers first and a user decision second.
-3. The star caveat and the `unopposed_after_discard` link are both prose in
+1. ~~Measure the agreement signal on synthetic data~~ — **DONE, n=200, see
+   above.** If it is ever re-run, the obvious next step is **more n on the
+   disagree arm specifically** (only 18 of 200 curves landed there, which is
+   why the gate comparison cannot separate +0.006 from noise). n=60/class would
+   put ~54 curves in that arm. Rerun cost is ~11 s/curve, so n=60/class is
+   roughly 2 hours — background it.
+2. **Do NOT wire agreement into `identify()` yet.** The n=200 result does not
+   justify it: the flag is not measurably better than the network's own
+   confidence, and `identify()`'s contract is depended on by the tests, the
+   validation scripts and the ML baseline (DECISION 2). Revisit only if a
+   larger disagree arm shows a real margin.
+3. **A cheaper idea the measurement actually supports:** `either right` is
+   **0.962** where the two agree and **0.889** even where they disagree, and
+   **1.000** on the `agree_degenerate` group. So the pair of brains together
+   almost always contains the right answer even when neither is individually
+   reliable — which argues for reporting BOTH labels prominently on a
+   disagreement (already done) rather than trying to pick a winner.
+4. The star caveat and the `unopposed_after_discard` link are both prose in
    `challenge()`. Neither has been read by a rheologist other than the user.
 
 ---

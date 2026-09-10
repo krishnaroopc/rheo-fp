@@ -62,6 +62,44 @@ AICc report could not.
 Both real benchmark curves and the Tixier gel come back **agree**, so the
 signal is not simply firing everywhere.
 
+**THEN IT WAS MEASURED PROPERLY, AND THE n=7 HEADLINE DID NOT HOLD UP.**
+`scripts/measure_agreement.py` (new, kept, re-runnable) over **200 planted
+curves**, 20/class, seed 7 — full output committed as
+`docs/agreement_measurement_2026-09-09.txt`:
+
+| group | n | phys acc | neural acc | either right |
+|---|---|---|---|---|
+| agree (any) | 182 | 0.923 | 0.940 | 0.962 |
+| — agree (exact) | 171 | 0.959 | 0.959 | 0.959 |
+| — agree_degenerate | 11 | **0.364** | 0.636 | **1.000** |
+| disagree (any) | 18 | **0.389** | 0.500 | 0.889 |
+| ALL | 200 | 0.875 | 0.900 | 0.955 |
+
+The signal is **real but modest**: a disagreement more than halves the physics
+side's accuracy (0.923 -> 0.389). **But it does NOT clearly beat the network's
+own top-class probability as a gate** — 0.940 against 0.934 at matched 91%
+coverage, i.e. **+0.006 on n=200, well inside sampling error.** The
+pre-registered claim (`P(correct|agree) >> P(correct|disagree)` *and* better
+than either self-confidence) is **half-supported: the first part holds, the
+second does not.**
+
+So the honest statement of what this column is worth: agreement is
+**independent** of both self-confidences and therefore fails *differently* from
+them — not measurably *better* than them. That is still worth having, because
+the failure modes it does not share are the documented ones (§1h, §3), but it
+is not the reliability gate the n=7 result made it look like.
+
+**Two specifics worth carrying:**
+- **`agree_degenerate` earned its separate bucket.** Physics 0.364 / neural
+  0.636 there, with either-brain-right at **1.000** — it is the Zimm<->Rouse
+  pair almost exactly. Folding it into plain "agree" would have inflated the
+  headline; reporting it with the alarm of a real split would have cried wolf.
+- **`star -> branched` appears 3x among the synthetic disagreements with the
+  PHYSICS side RIGHT** — the opposite direction from MM1998, where the network
+  was right about exactly that pair. So **the real-data pattern does not
+  generalise**, and the MM1998 result should be quoted as what it is: a
+  striking n=7 observation, not the general behaviour.
+
 **2. The discard / unopposed-winner link is built** — a new
 `unopposed_after_discard` item in `challenge()`, plus 3 tests. Fires only when
 an ABSENCE-grounded discard (currently just `reptation`, struck for want of a

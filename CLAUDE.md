@@ -402,16 +402,33 @@ either side's known overconfidence failure (the network's abstention is trained
 only on its own synthetic errors; AICc's weight hits 1.000 even when the true
 class is absent from the bank). Four outcomes are reported, not two: `agree`,
 `agree_degenerate` (a split across a known-inseparable pair, which must NOT be
-alarmed like a real one), `disagree_ranked`, `disagree`. **Measured payoff on
-MM1998's seven-star set: the signal separates the AICc hits from the AICc
-misses perfectly** — agree on all 5 AICc gets right, disagree on both it gets
+alarmed like a real one), `disagree_ranked`, `disagree`.
+
+**Two measurements, and they disagree about how strong this is — quote BOTH.**
+On MM1998's seven-star set the signal separates the AICc hits from the AICc
+misses *perfectly*: agree on all 5 AICc gets right, disagree on both it gets
 wrong (Ma95k/Ma105k, true stars called `branched` at ΔAICc 56.5 and 102.6,
-where AICc is decisive and the network's abstention head reads 0.00, so
-neither self-confidence flags them). It also flags Santangelo's linear control
-that `identify()` returns as `star` at weight 1.000. n=7 — a strong
-indication, not a law. This is REPORTING ONLY: `identify()`'s contract is
-untouched, and `report.py` still imports no torch (the dependency runs
-`neural_report` → `report`, never back).
+where AICc is decisive and the abstention head reads 0.00, so neither
+self-confidence flags them). It also flags Santangelo's linear control returned
+as `star` at weight 1.000. **But on 200 planted synthetic curves
+(`scripts/measure_agreement.py`, seed 7, output in
+`docs/agreement_measurement_2026-09-09.txt`) it is real but MODEST**: agree →
+physics 0.923 / neural 0.940, disagree → 0.389 / 0.500. So a disagreement does
+more than halve the physics side's accuracy — but **it does not clearly beat
+the network's own top-class probability as a gate** (0.940 vs 0.934 at matched
+91% coverage, +0.006 on n=200, inside sampling error). **The pre-registered
+claim "agreement >> either self-confidence" is NOT supported at this n.** Its
+defensible value is that it is *independent* of both, so it fails differently —
+not that it is measurably better. Note also `star → branched` appears 3× in the
+synthetic disagreements with the PHYSICS side right, the opposite direction
+from MM1998, so the real-data pattern does not generalise.
+`agree_degenerate` earns its separate bucket: physics 0.364 / neural 0.636
+there, and either-brain-right 1.000, i.e. it is the Zimm↔Rouse pair and folding
+it into plain "agree" would have inflated the headline.
+
+This is REPORTING ONLY: `identify()`'s contract is untouched, and `report.py`
+still imports no torch (the dependency runs `neural_report` → `report`, never
+back).
 
 **Uploads are density-agnostic by construction**: any point count and any
 frequency range are resampled onto a fixed internal log-omega grid in
