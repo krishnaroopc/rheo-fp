@@ -1584,10 +1584,58 @@ silently skipped, everything else unaffected) rather than touching
 identify()'s return shape. `scripts/explain.py` passes them through.
 5 new tests (test_report.py), suite 146 -> 151.
 
-Cheap and safe, NOT yet done, still worth doing separately: **widen SR_BNDS /
-SREP_BNDS**, since diagnose_sticky_models.py showed they demonstrably bind
-(freeing them improves fit but plateaus well short of BSW - see §2b). Run
-under the usual cannibalisation protocol before changing them.
+~~Cheap and safe, NOT yet done~~ — **TESTED 2026-09-11 AND REJECTED. The
+bounds STAY AS THEY ARE.** "Cheap and safe" was an untested assertion that sat
+in this file for four days; running the cannibalisation protocol on it
+(`scripts/check_sticky_bounds_widening.py`, output
+`docs/sticky_bounds_widening_2026-09-11.txt`) showed it is false. Widening
+**costs 10 curves overall (0.920 -> 0.887)** and, in the outcome nobody
+predicted, **the biggest loser is `sticky_rouse` itself — 29/30 -> 22/30**,
+the very class the change was FOR. See §2d below for the full numbers and why.
+
+## 2d. Widening SR_BNDS / SREP_BNDS — TESTED AND REJECTED 2026-09-11
+
+**The bounds are UNCHANGED and should stay that way.** `solutions.py` was never
+edited; the check patches `identify()`'s bank in-process only.
+
+Pre-registered accept/reject rule, written into the script's docstring before
+running: ACCEPT if the sticker classes do not regress, no other class loses
+more than ~1-2 curves, and real data stays 6/6.
+
+| class | before | after | delta | stolen by |
+|---|---|---|---|---|
+| **sticky_rouse** | **29** | **22** | **-7** | sticky_reptation x4, reptation x3 |
+| branched | 30 | 28 | -2 | sticky_reptation x2 |
+| wormlike_micelle | 30 | 29 | -1 | sticky_rouse x1 |
+| sticky_reptation | 29 | 29 | +0 | — |
+| the other six | — | — | **+0** | — |
+| **OVERALL** | 276 | 266 | **-10** | **0.920 -> 0.887** |
+
+Real data: **6/6 -> 6/6**, unchanged.
+
+**The result nobody predicted: the biggest loser is `sticky_rouse` itself**,
+the class the widening was FOR. The pre-registration expected the sticker
+classes to "improve or hold" and worried about *other* classes being
+cannibalised. Both sticker classes are k=4, so freeing the bounds hands
+`sticky_reptation` enough extra reach to impersonate a planted sticky_rouse
+curve (4 of the 7 losses), while `reptation` takes 3 more. The change helps
+sticky_rouse's RIVALS more than it helps sticky_rouse.
+
+**Two lessons worth more than the change would have been:**
+1. **"Demonstrably binds" does not imply "should be freed."** The 2026-09-07
+   diagnosis was right that the bounds bind on a real vitrimer (sticky_rouse
+   0.203 -> 0.161 dec when freed). That is a statement about ONE curve's fit
+   quality. Classification is a CONTEST, and a bound that limits a model also
+   limits how well it impersonates its neighbours.
+2. **Real data would NOT have caught this.** 6/6 both ways. The 6 benchmark
+   curves contain no sticker class at all, so the only instrument that could
+   see this damage is the planted-curve protocol. Anyone tempted to skip it
+   because a change "looks safe" should read this row.
+
+Re-runnable: `scripts/check_sticky_bounds_widening.py`, full output committed
+as `docs/sticky_bounds_widening_2026-09-11.txt`. **Do not re-litigate without
+new evidence** — and note that "the bounds still bind" is not new evidence,
+it is the same observation that motivated this rejected change.
 
 ## 2c. (superseded framing) original question as first posed
 Two real stacks now agree that they cannot. `sticky_rouse` /

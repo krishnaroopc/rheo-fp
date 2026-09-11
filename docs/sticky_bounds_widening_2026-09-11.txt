@@ -1,0 +1,54 @@
+Pre-registered check: widening SR_BNDS / SREP_BNDS
+  n=30 planted single curves per class, seed=20260911, restarts=12
+  bank: 10 candidates, 10 classes
+  SR_BNDS   [(0, 7), (0, 5), (-5, 1), (2, 150)]  ->  [(0, 9), (-3, 8), (-9, 4), (2, 1000)]
+  SREP_BNDS [(0, 8), (1, 6), (2, 200), (-2, 4)]  ->  [(0, 9), (-3, 9), (2, 600), (-6, 7)]
+
+Scoring with the CURRENT published bounds...
+Real data, current bounds...
+Scoring the SAME curves with WIDENED bounds...
+Real data, widened bounds...
+
+========================================================================
+PER-CLASS HIT COUNTS (planted class recovered by identify)
+========================================================================
+class                 before   after   delta   stolen-by (after)
+zimm                      23      23      +0   -
+rouse_screened            25      25      +0   -
+reptation                 24      24      +0   -
+sticky_rouse              29      22      -7   sticky_reptationx4, reptationx3  <-- LOST
+sticky_reptation          29      29      +0   -
+cured_elastomer           30      30      +0   -
+critical_gel              26      26      +0   -
+wormlike_micelle          30      29      -1   sticky_rousex1  <-- LOST
+branched                  30      28      -2   sticky_reptationx2  <-- LOST
+star                      30      30      +0   -
+------------------------------------------------------------------------
+OVERALL                  276     266     -10   (0.920 -> 0.887)
+
+STICKER CLASSES (the ones this change is FOR)
+  sticky_rouse         29/30 -> 22/30  (-7)
+  sticky_reptation     29/30 -> 29/30  (+0)
+
+REAL DATA  6/6 -> 6/6
+  ok  SY184_10-1         cured_elastomer    (expected cured_elastomer)
+  ok  Solaris_1-1        cured_elastomer    (expected cured_elastomer)
+  ok  EF0030_1-1         cured_elastomer    (expected cured_elastomer)
+  ok  Tixier2004_gel     critical_gel       (expected critical_gel)
+  ok  E                  branched           (expected branched)
+  ok  B                  branched           (expected branched)
+
+========================================================================
+VERDICT against the pre-registered rule
+========================================================================
+  sticker classes net change : -7
+  non-sticker curves lost    : 3
+  real data                  : 6 -> 6 of 6
+
+  REJECT - widening costs something. Leave the bounds alone;
+  'cheap and safe' was an untested assertion and is now tested.
+
+  regressions:
+    sticky_rouse: 29 -> 22   stolen by sticky_reptationx4, reptationx3
+    wormlike_micelle: 30 -> 29   stolen by sticky_rousex1
+    branched: 30 -> 28   stolen by sticky_reptationx2

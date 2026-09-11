@@ -6,6 +6,62 @@ the end of each working session (what was discussed, decided, and changed).
 
 ---
 
+## 2026-09-11 (OFFICE PC, latest) — pre-registered Pryke; widening REJECTED
+
+Two items, both about testing claims before believing them.
+
+**1. Pre-registered the Pryke 2001 predictions BEFORE any data exists**
+(`docs/pryke2001_preregistration.md`, commit `b2db295`). Six numbered
+predictions with reasoning, plus a ranked "what would count as a genuine
+problem" / "what would NOT" split. Nothing to rationalise toward, because the
+curves are still undigitized. Notably P2 predicts sample A (Z 3.2) will FAIL
+and says so is not a regression — the paper independently reaches the same
+Z ~ 4 boundary, blaming its own worst deviations on "marginal degree of
+entanglement, with s = 3.2". The OUTCOME section is empty and everything above
+it is frozen, so the diff will show what was wrong.
+
+**2. Widening SR_BNDS / SREP_BNDS — TESTED AND REJECTED. Bounds unchanged.**
+
+This had been sitting in next-actions since 2026-09-07 described as **"cheap
+and safe"**, repeated across two files until it read as a decided to-do. It is
+false. Full numbers in §2d of next-actions and
+`docs/sticky_bounds_widening_2026-09-11.txt`:
+
+| | before | after |
+|---|---|---|
+| **sticky_rouse** | **29/30** | **22/30** |
+| branched | 30 | 28 |
+| wormlike_micelle | 30 | 29 |
+| overall | 276 (0.920) | 266 (**0.887**) |
+| real data | 6/6 | 6/6 |
+
+**The biggest loser is `sticky_rouse` itself — the class the change was FOR.**
+The pre-registration expected the sticker classes to "improve or hold" and
+worried about other classes being cannibalised; the damage went the other way.
+Both sticker models are k=4, so freeing the bounds hands `sticky_reptation`
+enough reach to impersonate a planted sticky_rouse curve (4 of the 7 losses),
+with `reptation` taking 3 more.
+
+**Two lessons worth more than the change would have been:**
+- **"Demonstrably binds" does not imply "should be freed."** The 2026-09-07
+  diagnosis was correct that the bounds bind (sticky_rouse 0.203 -> 0.161 dec
+  on a real vitrimer). But that is one curve's FIT QUALITY, and classification
+  is a CONTEST — a bound that limits a model also limits how well it
+  impersonates its neighbours.
+- **Real data would not have caught this: 6/6 both ways.** The six benchmark
+  curves contain no sticker class at all, so only the planted-curve protocol
+  could see the damage.
+
+Implementation note for anyone re-running it: `identify()`'s `ALL_MODELS`
+holds `(forward, p0, bounds, k)` tuples captured at import, so editing
+`solutions.SR_BNDS` alone does NOTHING — the tuple already captured the old
+list. The check rebuilds those two entries instead, and a smoke test confirmed
+the swap, that `k` stays 4, that other entries are untouched by identity, and
+that restore returns the original object. A silent no-op here would have
+produced a meaningless "no change, therefore safe" result.
+
+---
+
 ## 2026-09-10 (OFFICE PC, part 3, end of session) — next dataset identified
 
 Closed out by finding the paper for the next piece of work: real star-MELT
@@ -980,6 +1036,11 @@ failure; or (b) accept the limit and make it explicit in the challenge section,
 naming the measurement that would separate them. (b) follows the melt-vs-rubber
 precedent. Cheap and safe either way: widen SR_BNDS/SREP_BNDS, which
 demonstrably bind.
+  *[Correction added 2026-09-11: the "cheap and safe" half of that sentence was
+  wrong and is now measured — widening was tested under the cannibalisation
+  protocol and REJECTED (costs 10 curves, hurts `sticky_rouse` most). The
+  "demonstrably bind" half stands; it just does not imply the bounds should be
+  freed. See the 2026-09-11 entry.]*
 
 **User decided: option (b).** Keep the sticky models, make the ambiguity
 explicit instead. Implemented `branched_vitrimer_contradiction()` in
@@ -991,8 +1052,10 @@ pass clean, only real vitrimer data trips it. Threaded `w, Gp, Gpp` as optional
 params through `explain()`/`challenge()` (default None, check silently skipped)
 rather than touch identify()'s contract. 5 new tests, suite 146 -> 151.
 
-**Next:** widen SR_BNDS/SREP_BNDS under the cannibalisation protocol (they
-demonstrably bind per §2b, cheap and safe, not yet done); then the neural head
+**Next:** ~~widen SR_BNDS/SREP_BNDS under the cannibalisation protocol (they
+demonstrably bind per §2b, cheap and safe, not yet done)~~ — **DONE 2026-09-11
+and REJECTED; "cheap and safe" was wrong, it costs 10 curves and hurts
+`sticky_rouse` most. Bounds unchanged. See the 2026-09-11 entry.**; then the neural head
 as the report's second column.
 
 **End-of-session: audited the taxonomy for missing MOLECULAR architectures
