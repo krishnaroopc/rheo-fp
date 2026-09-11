@@ -117,16 +117,29 @@ reached `data/` only because the USER digitized them first.
     not the main event. Expect Z to come back wrong there and do not treat that
     as a regression — it is the documented flat-cost-in-Z region.
 
+**>>> THE PREDICTIONS ARE ALREADY PRE-REGISTERED — READ THEM FIRST <<<**
+`docs/pryke2001_preregistration.md`, committed 2026-09-11 **before any curve
+was digitized or fitted**. Six numbered predictions (P1-P6) plus an explicit
+"what would count as a genuine problem" / "what would NOT" split, so a bad
+result cannot be over- or under-read after the fact. **Do not edit anything
+above its OUTCOME section**; record results underneath and let the diff show
+what was wrong. Headline: `star` expected on the two well-entangled samples
+(Z 11.0, 22.1); sample A (Z 3.2) expected to fail and that is NOT a
+regression; misses expected to land on `branched`; Z expected to be biased
+high and still non-reportable.
+
 **Then, once `originals/pryke2001.xlsx` (or .ods) exists:**
   1. Write `scripts/prep_pryke2001.py` on the established pattern (see
      `prep_mm1998.py` / `prep_santangelo.py`) -> commit `data/pryke2001.npz`
      so tests run without `originals/`. Record T_K = 333.
-  2. Run `identify()` per curve. **Pre-register the expectation BEFORE looking**
-     (this project's standing rule, and see `9b51840` for why): `star` on the
-     two well-entangled curves; `terminal_reached` is the predictor of success,
-     not Z — check whether these windows reach flow before scoring a miss.
-  3. Do NOT report Z as an output. It is non-reportable (biased +17-84% on
-     mm1998) and nothing here changes that.
+  2. Run `identify()` per curve and score against the pre-registration.
+     **Check `features["terminal_reached"]` and the low-frequency slopes
+     BEFORE scoring any curve as a miss** — these are TTS master curves over
+     ~9 decades, so how much terminal zone survives depends on where the
+     digitizing stopped. A truncated trace is a digitizing artefact, not a
+     class failure (prediction P4).
+  3. Do NOT report Z as an output, and do NOT tune anything to improve Z on
+     this dataset — that would be fitting the bound to the test set (P3).
   4. Add tests alongside `tests/test_star.py`'s real-data section.
 
 ---
