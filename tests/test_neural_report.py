@@ -307,7 +307,7 @@ def test_the_degenerate_pair_gets_its_own_stronger_shortlist_claim():
     a = agreement("zimm", n, [{"name": "zimm", "delta": 0.0},
                               {"name": "rouse_screened", "delta": 0.4}])
     assert a["pair"] == ["rouse_screened", "zimm"]
-    assert "97%" in a["pair_note"]
+    assert "97-100%" in a["pair_note"]
     assert "not even stable" in a["pair_note"]
 
 
@@ -329,38 +329,98 @@ def test_the_quoted_accuracies_match_the_committed_measurement():
     from the run they came from. Pins them against the committed output of
     scripts/measure_agreement.py rather than against a copy of the numbers.
 
-    Points at the n=600 run (seed 11), which supersedes the n=200 one (seed 7)
-    because that had only 18 curves in the disagree arm. Both files stay
-    committed; this asserts the constants track whichever the module says it
-    is quoting.
+    The constants are POOLED over three independent seeds, so this recomputes
+    the pooling from all three committed files rather than reading one - which
+    also catches a file being added, removed or swapped without the constants
+    being redone.
     """
     import re
     from rheofp import neural_report as nr
 
-    path = "docs/agreement_measurement_n600_2026-09-10.txt"
-    text = open(path, encoding="utf-8").read()
+    paths = [
+        "docs/agreement_measurement_2026-09-09.txt",        # seed 7,  n=200
+        "docs/agreement_measurement_n600_2026-09-10.txt",   # seed 11, n=600
+        "docs/agreement_measurement_seed23_2026-09-10.txt",  # seed 23, n=600
+    ]
 
-    m = re.search(r"^(\d+) planted curves", text, re.M)
-    assert m and int(m.group(1)) == nr.AGREE_N
-
-    def row(label):
+    def row(text, label, path):
         m = re.search(
             rf"^{re.escape(label)}\s+(\d+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)",
             text, re.M)
         assert m, f"row {label!r} not found in {path}"
-        return float(m.group(2)), float(m.group(3)), float(m.group(4))
+        return (int(m.group(1)), float(m.group(2)),
+                float(m.group(3)), float(m.group(4)))
 
-    phys_a, neur_a, either_a = row("agree (any kind)")
-    phys_d, neur_d, either_d = row("disagree (any)")
-    assert phys_a == nr.AGREE_ACC_PHYS
-    assert neur_a == nr.AGREE_ACC_NEURAL
-    assert phys_d == nr.DISAGREE_ACC_PHYS
-    assert neur_d == nr.DISAGREE_ACC_NEURAL
-    assert either_d == nr.EITHER_RIGHT_DISAGREE
-    assert either_a == nr.EITHER_RIGHT_AGREE
+    total = agree_n = disagree_n = 0
+    acc = {k: 0.0 for k in ("ap", "an", "ae", "dp", "dn", "de")}
+    for path in paths:
+        text = open(path, encoding="utf-8").read()
+        m = re.search(r"^(\d+) planted curves", text, re.M)
+        assert m, f"curve count not found in {path}"
+        total += int(m.group(1))
 
-    m = re.search(r"keep top \d+% by network p\s*:\s*neural acc ([\d.]+)", text)
-    assert m and float(m.group(1)) == nr.AGREE_ACC_GATE_BASELINE
+        na, ap, an, ae = row(text, "agree (any kind)", path)
+        nd, dp, dn, de = row(text, "disagree (any)", path)
+        agree_n += na
+        disagree_n += nd
+        for key, val, weight in (("ap", ap, na), ("an", an, na), ("ae", ae, na),
+                                 ("dp", dp, nd), ("dn", dn, nd), ("de", de, nd)):
+            acc[key] += val * weight
+
+    assert total == nr.AGREE_N
+    assert agree_n == nr.AGREE_ARM_N
+    assert disagree_n == nr.DISAGREE_ARM_N
+
+    def close(pooled, const):
+        return abs(pooled - const) < 0.001
+
+    assert close(acc["ap"] / agree_n, nr.AGREE_ACC_PHYS)
+    assert close(acc["an"] / agree_n, nr.AGREE_ACC_NEURAL)
+    assert close(acc["ae"] / agree_n, nr.EITHER_RIGHT_AGREE)
+    assert close(acc["dp"] / disagree_n, nr.DISAGREE_ACC_PHYS)
+    assert close(acc["dn"] / disagree_n, nr.DISAGREE_ACC_NEURAL)
+    assert close(acc["de"] / disagree_n, nr.EITHER_RIGHT_DISAGREE)
+
+
+def test_the_gate_margin_is_positive_in_every_run_but_small_when_pooled():
+    """The three-seed history, asserted so the conclusion cannot quietly drift.
+
+    Margins: +0.006 (seed 7), +0.019 (seed 11), +0.012 (seed 23) -> pooled
+    +0.014 at 2.0 SE. Every individual run was ambiguous under the
+    pre-registered rule; only pooling reaches 2 SE. But the sign never flipped,
+    so the effect is consistent and SMALL rather than absent - which is exactly
+    what the wording has to convey.
+    """
+    import re
+    from math import sqrt
+    from rheofp import neural_report as nr
+
+    margins = []
+    weights = []
+    for path in ("docs/agreement_measurement_2026-09-09.txt",
+                 "docs/agreement_measurement_n600_2026-09-10.txt",
+                 "docs/agreement_measurement_seed23_2026-09-10.txt"):
+        text = open(path, encoding="utf-8").read()
+        gated = re.search(
+            r"keep where the two AGREE\s*:\s*neural acc ([\d.]+)", text)
+        base = re.search(
+            r"keep top \d+% by network p\s*:\s*neural acc ([\d.]+)", text)
+        n = re.search(r"^agree \(any kind\)\s+(\d+)", text, re.M)
+        assert gated and base and n, f"gate rows not found in {path}"
+        margins.append(float(gated.group(1)) - float(base.group(1)))
+        weights.append(int(n.group(1)))
+
+    assert all(m > 0 for m in margins), (
+        f"a run went negative {margins}; the 'consistently positive' claim in "
+        "neural_report.py's header no longer holds")
+    assert all(m < 0.05 for m in margins), "a run is far larger than recorded"
+
+    pooled = sum(m * w for m, w in zip(margins, weights)) / sum(weights)
+    se = sqrt(nr.AGREE_ACC_NEURAL * (1 - nr.AGREE_ACC_NEURAL) / sum(weights))
+    assert 1.5 < pooled / se < 3.0, (
+        f"pooled margin is now {pooled / se:.1f} SE; re-read the wording in "
+        "_agreement_text before changing this test")
+    assert abs(nr.GATE_MARGIN_SE - pooled / se) < 0.3
 
 
 def test_the_pair_beats_either_member_which_is_what_the_shortlist_rests_on():
@@ -377,10 +437,10 @@ def test_the_pair_beats_either_member_which_is_what_the_shortlist_rests_on():
 
 
 def test_the_gate_margin_is_not_overstated():
-    """The n=200 run put this margin at +0.006 (refuted); n=600 puts it at
-    +0.019 against an SE of ~0.011, i.e. ~1.7 SE - real enough to stop calling
-    it refuted, NOT enough to call it established. The wording must stay at
-    "comparable, possibly a little better" until a run settles it."""
+    """Three runs put this margin at +0.006, +0.019 and +0.012, pooling to
+    +0.014 at 2.0 SE. Positive every time, but small - so the text must say
+    "comparable, probably a shade better" and must NOT recommend preferring
+    agreement over the network's own confidence."""
     from rheofp.neural_report import (
         AGREE_ACC_NEURAL, AGREE_ACC_GATE_BASELINE, _agreement_text,
     )
@@ -390,4 +450,5 @@ def test_the_gate_margin_is_not_overstated():
         "_agreement_text before changing this test")
     n = neural_column(_probs(branched=0.9), CLASSES, 0.02)
     txt = _agreement_text("agree", "branched", n, 0.0)
-    assert "not decisively so" in txt
+    assert "not a reason to prefer it" in txt
+    assert "only reaches significance when they are pooled" in txt

@@ -142,28 +142,29 @@ stars called `branched`, at delta AICc 56.5 and 102.6 - decisive, and decisively
 wrong, with the abstention head reading 0.00) are the two where the network
 disagrees, and it agrees on all five it gets right.
 
-That is n=7. On 600 planted synthetic curves
-(`scripts/measure_agreement.py -n 60 --seed 11`, full numbers in
-`docs/agreement_measurement_n600_2026-09-10.txt`) the picture is more sober:
-a disagreement roughly **halves** both methods' accuracy - the fitter falls
-from 0.947 to 0.493, the network from 0.935 to 0.413 - and as a *gate*,
-agreement reaches 0.935 against 0.916 for simply trusting the network's own
-probability at matched coverage. That +0.019 is about 1.7 standard errors:
-comparable, possibly a little better, **not** established. Read agreement as a
-signal that is genuinely *independent* of both self-confidences and therefore
-fails differently from them.
+That is n=7. On synthetic data the effect is real but much smaller, measured
+across three independent seeds (`scripts/measure_agreement.py`, 1400 curves,
+outputs under `docs/`). Pooled, a disagreement roughly **halves** both methods'
+accuracy - the fitter falls from 0.945 to 0.438, the network from 0.937 to
+0.426. As a *gate*, agreement beats simply trusting the network's own
+probability by +0.006, +0.019 and +0.012 in the three runs: positive every
+time, pooling to **+0.014 at 2.0 standard errors**, with no single run reaching
+significance on its own. Comparable, then, and probably a shade better - not a
+reason to prefer it. Read agreement as a signal that is genuinely *independent*
+of both self-confidences and therefore fails differently from them.
 
 **The most useful thing that measurement produced was not the thing being
-measured, and it got stronger at the larger n.** Taking the two labels
-*together*, one of them is correct **97%** of the time where the methods agree,
-**91%** where they disagree, and **98%** on a sharp disagreement - against
-0.493/0.413 for the two methods individually on those same disagreement cases.
-So the pair is far more trustworthy than the argument about which member of it
-wins, and a complete divergence is the pair's *best* case, not its worst. On a
-disagreement the report therefore prints **`YOUR SHORTLIST: A or B`** and says
-plainly that this is a two-item list to settle with what you already know about
-your sample, not one answer with a dissent attached. A single averaged verdict
-would have destroyed exactly that.
+measured, and it is the claim that held up best across re-measurement.** Taking
+the two labels *together*, one of them is correct about **85-90%** of the time
+where the methods disagree (pooled 86.4%) and **97.5%** where they agree -
+against 0.438/0.426 for the two methods individually on those same disagreement
+cases. So the pair is far more trustworthy than the argument about which member
+of it wins. A *complete* divergence is the pair's better case (pooled 0.93)
+than a mere reordering of the same short list (0.75). On a disagreement the
+report therefore prints **`YOUR SHORTLIST: A or B`** and says plainly that this
+is a two-item list to settle with what you already know about your sample, not
+one answer with a dissent attached. A single averaged verdict would have
+destroyed exactly that.
 
 Requires a trained checkpoint, which is gitignored and reproducible; without
 one the flag prints how to make one and the rest of the report is unaffected.

@@ -75,45 +75,52 @@ NEURAL_UNSURE_P = 0.40
 ABSTAIN_HIGH = 0.30
 
 # --- what the agreement flag is actually worth, measured -------------------
-# scripts/measure_agreement.py, 600 planted curves (60/class, seed 11),
-# 2026-09-10; full output in docs/agreement_measurement_n600_2026-09-10.txt.
-# These are quoted in the user-facing text, so they must not drift from the
-# file they came from - a test pins them against it.
+# scripts/measure_agreement.py, THREE independent seeds, all committed:
+#   seed 7  n=200  docs/agreement_measurement_2026-09-09.txt
+#   seed 11 n=600  docs/agreement_measurement_n600_2026-09-10.txt
+#   seed 23 n=600  docs/agreement_measurement_seed23_2026-09-10.txt
+# The constants below are POOLED over all three (1400 curves; 1231 in the
+# agree arm, 169 in the disagree arm), which is better grounded than any
+# single run and is what the user-facing text quotes. A test pins them.
 #
-# This SUPERSEDES the first run (200 curves, seed 7,
-# docs/agreement_measurement_2026-09-09.txt, still committed), which put only
-# 18 curves in the disagree arm and could not resolve the gate comparison.
-# Seed 11 is deliberately not seed 7, so the two are independent samples.
+# THE GATE QUESTION IS SETTLED AS "SMALL BUT REAL", and it took three runs to
+# say that honestly. The margin - agreement-gated accuracy minus the accuracy
+# of simply keeping the top-N% by the network's own probability, at matched
+# coverage - came out:
 #
-# What the larger run changed, and it is worth knowing which way:
+#     seed 7   +0.006  (0.3 SE)   read at the time as "refuted"
+#     seed 11  +0.019  (1.8 SE)   read at the time as "suggestive"
+#     seed 23  +0.012  (1.1 SE)   pre-registered rule: AMBIGUOUS
+#     POOLED   +0.014  (2.0 SE)
 #
-#  * The gate comparison FLIPPED from "unsupported" to suggestive. Gating on
-#    agreement reaches 0.935 against 0.916 for the network's own top-class
-#    probability and 0.912 for its abstention head, at matched coverage -
-#    +0.019 and +0.023 where n=200 gave +0.006. Against an SE of ~0.011 that
-#    is ~1.7 SE: real enough to stop calling it refuted, NOT enough to call
-#    it established. Do not upgrade the wording past "comparable, possibly
-#    slightly better".
-#  * "A disagreement more than HALVES the fitting side" became exactly half:
-#    0.947 -> 0.493 here, 0.923 -> 0.389 before. Pooled over both runs
-#    (n=93 in the disagree arm) it is 0.941 +- 0.009 against 0.473 +- 0.052,
-#    a factor of 2.0. "Halves" is the honest word; "more than halves" was an
-#    artefact of the smaller run.
-#  * The NETWORK degrades MORE than the fitter on a disagreement here
-#    (0.935 -> 0.413 against 0.947 -> 0.493), the reverse of n=200. Neither
-#    side is reliably the one to trust when they split - which is the whole
-#    argument for the shortlist below rather than picking a winner.
-#  * `agree_degenerate` REVERSED between runs (physics 0.364/neural 0.636 at
-#    n=200; 0.576/0.394 at n=600). That group is ~5% of curves and unstable;
-#    only its `either right` figure (0.970-1.000) is worth quoting.
-AGREE_N = 600
-AGREE_ACC_PHYS = 0.947          # physics side, where the two agree
-AGREE_ACC_NEURAL = 0.935        # network, where the two agree
-AGREE_ACC_GATE_BASELINE = 0.916  # network's own p as a gate, matched coverage
-DISAGREE_ACC_PHYS = 0.493       # physics side, where they disagree
-DISAGREE_ACC_NEURAL = 0.413     # network, where they disagree
-EITHER_RIGHT_DISAGREE = 0.907   # one of the two labels is correct
-EITHER_RIGHT_AGREE = 0.971
+# Every individual run was ambiguous; only pooling reaches 2 SE. But the sign
+# never flipped - three for three positive - so the effect is consistent and
+# small rather than absent. The defensible wording is "comparable, possibly a
+# little better", and NOT more than that: a 1.4-point gain on one gate is not
+# a reason to trust agreement over the network's own confidence.
+#
+# Three things that were WRONG in earlier readings and are fixed here:
+#  * "More than halves the fitting side" was an artefact of seed 7's 18-curve
+#    disagree arm. Pooled over 169 curves it is 0.945 +- 0.007 (agree) against
+#    0.438 +- 0.038 (disagree), a ratio of 0.46. "Roughly halves" is right.
+#  * WHICH brain degrades more on a disagreement is NOT stable: the network
+#    fell further at seed 11 (0.413 vs 0.493), the fitter at seed 23 (0.395 vs
+#    0.421). So neither side is reliably the one to trust when they split -
+#    the argument for the shortlist rather than picking a winner.
+#  * `agree_degenerate` swings between runs (physics 0.364 / 0.576 / 0.575)
+#    on ~5-7% of curves. Only its `either right` figure (0.970-1.000) is
+#    quotable.
+AGREE_N = 1400                   # total curves across the three runs
+AGREE_ARM_N = 1231               # of those, where the two brains agreed
+DISAGREE_ARM_N = 169
+AGREE_ACC_PHYS = 0.945          # physics side, where the two agree
+AGREE_ACC_NEURAL = 0.937        # network, where the two agree
+AGREE_ACC_GATE_BASELINE = 0.923  # network's own p as a gate, matched coverage
+GATE_MARGIN_SE = 2.0             # pooled, in standard errors
+DISAGREE_ACC_PHYS = 0.438       # physics side, where they disagree
+DISAGREE_ACC_NEURAL = 0.426     # network, where they disagree
+EITHER_RIGHT_DISAGREE = 0.864   # one of the two labels is correct
+EITHER_RIGHT_AGREE = 0.975
 
 
 def load_checkpoint(path=DEFAULT_CHECKPOINT, device="cpu"):
@@ -265,14 +272,16 @@ def _agreement_text(kind, physics_winner, neural, delta):
             "So this is corroboration from two directions rather than one "
             "method repeating itself, and it is INDEPENDENT of both "
             "confidence scores - which matters because both of those stay "
-            "high on material the bank does not contain. On "
-            f"{AGREE_N} planted curves, agreement gated accuracy to "
-            f"{AGREE_ACC_NEURAL:.2f} against {AGREE_ACC_GATE_BASELINE:.2f} "
-            "for simply trusting the network's own probability at the same "
-            "coverage - comparable, possibly a little better, not decisively "
-            "so. And it is not proof at all: both were built against the "
-            "same taxonomy and the same physics, so material outside that "
-            "taxonomy can fool them both at once.")
+            f"high on material the bank does not contain. Across {AGREE_N} "
+            "planted curves in three independent runs, agreement gated "
+            f"accuracy to {AGREE_ACC_NEURAL:.2f} against "
+            f"{AGREE_ACC_GATE_BASELINE:.2f} for simply trusting the network's "
+            "own probability at the same coverage - a small edge that was "
+            "positive in every run but only reaches significance when they "
+            "are pooled. Comparable, then, and probably a shade better; not "
+            "a reason to prefer it. And it is not proof at all: both were "
+            "built against the same taxonomy and the same physics, so "
+            "material outside that taxonomy can fool them both at once.")
 
     if kind == "agree_degenerate":
         return (
@@ -314,37 +323,48 @@ def _agreement_text(kind, physics_winner, neural, delta):
         "HALVES both methods' accuracy - the fitting side falls from "
         f"{AGREE_ACC_PHYS:.2f} to {DISAGREE_ACC_PHYS:.2f} and the network "
         f"from {AGREE_ACC_NEURAL:.2f} to {DISAGREE_ACC_NEURAL:.2f} - and "
-        "which of the two is the one to trust varies, so neither label "
-        "inherits the doubt of the other. This pattern is also what material "
-        "from OUTSIDE the taxonomy tends to produce, since each method then "
-        "falls back on whichever of its own classes is least bad, and they "
-        "need not pick the same one.")
+        "which of the two ends up being the right one changes from run to "
+        "run, so neither label inherits the doubt of the other. This pattern "
+        "is also what material from OUTSIDE the taxonomy tends to produce, "
+        "since each method then falls back on whichever of its own classes "
+        "is least bad, and they need not pick the same one.")
 
 
 def pair_note(kind):
     """What the PAIR of labels is worth, as distinct from either label.
 
     The most robust thing the measurement produced, and it was not the thing
-    being measured - it held across both runs and got STRONGER at the larger
-    n. Across every group, one of the two labels is the correct one far more
-    often than either method alone is right (n=600 figures):
+    being measured. Pooled over three independent seeds (1400 curves), one of
+    the two labels is the correct one far more often than either method alone
+    is right:
 
-        where they agree            97%   (either brain right)
-        where they disagree         91%   -- vs 49% / 41% individually
-        on a SHARP disagreement     98%
-        across the degenerate pair  97%
+        where they agree            97.5%  (either brain right)
+        where they disagree         86.4%  -- vs 43.8% / 42.6% individually
+        across the degenerate pair  97-100%
 
-    against 89% / 87% for the two methods taken singly over the whole set. So
-    even when the pair cannot be resolved, it is usually the right SHORTLIST -
-    which is a genuinely useful thing to hand a rheologist who knows their own
-    sample, and it is exactly what a single averaged verdict would destroy.
+    So even when the pair cannot be resolved, it is usually the right SHORTLIST
+    - which is a genuinely useful thing to hand a rheologist who knows their
+    own sample, and it is exactly what a single averaged verdict would destroy.
     That is the argument for printing both labels prominently on a
     disagreement rather than trying to pick a winner.
 
-    Note the sharp disagreements are the BEST case for the pair (98%), not the
-    worst, which is the opposite of what the alarming wording around them
-    suggests: when the two methods diverge completely, they are usually
-    diverging onto the right answer and a wrong one, rather than both missing.
+    This is the claim that has held up best across re-measurement: the gate
+    comparison swung between "refuted" and "suggestive" over three runs, while
+    the pair advantage stayed at roughly double either member's own accuracy
+    every time (either-right 0.889 / 0.907 / 0.816 against 0.39-0.49 each).
+    Note it does vary by ~9 points between seeds on the small disagree arm
+    (18-76 curves), so quote it as "about 85-90%", not to the decimal.
+
+    One sub-result that held in all three runs and is worth keeping: a SHARP
+    disagreement (the network's class not even ranked by AICc) is the pair's
+    BETTER case, not its worse one - pooled either-right 0.93 across 112
+    curves, against 0.75 for the milder `disagree_ranked` kind on 51. That is
+    the opposite of what the alarming wording around sharp splits suggests.
+    When the two methods diverge completely they are usually diverging onto the
+    right answer and a wrong one; when they merely reorder the same short list,
+    they are more often both looking at the wrong part of it. Seed 23 did pull
+    the sharp figure down (1.00 / 0.98 / 0.85), so the ordering is solid but
+    the gap is not as wide as the first two runs implied.
 
     Returns None where the two agree on one class, since there is no pair.
     """
@@ -353,20 +373,20 @@ def pair_note(kind):
     if kind == "agree_degenerate":
         return (
             "TAKE THE TWO TOGETHER. On planted curves that split across this "
-            "known-degenerate pair, one of the two labels was correct ~97% of "
-            "the time, while each method ALONE managed only 40-58% - and "
-            "which of the two is the better bet is not even stable between "
-            "measurement runs. If you can tell these apart by any other means "
-            "(solvent quality, whether the sample was crosslinked), that "
-            "outside knowledge settles it, and the pair above is a reliable "
-            "shortlist to apply it to.")
+            "known-degenerate pair, one of the two labels was correct 97-100% "
+            "of the time in every measurement run, while each method ALONE "
+            "managed only 40-58% - and which of the two is the better bet is "
+            "not even stable between runs. If you can tell these apart by any "
+            "other means (solvent quality, whether the sample was "
+            "crosslinked), that outside knowledge settles it, and the pair "
+            "above is a reliable shortlist to apply it to.")
     return (
         "TAKE THE TWO TOGETHER. Measured on planted curves, one of the two "
-        f"labels offered here is the correct one about "
-        f"{EITHER_RIGHT_DISAGREE:.0%} of the time, even though on these "
-        f"disagreement cases each method ALONE is right only about "
-        f"{DISAGREE_ACC_NEURAL:.0%} to {DISAGREE_ACC_PHYS:.0%} of the time. So "
-        "the pair is much more trustworthy than the choice between them: "
+        "labels offered here is the correct one about 85-90% of the time "
+        f"(pooled {EITHER_RIGHT_DISAGREE:.0%} over three runs), even though "
+        "on these disagreement cases each method ALONE is right only about "
+        f"{DISAGREE_ACC_NEURAL:.0%} to {DISAGREE_ACC_PHYS:.0%} of the time. "
+        "So the pair is much more trustworthy than the choice between them: "
         "treat this as a two-item shortlist to settle with what you already "
         "know about your sample, not as one answer with a dissent attached.")
 

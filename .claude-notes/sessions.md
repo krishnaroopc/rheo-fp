@@ -6,7 +6,64 @@ the end of each working session (what was discussed, decided, and changed).
 
 ---
 
-## 2026-09-10 (OFFICE PC, latest) — the agreement signal, measured properly
+## 2026-09-10 (OFFICE PC, latest, part 2) — third seed; the question is closed
+
+**Verdict: the gate effect is SMALL BUT REAL. Stop measuring it.**
+
+Ran a third independent seed (23, n=600) against a decision rule committed to
+git BEFORE the numbers existed (`9b51840`) — precisely because this file had
+already twice read a result after the fact as whatever it happened to be.
+
+| run | n | gate margin | |
+|---|---|---|---|
+| seed 7 | 200 | +0.006 | 0.3 SE — called "refuted" at the time |
+| seed 11 | 600 | +0.019 | 1.8 SE — called "suggestive" at the time |
+| seed 23 | 600 | **+0.012** | 1.1 SE — **AMBIGUOUS** by the rule |
+| **POOLED** | **1400** | **+0.014** | **2.0 SE** |
+
+Seed 23 landed at +0.012, inside the pre-registered ambiguous band
+(CONFIRM ≥ +0.015, REFUTE ≤ +0.005). **No side was picked, and the thresholds
+were not renegotiated afterwards.** The pooling is what carries the
+conclusion: the margin was positive in all three runs and never flipped sign,
+but no single run reaches significance — only the 1231-curve pooled agree arm
+does, at 2.0 SE. So the effect is **consistent and small**, and a fourth seed
+is not worth running: three runs bracket it, and the residual uncertainty is
+about size, not existence.
+
+**All constants in `neural_report.py` are now POOLED over the three runs**, and
+the pinning test recomputes the pooling from all three committed files rather
+than reading one — so adding, removing or swapping a run without redoing the
+constants now fails a test.
+
+| | agree (n=1231) | disagree (n=169) |
+|---|---|---|
+| physics | 0.945 ± 0.007 | **0.438 ± 0.038** |
+| neural | 0.937 | **0.426** |
+| either right | 0.975 | **0.864** |
+
+**Three claims the repeat runs corrected — all were single-run artefacts:**
+- **"More than halves the fitting side"** was seed 7's 18-curve disagree arm.
+  Pooled ratio is 0.46, i.e. "roughly halves".
+- **WHICH brain degrades more on a disagreement is NOT stable** — the network
+  fell further at seed 11 (0.413 vs 0.493), the fitter at seed 23 (0.395 vs
+  0.421). So never advise trusting one side over the other on a split. This is
+  now the strongest argument for the shortlist.
+- **`agree_degenerate` swings** (physics 0.364 / 0.576 / 0.575) on ~5-7% of
+  curves; only its `either right` (0.97-1.00) is quotable.
+
+**What survived best is the SHORTLIST claim**, which is the one built into the
+report: one of the two labels is right ~86% on disagreements against 0.44/0.43
+individually. Also confirmed in all three runs: a **sharp** disagreement is the
+pair's BETTER case (pooled 0.93, n=112) than a mere reordering of the same
+short list (0.75, n=51) — though seed 23 narrowed that gap (1.00/0.98/0.85).
+
+**Decision unchanged: agreement stays OUT of `identify()`.** A ~1.4-point gain
+on one gate does not justify changing a contract the tests, validation scripts
+and ML baseline all depend on.
+
+---
+
+## 2026-09-10 (OFFICE PC, part 1) — the agreement signal, measured properly
 
 Two items off the top of next-actions: more n on the disagree arm, and the
 `either right` finding turned into a feature.

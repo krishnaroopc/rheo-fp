@@ -60,33 +60,35 @@ agree on all 5 AICc gets right, disagree on both it gets wrong (Ma95k/Ma105k,
 true stars called `branched` at delta 56.5 and 102.6, where AICc is decisive
 and the abstention head reads 0.00, so neither self-confidence flags them).
 
-**Then it was measured on synthetic data TWICE, and the second run revised the
-first.** Quote **n=600** (seed 11, `docs/agreement_measurement_n600_2026-09-10.txt`);
-the n=200 seed-7 run is superseded but kept committed.
+**Then it was measured on synthetic data THREE TIMES (seeds 7, 11, 23; 1400
+curves total, all three outputs committed under `docs/`). Quote the POOLED
+numbers — the constants in `neural_report.py` are pooled and a test recomputes
+them from all three files.**
 
-| | agree | disagree |
+| | agree (n=1231) | disagree (n=169) |
 |---|---|---|
-| physics | 0.947 | **0.493** |
-| neural | 0.935 | **0.413** |
-| either right | 0.971 | **0.907** |
+| physics | 0.945 ± 0.007 | **0.438 ± 0.038** |
+| neural | 0.937 | **0.426** |
+| either right | 0.975 | **0.864** |
 
-- **A disagreement roughly HALVES both methods.** Pooled over both runs the
-  disagree arm is 0.473 +- 0.052 against 0.941 +- 0.009 — a factor of 2.0.
-  ("More than halves", written after n=200, was an artefact of 18 curves.)
-- **The gate comparison FLIPPED from refuted to suggestive.** Agreement gates
-  to 0.935 vs **0.916** (network's own p) and **0.912** (abstention) at matched
-  coverage: **+0.019 / +0.023, ~1.7 SE.** The n=200 "+0.006, not supported"
-  verdict is WITHDRAWN. **Wording is now "comparable, possibly a little
-  better" — do not upgrade to "established" on one run.**
-- **The network degrades MORE than the fitter on a disagreement** here
-  (0.935->0.413 vs 0.947->0.493), the reverse of n=200. **Neither side is
-  reliably the one to trust when they split**, which is the whole argument for
-  the shortlist rather than picking a winner.
-- **`agree_degenerate` REVERSED between runs** (physics 0.364/neural 0.636 at
-  n=200; 0.576/0.394 at n=600). ~5% of curves, unstable; only its
-  `either right` figure (0.970-1.000) is quotable, and the report now says
+- **A disagreement roughly HALVES both methods** (ratio 0.46). "More than
+  halves", written after seed 7, was an artefact of its 18-curve disagree arm.
+- **The gate margin is small but consistently positive: +0.006 / +0.019 /
+  +0.012 → pooled +0.014 at 2.0 SE.** No single run reaches significance;
+  only the pooled agree arm does. **Wording is "comparable, probably a shade
+  better; not a reason to prefer it" — do not upgrade it.** See §2 for the
+  pre-registered rule this was judged against.
+- **WHICH brain degrades more on a disagreement is NOT stable** — network
+  worse at seed 11, fitter worse at seed 23. **Never advise trusting one side
+  over the other on a split**; that is the whole argument for the shortlist.
+- **`agree_degenerate` swings** (physics 0.364 / 0.576 / 0.575) on ~5-7% of
+  curves. Only its `either right` (0.97-1.00) is quotable, and the report says
   outright that which member to prefer is not stable.
-- **`star -> branched` shows up 10x in the n=600 disagreements with the
+- **A SHARP disagreement is the pair's BETTER case** — pooled either-right
+  **0.93** (n=112) against **0.75** for the milder `disagree_ranked` kind
+  (n=51). Held in all three runs, though seed 23 narrowed the gap
+  (1.00 / 0.98 / 0.85).
+- **`star -> branched` shows up 10x (seed 11) and 3x (seed 23) with the
   PHYSICS side right** — the opposite direction from MM1998. **The real-data
   n=7 pattern does not generalise**; quote it as a striking observation, not
   as the general behaviour.
@@ -109,32 +111,45 @@ an uncontested winner.)
    committed as `docs/agreement_measurement_n600_2026-09-10.txt`. **The
    n=200 verdict was WITHDRAWN by the larger run — see the summary at the
    top of this file, and do not quote the n=200 numbers as current.**
-2. **Still do NOT wire agreement into `identify()`.** The margin improved
-   (+0.006 → +0.019, ~1.8 SE) but that is not a basis for changing a contract
-   the tests, validation scripts and ML baseline all depend on (DECISION 2).
+2. ~~Third seed~~ — **RUN 2026-09-10, seed 23. VERDICT: AMBIGUOUS by the
+   pre-registered rule; SMALL BUT REAL when the three runs are pooled.**
+   Output: `docs/agreement_measurement_seed23_2026-09-10.txt`.
 
-   **THIRD RUN IN FLIGHT — seed 23, n=60/class, started 2026-09-10.** Output
-   goes to `docs/agreement_measurement_seed23_*.txt`. **If that file is not in
-   the repo, the run did not finish — re-run it:**
-   `uv run python scripts/measure_agreement.py -n 60 --restarts 8 --seed 23`
-   (~2 h; background it).
+   The rule was committed (`9b51840`) BEFORE the numbers existed: CONFIRM at
+   margin ≥ +0.015, REFUTE at ≤ +0.005, else AMBIGUOUS. **Seed 23 came in at
+   +0.012 — inside the ambiguous band, so no side was picked.** The rule was
+   not renegotiated after the fact and must not be.
 
-   **>>> PRE-REGISTERED DECISION RULE, written BEFORE the numbers existed <<<**
-   The quantity is the gate margin = (neural accuracy where the two agree)
-   − (neural accuracy keeping the top-N% by the network's own probability, at
-   matched coverage). Prior runs: seed 7 **+0.006** (0.3 SE), seed 11
-   **+0.019** (1.8 SE). SE at n=600 is ~0.011.
+   | run | n | gate margin | |
+   |---|---|---|---|
+   | seed 7 | 200 | **+0.006** | 0.3 SE — read at the time as "refuted" |
+   | seed 11 | 600 | **+0.019** | 1.8 SE — read at the time as "suggestive" |
+   | seed 23 | 600 | **+0.012** | 1.1 SE — AMBIGUOUS |
+   | **POOLED** | **1400** | **+0.014** | **2.0 SE** |
 
-   | seed-23 margin | verdict | action |
-   |---|---|---|
-   | **≥ +0.015** | CONFIRM | two independent runs agree; the case is made, and wiring it into `identify()` becomes a live proposal to put to the user |
-   | **≤ +0.005** | REFUTE | seed 11 was the fluke; revert to the n=200 reading and say so plainly |
-   | between | AMBIGUOUS | report as unresolved; **do NOT pick a side** |
+   **The honest conclusion, and it is now stable enough to stop re-measuring:**
+   the margin was POSITIVE in all three runs and never flipped sign, but no
+   single run reaches significance — only the pooled 1231-curve agree arm
+   does, at 2.0 SE. So the effect is **consistent and small**. Wording
+   everywhere is "comparable, probably a shade better; not a reason to prefer
+   it", pinned by `test_the_gate_margin_is_not_overstated`.
 
-   This rule exists because the same mistake has now been made twice in this
-   file (see the "4th instance" note in the recurring-lessons memory): a result
-   was read after the fact as whatever it happened to be. Do not renegotiate
-   the thresholds once the number is known.
+   **Still do NOT wire agreement into `identify()`.** A ~1.4-point gain on one
+   gate does not justify changing a contract the tests, validation scripts and
+   ML baseline all depend on (DECISION 2). A fourth seed is NOT worth running:
+   three runs already bracket the effect, and the remaining uncertainty is
+   about size, not existence.
+
+   **What the three runs settled that the single runs got wrong:**
+   - "More than halves the fitting side" was seed 7's 18-curve artefact.
+     Pooled over 169 disagree-arm curves: **0.945 ± 0.007 (agree) vs
+     0.438 ± 0.038 (disagree), ratio 0.46.** "Roughly halves" is right.
+   - **WHICH brain degrades more on a disagreement is NOT stable** — the
+     network fell further at seed 11 (0.413 vs 0.493), the fitter at seed 23
+     (0.395 vs 0.421). Never advise trusting one side over the other on a
+     split.
+   - `agree_degenerate` swings (physics 0.364 / 0.576 / 0.575) on ~5-7% of
+     curves. Only its `either right` (0.97-1.00) is quotable.
 3. ~~Report both labels as a shortlist~~ — **DONE 2026-09-10.** `pair_note()`
    in `neural_report.py`; the renderer prints `YOUR SHORTLIST: A or B` on any
    disagreement, with the measured worth of the pair (96% agree / 89% disagree

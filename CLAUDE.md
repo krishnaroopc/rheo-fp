@@ -412,36 +412,48 @@ where AICc is decisive and the abstention head reads 0.00, so neither
 self-confidence flags them). It also flags Santangelo's linear control returned
 as `star` at weight 1.000. That is n=7.
 
-**Synthetic, n=600** (`scripts/measure_agreement.py -n 60 --seed 11`, output in
-`docs/agreement_measurement_n600_2026-09-10.txt`; supersedes the n=200 seed-7
-run, which had only 18 curves in the disagree arm): agree → physics 0.947 /
-neural 0.935; disagree → 0.493 / 0.413. **A disagreement roughly HALVES both
-methods' accuracy** — pooled over both runs the disagree arm is 0.473 ± 0.052
-against 0.941 ± 0.009, a factor of 2.0. As a gate, agreement reaches 0.935
-against **0.916** for the network's own probability and **0.912** for its
-abstention head at matched coverage: **+0.019 / +0.023, about 1.7 SE.** So the
-n=200 verdict ("not supported") is *withdrawn* — but this is only suggestive.
-**Say "comparable, possibly a little better", never "established".**
+**Synthetic: measured THREE times** (`scripts/measure_agreement.py`, seeds 7 /
+11 / 23, 1400 curves, all three outputs committed under `docs/`). The
+constants in `neural_report.py` are **pooled** over all three and a test
+recomputes them from the files.
 
-Two things the larger run corrected: the network degrades *more* than the
-fitter on a disagreement here (0.935→0.413 vs 0.947→0.493), the reverse of
-n=200, so **neither side is reliably the one to trust when they split**; and
-`agree_degenerate` **reversed** between runs (physics 0.364/neural 0.636 at
-n=200, 0.576/0.394 at n=600) — that group is ~5% of curves and unstable, so
-only its `either right` figure is quotable. Note also `star → branched` appears
-10× in the n=600 disagreements with the PHYSICS side right, the opposite
-direction from MM1998: **the real-data pattern does not generalise.**
+| | agree (n=1231) | disagree (n=169) |
+|---|---|---|
+| physics | 0.945 ± 0.007 | **0.438 ± 0.038** |
+| neural | 0.937 | **0.426** |
+| either right | 0.975 | **0.864** |
+
+**A disagreement roughly HALVES both methods** (ratio 0.46). As a *gate*,
+agreement beats simply trusting the network's own probability by **+0.006 /
++0.019 / +0.012** across the three runs → **pooled +0.014 at 2.0 SE**. No
+single run reaches significance; only the pooled agree arm does. The sign
+never flipped, so the effect is **consistent and small**. **Say "comparable,
+probably a shade better; not a reason to prefer it" — never "established".**
+The seed-23 run was judged against a decision rule committed *before* the
+numbers existed (`9b51840`) and landed AMBIGUOUS; that rule was not
+renegotiated afterwards, and must not be.
+
+Three things the repeat runs corrected: **which brain degrades more on a
+disagreement is NOT stable** (network worse at seed 11, fitter worse at seed
+23), so never advise trusting one side over the other on a split;
+`agree_degenerate` **swings** (physics 0.364 / 0.576 / 0.575) on ~5-7% of
+curves, so only its `either right` is quotable; and `star → branched` appears
+10× (seed 11) and 3× (seed 23) **with the PHYSICS side right**, the opposite
+direction from MM1998 — **the real-data n=7 pattern does not generalise.**
 
 **The most robust result was NOT the one being measured — the PAIR beats
-either member, and unlike the gate comparison it got STRONGER at the larger n.**
-One of the two labels is correct **97%** (agree), **91%** (disagree), **98%**
-(sharp disagreement), **97%** (degenerate pair) — against 0.890/0.870 for the
-two methods taken singly over the whole set, and against just 0.493/0.413 on
-the disagreement cases themselves. So even where neither brain is individually
-reliable, the pair is usually the right *shortlist*. Note the **sharp**
-disagreements are the pair's BEST case (98%), not its worst: when the two
-diverge completely they are usually diverging onto the right answer and a wrong
-one, rather than both missing.
+either member, and it is the claim that held up best across re-measurement.**
+Pooled: one of the two labels is correct **97.5%** (agree) and **86.4%**
+(disagree) — against just **0.438 / 0.426** for the two methods individually on
+those same disagreement cases. So even where neither brain is individually
+reliable, the pair is usually the right *shortlist*. It varies ~9 points
+between seeds on the small disagree arm, so quote it as "about 85-90%", not to
+the decimal. A **sharp** disagreement is the pair's BETTER case — pooled
+either-right **0.93** (n=112) against **0.75** for the milder
+`disagree_ranked` kind (n=51), consistent across all three runs: when the two
+diverge completely they usually diverge onto the right answer and a wrong one,
+whereas reordering the same short list more often means both are looking at the
+wrong part of it.
 
 `report.py`'s renderer therefore prints `YOUR SHORTLIST: A or B` on any
 disagreement and frames it as a two-item list to settle with outside knowledge
