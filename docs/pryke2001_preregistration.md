@@ -158,5 +158,114 @@ Ranked, so a bad result is not over- or under-read:
 
 ## OUTCOME
 
-*(empty — to be filled in after the data exists and the fits are run. Do not
-edit anything above this line.)*
+**Run 2026-09-11 (office PC), after digitizing Figure 2's two well-entangled
+panels.** Nothing above this line was edited. Data: `data/pryke2002.npz` via
+`scripts/prep_pryke2002.py`; two samples, `PBD3_Ma38k` (Z 10.96) and
+`PBD3_Ma78k` (Z 22.14). `identify(n_restarts=12)`.
+
+### Result table
+
+| sample | Z_true | winner | dAICc over 2nd | rms (star) | rms (branched) | fitted G_N | fitted Z | fitted tau_e |
+|---|---|---|---|---|---|---|---|---|
+| PBD3_Ma38k | 10.96 | **star** | 170.0 (branched) | 0.0361 | 0.0720 | **0.776 MPa** | 13.57 (+24%) | 2.78e-5 s |
+| PBD3_Ma78k | 22.14 | **star** | 86.8 (branched) | 0.0882 | 0.1244 | **0.731 MPa** | 31.51 (+42%) | 3.66e-5 s |
+
+Paper's own values: G_0 = 0.765 MPa, tau_e = 1.02e-5 s.
+
+### Scoring against the predictions
+
+**P1 — HELD, on both samples.** `star` wins C (Z 11.0) and D (Z 22.1) at
+dAICc 170 and 87, with rms 50% and 29% better than `branched`. These are
+decisive wins of the MM1998 mid-band kind, not the Z = 2.2 parsimony tie.
+**The class transfers to a third chemistry** (PBD, after PI and PIB), which is
+the question this dataset was chosen to answer.
+
+**P2 — NOT TESTED.** Samples A and B were not digitized (recommended scope was
+Figure 2's two well-entangled panels only). No claim either way.
+
+**P3 — HELD exactly.** Z biased **+24%** and **+42%**, inside the +17-84%
+band measured on MM1998. Nothing was tuned. `Z` remains non-reportable.
+
+**P4 — THE PREDICTION'S PREMISE FAILED, AND THIS IS THE MAIN FINDING.**
+`terminal_reached` is **False for BOTH samples**, and `star` was nonetheless
+**correct on both**. That directly contradicts the 1/5 hit rate on the
+non-terminal side that P4 was built from (MM1998 + Santangelo, n=10).
+
+The feature is not tracking what its name suggests here. `PBD3_Ma38k` has
+low-frequency slopes **1.87 / 0.85** against the 2.0 / 1.0 melt limit, and
+G''/G' = **33** at its lowest raw point — that curve unambiguously flows, and
+`terminal_reached` still reads False. `PBD3_Ma78k` is the genuinely marginal
+one: slopes 0.35 / 0.17, with the G''/G' crossover falling exactly ON its
+lowest digitized point (ratio 1.17, confirmed against Figure 2 by the user —
+the published window stops there; this is not a truncated trace).
+
+So the honest statement is: **`terminal_reached` False did not predict failure
+on this dataset, and the 5/5-vs-1/5 split does not generalise as stated.**
+Two readings remain open and this run cannot separate them:
+  (a) the feature is stricter than "flow observed" — plausibly it wants
+      sustained 2/1 asymptotes over a run of points, and these are TTS master
+      curves interpolated onto a 60-point grid across ~8 decades; or
+  (b) the real envelope is narrower than the feature and these two curves sit
+      inside it for another reason.
+**Do not "fix" the feature on the strength of n=2.** What is now established
+is that the envelope claim in CLAUDE.md and next-actions is overstated and
+must be requalified, not that the feature is wrong.
+
+Note this cuts AGAINST the class's own caveat: `challenge()` emits the star
+window caveat whenever the winner is `star` and `terminal_reached` is False,
+so it fires on both of these — on two curves where the call is right and
+G_N lands within 4% of the paper's. The caveat is still correctly grounded
+(it says the evidence is thin, not that the answer is wrong), but its hit
+rate on real stars is now 2 false alarms out of 2 here.
+
+**P5 — HELD.** `branched` is the runner-up on both samples, as predicted. No
+miss occurred, so the prediction is only weakly exercised, but the ordering is
+exactly what P5 said it would be.
+
+**P6 — FAILED, on both samples, and sharply.** The neural head says
+`branched` (p = 0.983) on Ma38k and `cured_elastomer` (p = 0.986) on Ma78k.
+Both are **confident** with **abstain_p ~ 0.00**, and `agreement()` classes
+both as the sharp **`disagree`** kind, not `disagree_ranked`.
+
+Read carefully, because the pooled synthetic statistics say a disagreement
+roughly halves BOTH sides' reliability (0.945 -> 0.438 physics, 0.937 ->
+0.426 neural) and that which brain degrades more is NOT stable. Here the
+physics side carries external corroboration the network does not: it recovered
+the paper's own G_0 to within 1.4% / 4.4% from a free fit. So on this dataset
+the physics side is the right member of the pair — but that is an
+after-the-fact reading supported by outside knowledge, which is precisely how
+the shortlist is meant to be used, and it must NOT be generalised into
+"trust physics on a split".
+
+`cured_elastomer` at p = 0.986 on a melt that visibly flows is worth keeping
+as a specimen: the network's confidence is trained only against its own errors
+on the synthetic distribution, so it has no way to flag a real curve whose
+shape sits off that distribution.
+
+### Against the "genuine problem" list
+
+1. **`star` loses on C or D at dAICc > 20 with flow observed** — did not
+   happen; `star` won both decisively.
+2. **A miss landing somewhere other than `branched`** — no miss.
+3. **Fitted G_N far from the paper's G_0 = 0.765 MPa** — did not happen, and
+   this is the run's strongest positive result: **0.776 MPa (+1.4%)** and
+   **0.731 MPa (-4.4%)**, from three free parameters that never saw that
+   number. Independent corroboration of the modulus scale on a new chemistry.
+
+**One item outside the pre-registered list, recorded because it is a real
+mismatch:** fitted `tau_e` is **2.78e-5 / 3.66e-5 s** against the paper's
+**1.02e-5 s** — factors of **2.7 and 3.6**. `star.py`'s docstring says a fit
+landing "within a factor of two on the time scale is behaving exactly as
+published" (the paper's own section-V residual factors are ~1.6 in modulus and
+~2 in time), so this sits just outside that band while the modulus sits well
+inside it. Not predicted, not a failure of any stated criterion, and n=2.
+Flagged for the next star dataset rather than acted on.
+
+### Net
+
+The primary claim held and the modulus corroboration is better than expected.
+The prediction that failed is P4's premise, which was the project's own
+confidence about where this class works — the envelope is looser than
+"terminal_reached True", at least on TTS master curves. That requalification is
+the result worth carrying forward; the 2/2 hit rate is n=2 and should not be
+quoted as an accuracy.

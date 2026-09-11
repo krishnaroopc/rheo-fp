@@ -224,8 +224,9 @@ from Ma/Me; Milner-McLeish 1998) and `data/santangelo1999.npz` (2 six-arm PIB
 stars + a LINEAR control). `identify()` returns `star` for **5/7** MM1998
 stars.
 
-**The split is governed by TERMINAL FLOW, not by Z** — this is the class's
-real operating envelope and it was measured, not assumed. Where flow is
+**The split is governed by TERMINAL FLOW, not by Z** — measured, not assumed,
+BUT **requalified by Pryke 2002 on 2026-09-11; read the correction at the end
+of this paragraph before quoting the numbers.** Where flow is
 observed the class is **5/5**; where it is not it is **1/5**, and all four
 real-data failures across both datasets sit on the wrong side of that line:
 the two MM1998 misses (Z 19 and 21 → `branched`, ΔAICc 57 and 103 — genuine
@@ -241,8 +242,22 @@ below Z ≈ 4 there is no star-specific shape left.
 **This must NOT become a pre-filter discard** (`if not terminal_reached: drop
 star`) — that is the `has_shoulder` missing-evidence fallacy again, and it
 would delete the class exactly where a real star is hardest to see. It belongs
-in `report.py`; whether to add a star-specific caveat there is the one open
-item, see next-actions.
+in `report.py`; the star-specific caveat was built there 2026-09-09.
+
+**>>> CORRECTION 2026-09-11 (Pryke 2002): the 5/5-vs-1/5 split is NOT the
+envelope it was read as. <<<** On a third chemistry (1,2-polybutadiene)
+`terminal_reached` read **False on BOTH** samples and `star` was **right on
+both**, decisively (ΔAICc 170 and 87). The cause is a hard threshold —
+`terminal_reached = (slope_Gp_lo > 1.4) and (slope_Gpp_lo > 0.7)` — and
+Ma38k measures **1.39 / 0.625**, missing the G′ cut by **0.01** while plainly
+flowing (raw terminal slopes 1.87/0.85, G″/G′ = 33 at the lowest point).
+So **do not quote "5/5 where flow is observed, 1/5 where it is not" as the
+class's operating envelope**: it is a threshold artefact at least as much as a
+physical boundary. Nothing was changed (n=2, and the feature gates a sound
+positive-observation discard); pinned by
+`test_terminal_reached_is_a_sharp_threshold_that_a_flowing_melt_can_miss`.
+Knock-on: `challenge()`'s star window caveat fired on both — **2 false alarms
+out of 2** — on correct calls whose G_N landed within 4% of the paper's.
 
 **`Z` is NOT a reportable output** — biased +17-84%. Report "star", never
 "Z = ...". **The cause is NOT `Z_BOUNDS`' floor of 4**, and an earlier version
@@ -366,6 +381,19 @@ complete, 2026-09-09): 5/7 on Milner-McLeish 1998's own seven-star set, and
 5/5 restricted to curves that reach terminal flow — but read the envelope in
 the star paragraph above, and note that the 6/6 benchmark figure does not
 include any star curve.
+**Extended to a THIRD CHEMISTRY 2026-09-11 (Pryke 2002, 1,2-polybutadiene):
+2/2, ΔAICc 170 and 87 over `branched`** (`data/pryke2002.npz`; predictions
+pre-registered in `docs/pryke2001_preregistration.md` before the curves were
+digitized, outcomes recorded under its OUTCOME section). The strongest result
+there is independent: a free 3-parameter fit recovered the paper's own stated
+G_0 = 0.765 MPa to **+1.4% / −4.4%** — a number the fit never saw. Z stayed
+biased **+24% / +42%**, inside the known band, and remains non-reportable.
+**Both curves were sharp two-brain DISAGREEMENTS** (network said `branched`
+p=0.983 and `cured_elastomer` p=0.986, both confident at abstain_p ≈ 0);
+physics was the right member, but that was knowable only from the recovered
+G_0, so it must not be generalised into trusting physics on a split. Fitted
+`tau_e` came in 2.7–3.6× the paper's, just outside the factor-of-2 band
+`star.py` cites while the modulus sat well inside — flagged, not acted on, n=2.
 
 **Both real temperature stacks tested so far (Edera 2024, Ricarte 2023 —
 vitrimers) confirm the STACK MECHANISM but fail the FINE CLASS.**

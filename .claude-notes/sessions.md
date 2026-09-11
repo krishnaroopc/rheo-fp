@@ -6,7 +6,64 @@ the end of each working session (what was discussed, decided, and changed).
 
 ---
 
-## 2026-09-11 (OFFICE PC, latest) — pre-registered Pryke; widening REJECTED
+## 2026-09-11 (OFFICE PC, part 2) — Pryke RUN: P1 held, P4's premise failed
+
+The pre-registered Pryke test was executed the same day it was written. User
+digitized Figure 2's two well-entangled panels into `originals/pryke2002.xlsx`
+mid-session; `scripts/prep_pryke2002.py` → `data/pryke2002.npz` (committed).
+
+**`star` transfers to a third chemistry.** Both samples identified `star`
+decisively — Ma38k (Z 10.96) at dAICc **170** over `branched` (rms 0.036 vs
+0.072), Ma78k (Z 22.14) at dAICc **87** (0.088 vs 0.124). All prior star
+validation was polyisoprene and polyisobutylene; 1,2-polybutadiene is new.
+
+**The strongest result was the modulus.** A free 3-parameter fit returned
+G_N = **0.776 MPa** and **0.731 MPa** against the paper's own stated
+G_0 = **0.765 MPa** — +1.4% and −4.4%, from a number the fit never saw. That
+was item 3 on the pre-registration's "genuine problem" list and it passed
+outright.
+
+**P4's PREMISE FAILED, and that is the finding worth carrying.** The
+pre-registration made `terminal_reached` the predictor of real-data success
+(5/5 True, 1/5 False across MM1998 + Santangelo). Here it read **False on both
+samples and `star` was right on both**. Cause, measured not guessed:
+`terminal_reached = (slope_Gp_lo > 1.4) and (slope_Gpp_lo > 0.7)` is a hard
+threshold, and Ma38k measures **1.39 / 0.625** — it misses the G′ cut by
+**0.01** while plainly flowing (raw terminal slopes 1.87/0.85, G″/G′ = 33 at
+the lowest point). So the honest correction is **not** "the envelope is
+wrong"; it is "a threshold this sharp will call a flowing melt non-terminal",
+and the 5/5-vs-1/5 split must not be quoted as a law. **Nothing was changed** —
+n=2, and the feature gates a sound positive-observation discard.
+
+**Consequence worth knowing:** `challenge()`'s star window caveat fires on both
+of these curves — 2 false alarms out of 2 — on calls that are right and whose
+G_N lands within 4% of the paper's.
+
+**P6 failed sharply: the two brains disagreed on both curves.** Network said
+`branched` (p=0.983) and `cured_elastomer` (p=0.986), both **confident** with
+**abstain_p ≈ 0.00**, both the sharp `disagree` kind. Physics was the right
+member here — but only knowable from outside evidence (the recovered G_0), and
+that must NOT generalise into "trust physics on a split", which three seeds
+already showed is unstable. `cured_elastomer` at p=0.986 on a visibly flowing
+melt is a good specimen of the network's confidence being trained only against
+its own synthetic errors.
+
+**P3 held exactly:** Z biased **+24%** and **+42%**, inside MM1998's +17–84%.
+Still non-reportable; nothing tuned. **P5 held** (runner-up was `branched` on
+both). **P2 not tested** — samples A and B were out of the recommended scope.
+
+Unpredicted mismatch, flagged not acted on: fitted `tau_e` = 2.78e-5 / 3.66e-5 s
+against the paper's 1.02e-5 — factors of **2.7 and 3.6**, just outside the
+"factor of ~2" `star.py` says the paper's own residuals allow, while the
+modulus sits well inside. n=2; revisit on the next star dataset.
+
+Outcomes recorded under `docs/pryke2001_preregistration.md`'s OUTCOME section
+with nothing above it edited, so the diff shows what was wrong. 7 tests added
+to `tests/test_star.py` (now 47), including one pinning the threshold finding.
+
+---
+
+## 2026-09-11 (OFFICE PC, earlier) — pre-registered Pryke; widening REJECTED
 
 Two items, both about testing claims before believing them.
 

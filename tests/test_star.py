@@ -438,3 +438,101 @@ def test_lowering_the_Z_bounds_floor_does_not_rescue_weakly_entangled_arms():
             assert fits[2.0]["Z"] == pytest.approx(fits[4.0]["Z"], rel=0.05)
     finally:
         star.Z_BOUNDS = orig
+
+
+# --- real data: Pryke 2002, a THIRD chemistry (1,2-polybutadiene) -----------
+#
+# Pryke, Blackwell, McLeish & Young (2002), Macromolecules 35, 467, Figure 2:
+# symmetric THREE-ARM 1,2-PBD star melts at 333 K, Z = Ma/Me known from the
+# paper's own tables (Me = 3550). Predictions were pre-registered in
+# docs/pryke2001_preregistration.md BEFORE these curves were digitized; the
+# OUTCOME section there records what held and what did not.
+#
+# Why this set earns tests of its own: every prior star validation is
+# polyisoprene (mm1998) or polyisobutylene (santangelo1999), so this is the
+# first evidence the class survives a change of chemistry.
+
+PRYKE_SAMPLES = {"PBD3_Ma38k": 10.96, "PBD3_Ma78k": 22.14}
+
+
+@pytest.mark.parametrize("sample", list(PRYKE_SAMPLES))
+def test_pryke2002_star_is_identified_on_a_third_chemistry(sample):
+    """P1 of the pre-registration, and it held on both well-entangled panels.
+
+    dAICc 170 (Ma38k) and 87 (Ma78k) over `branched`, with star's rms 50% and
+    29% better - decisive wins of the MM1998 mid-band kind, not the Z = 2.2
+    parsimony tie.
+    """
+    from rheofp.io.data import load_npz
+    from rheofp.fitting.identify import identify
+    s = load_npz("data/pryke2002.npz")[sample]
+    out = identify(s["omega"], s["Gp"], s["Gpp"], n_restarts=12)
+    assert out["best"] == "star"
+    assert out["ranking"][1]["delta"] > 50.0
+
+
+@pytest.mark.parametrize("sample", list(PRYKE_SAMPLES))
+def test_pryke2002_recovers_the_papers_own_plateau_modulus(sample):
+    """The run's strongest positive result, and it was a pre-registered check.
+
+    The paper states G_0 = 0.765 MPa for 1,2-PBD (Table 2). A free three-
+    parameter fit that never saw that number returns 0.776 and 0.731 MPa -
+    within 1.4% and 4.4%. Item 3 on the pre-registration's "what would count
+    as a genuine problem" list was G_N landing far from 0.765; it did not.
+
+    Note G' RISES ABOVE G_N at high frequency here (max G' is 3.3-3.6x G_0)
+    because of the arm-Rouse term - G_N is the plateau LEVEL, not the curve
+    maximum. Comparing the paper's G_0 against max(G') would fail this test
+    for the wrong reason.
+    """
+    from rheofp.io.data import load_npz
+    s = load_npz("data/pryke2002.npz")[sample]
+    fit = fit_star(s["omega"], s["Gp"], s["Gpp"], n_restarts=12, seed=0)
+    assert fit["G_N"] == pytest.approx(0.765e6, rel=0.10)
+
+
+@pytest.mark.parametrize("sample", list(PRYKE_SAMPLES))
+def test_pryke2002_Z_is_biased_high_and_stays_non_reportable(sample):
+    """P3: Z came back +24% and +42%, inside the +17-84% band from MM1998.
+
+    Pinned so that nobody later reads a plausible-looking Z off this dataset
+    and starts reporting it. The class says "star", never "Z = ...".
+    """
+    from rheofp.io.data import load_npz
+    s = load_npz("data/pryke2002.npz")[sample]
+    fit = fit_star(s["omega"], s["Gp"], s["Gpp"], n_restarts=12, seed=0)
+    z_true = PRYKE_SAMPLES[sample]
+    assert fit["Z"] > z_true, "bias has flipped sign - re-read the envelope"
+    assert fit["Z"] < 1.9 * z_true
+
+
+def test_terminal_reached_is_a_sharp_threshold_that_a_flowing_melt_can_miss():
+    """P4's PREMISE failed here, and this pins the reason so it is not re-guessed.
+
+    The pre-registration made `terminal_reached` the predictor of the class's
+    real-data success (5/5 True, 1/5 False across MM1998 + Santangelo). On
+    Pryke both samples read False and `star` was correct on BOTH.
+
+    The cause is not subtle once measured: the feature is a hard threshold,
+    `slope_Gp_lo > 1.4 and slope_Gpp_lo > 0.7`, and Ma38k measures 1.39 /
+    0.625 - it misses the G' cut by 0.01 while plainly flowing (G''/G' = 33 at
+    its lowest raw point, terminal slopes 1.87 / 0.85 on the raw trace before
+    the common-grid interpolation smooths the low-frequency end).
+
+    So the honest statement is NOT "the envelope is wrong" but "a threshold
+    this sharp will call a flowing melt non-terminal". Left UNCHANGED
+    deliberately: n=2, the feature gates a sound positive-observation discard
+    (flow rules out permanent networks), and moving a threshold to fit two
+    curves is what this project pre-registers against.
+    """
+    from rheofp.io.data import load_npz
+    from rheofp.fitting.identify import signature_features
+    s = load_npz("data/pryke2002.npz")["PBD3_Ma38k"]
+    feats, allowed = signature_features(s["omega"], s["Gp"], s["Gpp"])
+    assert bool(feats["terminal_reached"]) is False
+    # ... yet it sits within a whisker of the cut, on the correct side physically
+    assert feats["slope_Gp_lo"] == pytest.approx(1.39, abs=0.05)
+    assert feats["slope_Gp_lo"] < 1.4
+    # and because flow was not "observed", the network classes stay on the
+    # ballot - star still wins on merit rather than by elimination.
+    assert "cured_elastomer" in allowed

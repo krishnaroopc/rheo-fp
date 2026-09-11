@@ -56,9 +56,51 @@ office-PC entry; read that before extending either.
 
 ---
 
-# >>> THE ACTIVE TASK: star-polybutadiene validation (Pryke 2001) <<<
+# >>> ~~THE ACTIVE TASK: star-polybutadiene validation~~ — DONE 2026-09-11 <<<
 
-**Status: BLOCKED ON DIGITIZING. The paper is in hand; the data is not.**
+**COMPLETE.** User digitized Figure 2's two well-entangled panels;
+`data/pryke2002.npz` is committed and 7 tests pin the result. Full scoring in
+`docs/pryke2001_preregistration.md`'s OUTCOME section; narrative in
+`sessions.md`. Headline:
+
+| sample | Z_true | winner | dAICc | fitted G_N | fitted Z |
+|---|---|---|---|---|---|
+| PBD3_Ma38k | 10.96 | **star** | 170 | **0.776 MPa** | 13.6 (+24%) |
+| PBD3_Ma78k | 22.14 | **star** | 87 | **0.731 MPa** | 31.5 (+42%) |
+
+`star` **transfers to a third chemistry**, and a free fit recovered the paper's
+own G_0 = 0.765 MPa to within 1.4% / 4.4%. P1, P3, P5 held; P2 untested.
+
+**>>> THE ONE THING TO CARRY FORWARD: P4's PREMISE IS WRONG AS STATED. <<<**
+`terminal_reached` read **False on both** samples and `star` was **right on
+both** — against the 1/5 rate this file and CLAUDE.md both quote. The cause is
+a hard threshold, `slope_Gp_lo > 1.4 and slope_Gpp_lo > 0.7`; Ma38k measures
+**1.39 / 0.625**, missing the G′ cut by **0.01** while plainly flowing (raw
+slopes 1.87/0.85, G″/G′ = 33 at the lowest point). So **stop quoting
+"5/5 where flow is observed, 1/5 where it is not" as the class's envelope** —
+it is a threshold artefact at least as much as a physical boundary.
+**Nothing was changed** (n=2; the feature gates a sound positive-observation
+discard) and nothing should be until a third dataset says so. Pinned by
+`test_terminal_reached_is_a_sharp_threshold_that_a_flowing_melt_can_miss`.
+
+Knock-on, unresolved: `challenge()`'s star window caveat fires on both curves —
+**2 false alarms / 2** — on correct calls with G_N within 4% of the paper's.
+Whether to condition it on something better than this threshold is now a real
+open question, not a hypothetical.
+
+**P6 also failed:** both curves are sharp two-brain disagreements (network:
+`branched` p=0.983, `cured_elastomer` p=0.986; both confident, abstain_p ≈ 0).
+Physics was right here, knowable only from the recovered G_0 — do NOT
+generalise that into trusting physics on a split.
+
+Unpredicted, flagged not acted on: fitted `tau_e` 2.78e-5 / 3.66e-5 s vs the
+paper's 1.02e-5 (factors 2.7 / 3.6), just outside the factor-of-2 band
+`star.py` cites, while the modulus sits well inside. Revisit on the next star
+dataset.
+
+### The original brief, kept as the record
+
+**Status was: BLOCKED ON DIGITIZING. The paper is in hand; the data is not.**
 `originals/ma010350l.pdf` — Pryke, Blackwell, McLeish & Young, *Macromolecules*
 **35**, 467-472 (2002), DOI `10.1021/ma010350l`. Checked page by page
 2026-09-10: it is the right paper and it is worth the effort.
