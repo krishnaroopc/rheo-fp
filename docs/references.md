@@ -115,3 +115,24 @@ repository - citations only, below.
   log(tau(1)/tau_0) = 13.8) and the first-passage formulation, including
   eqs 1.9/1.10 defining the diffusive time on the tube FLUCTUATION length
   rather than the full primitive path. `originals/pearson_helfand1984.pdf`.
+
+- Pryke, A., Blackwell, R. J., McLeish, T. C. B., & Young, R. N. (2002).
+  Synthesis, hydrogenation, and rheology of 1,2-polybutadiene star polymers.
+  *Macromolecules*, 35(2), 467-472. doi:10.1021/ma010350l — **prospective
+  real-data validation set for the `star` class in an independent chemistry**
+  (all current star validation is polyisoprene and polyisobutylene). Four
+  symmetric THREE-ARM 1,2-polybutadiene stars, arm M_w 11 300 / 24 100 /
+  38 900 / 78 600, plus hydrogenated poly(1-butene) analogues. Table 2 gives
+  M_e = 3550 g/mol, G_0 = 0.765 MPa, tau_e = 1.02e-5 s at 333 K for the
+  parent (M_e = 6100 for the hydrogenated, fitted not literature), so
+  **Z = M_a/M_e is known independently rather than fitted**: 3.2 / 6.8 / 11.0
+  / 22.1. A direct Milner-McLeish test by McLeish himself, using the same
+  three parameters `star.py` implements.
+  Its own conclusion that the low-M_a samples deviate most, being of
+  "marginal degree of entanglement, with s = 3.2", independently corroborates
+  the Z ~ 4 identifiability floor this project measured from the
+  flat-cost-in-Z analysis.
+  **NOT YET USABLE:** G'/G'' appear only as log-log master curves (Figures 2
+  and 3, ~9 decades at 333 K); there are no numeric tables, so the figures
+  must be digitized first. `originals/ma010350l.pdf`; see the active task at
+  the top of `.claude-notes/next-actions.md`.

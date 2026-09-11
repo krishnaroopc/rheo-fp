@@ -54,6 +54,83 @@ discard/unopposed-winner link IS built (`unopposed_after_discard` in
 `challenge()`). Details and the measured payoff are in `sessions.md` under the
 office-PC entry; read that before extending either.
 
+---
+
+# >>> THE ACTIVE TASK: star-polybutadiene validation (Pryke 2001) <<<
+
+**Status: BLOCKED ON DIGITIZING. The paper is in hand; the data is not.**
+`originals/ma010350l.pdf` — Pryke, Blackwell, McLeish & Young, *Macromolecules*
+**35**, 467-472 (2002), DOI `10.1021/ma010350l`. Checked page by page
+2026-09-10: it is the right paper and it is worth the effort.
+
+**Why this one.** It closes the standing gap that `star` has never been tested
+on a star MELT of independent chemistry. All existing star validation is
+polyisoprene (MM1998) and polyisobutylene (Santangelo). Three further reasons
+it is a strong test rather than just another dataset:
+  1. **Z is known independently**, exactly as for MM1998 — the paper gives both
+     the arm molecular weights and M_e, so Z = M_a/M_e is not fitted.
+  2. It is **a direct Milner-McLeish test run by McLeish himself**, with the
+     same three parameters this module implements (G_0, tau_e, s = M_a/M_e).
+  3. **It independently corroborates a limit measured here.** The paper says
+     its low-M_a samples "show the largest deviation from the data curves...
+     marginal degree of entanglement, with s = 3.2" — the same Z ~ 4 floor this
+     project found from the flat-cost-in-Z analysis (§ STEP 4 RESOLVED). Two
+     independent routes to the same boundary.
+
+**The numbers, transcribed from the PDF so nobody needs to reopen it:**
+
+Table 1 — four symmetric THREE-ARM 1,2-polybutadiene stars:
+
+| arm M_w | star M_w | PD | Z = M_a/M_e |
+|---|---|---|---|
+| 11 300 | 30 600 | 1.01 | **3.2** |
+| 24 100 | 60 800 | 1.01 | **6.8** |
+| 38 900 | 97 600 | 1.02 | **11.0** |
+| 78 600 | 203 300 | 1.04 | **22.1** |
+
+Table 2 — parameters at **333 K** (the master-curve reference temperature):
+
+| species | M_e (g/mol) | G_0 (MPa) | tau_e (s) |
+|---|---|---|---|
+| 1,2-polybutadiene | 3550 | 0.765 | 1.02e-5 |
+| poly(1-butene) (hydrogenated) | 6100 | 0.510 | 2.04e-5 |
+
+Note the hydrogenated set has a DIFFERENT M_e, so its Z values differ: 1.9,
+4.0, 6.4, 12.9. The paper fitted that M_e rather than taking it from
+literature, and flags it as well below Fetters' 9536 — treat hydrogenated Z as
+less certain than the parent's.
+
+**WHAT IS ACTUALLY NEEDED — the data is in FIGURES, not tables.** There are no
+numeric G'/G'' values anywhere in the PDF. Figures 2 (parent 1,2-PBD) and 3
+(hydrogenated) are log-log master curves at 333 K spanning **1e-3 to 1e6 s^-1**
+(~9 decades), four panels each, G' and G'' per panel. Same situation as every
+other dataset here: Darby, Tixier, Pivokonsky, MM1998 and Santangelo all
+reached `data/` only because the USER digitized them first.
+
+**RECOMMENDED SCOPE, smallest useful first** — do NOT digitize all 16 curves:
+  * Start with **Figure 2 only** (the unsaturated parents — their M_e is a
+    literature value, not a fitted one, so Z is firmer).
+  * Within it, the two well-entangled panels: **M_a = 38.9K (Z ~ 11)** and
+    **M_a = 78.6K (Z ~ 22)**. These are where the class should work, and they
+    are the cleanest panels to trace.
+  * The two low-Z panels (3.2, 6.8) are a BONUS test of the known failure mode,
+    not the main event. Expect Z to come back wrong there and do not treat that
+    as a regression — it is the documented flat-cost-in-Z region.
+
+**Then, once `originals/pryke2001.xlsx` (or .ods) exists:**
+  1. Write `scripts/prep_pryke2001.py` on the established pattern (see
+     `prep_mm1998.py` / `prep_santangelo.py`) -> commit `data/pryke2001.npz`
+     so tests run without `originals/`. Record T_K = 333.
+  2. Run `identify()` per curve. **Pre-register the expectation BEFORE looking**
+     (this project's standing rule, and see `9b51840` for why): `star` on the
+     two well-entangled curves; `terminal_reached` is the predictor of success,
+     not Z — check whether these windows reach flow before scoring a miss.
+  3. Do NOT report Z as an output. It is non-reportable (biased +17-84% on
+     mm1998) and nothing here changes that.
+  4. Add tests alongside `tests/test_star.py`'s real-data section.
+
+---
+
 **READ BOTH MEASUREMENTS, NOT JUST THE PRETTY ONE.** On MM1998's seven-star set
 the agreement signal separates the AICc hits from the AICc misses PERFECTLY —
 agree on all 5 AICc gets right, disagree on both it gets wrong (Ma95k/Ma105k,

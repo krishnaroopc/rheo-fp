@@ -6,7 +6,47 @@ the end of each working session (what was discussed, decided, and changed).
 
 ---
 
-## 2026-09-10 (OFFICE PC, latest, part 2) — third seed; the question is closed
+## 2026-09-10 (OFFICE PC, part 3, end of session) — next dataset identified
+
+Closed out by finding the paper for the next piece of work: real star-MELT
+data of an independent chemistry, which is the standing gap in the `star`
+class (all validation so far is PI and PIB).
+
+Searched Crossref rather than trusting recall — worth noting because the first
+two DOIs that surfaced (`10.1021/ma00134a060`, `10.1021/ma980060d`) turned out
+to be Pearson-Helfand 1984 and MM1998, **both already in `originals/`**. The
+Roovers papers that came up are star-in-linear blends, rings, or 32-arm stars
+(the latter sits in the known Z >~ 40 two-peak regime — a harder test, not a
+first one).
+
+**Landed on Pryke, Blackwell, McLeish & Young, *Macromolecules* 35, 467-472
+(2002), DOI 10.1021/ma010350l.** User supplied it as
+`originals/ma010350l.pdf`; I read it page by page and confirmed it is the
+right paper. Four three-arm 1,2-polybutadiene stars, arm M_w 11.3K-78.6K, plus
+their hydrogenated analogues; M_e / G_0 / tau_e given in Table 2 so **Z is
+known independently rather than fitted** (Z = 3.2 / 6.8 / 11.0 / 22.1). It is
+a direct Milner-McLeish test by McLeish himself, using the same three
+parameters this module implements.
+
+**Unplanned corroboration worth keeping:** the paper's own conclusion that its
+low-M_a samples "show the largest deviation ... marginal degree of
+entanglement, with s = 3.2" is the SAME Z ~ 4 floor this project found
+independently from the flat-cost-in-Z analysis. Two different routes to the
+same boundary.
+
+**The catch, and it is why this is a to-do and not a result: the data is in
+FIGURES.** No numeric G'/G'' anywhere in the PDF — Figures 2 and 3 are log-log
+master curves at 333 K over ~9 decades. Same position as every other dataset
+here; all of them reached `data/` only after the user digitized them.
+
+Full brief, including both tables transcribed so nobody reopens the PDF, the
+recommended minimal scope (Figure 2, the two well-entangled panels first), and
+the pre-registration reminder, is at the TOP of `next-actions.md` as the
+active task.
+
+---
+
+## 2026-09-10 (OFFICE PC, part 2) — third seed; the question is closed
 
 **Verdict: the gate effect is SMALL BUT REAL. Stop measuring it.**
 
