@@ -10,9 +10,49 @@ Last updated: **2026-09-09 (OFFICE PC, end of session).**
 # >>> START HERE ON ANY PC <<<
 
 **On arrival, in order:** `git pull` → `uv sync` → `uv run pytest -m "not slow"`.
-Expect **213 passed, 2 skipped** (measured 13:34 on the office PC 2026-09-09;
-the laptop is slower). Note the office PC's old "~5 min" figure no longer
-holds — this session's 17 new tests include real-data `identify()` calls.
+Expect **229 passed, 2 skipped**. **Runtime is UNSTABLE on the office PC and
+the cause is UNKNOWN — see below before reading anything into a slow run.**
+
+### >>> OPEN: the suite runs at either ~15 min or ~76 min, nondeterministically
+
+Measured on the office PC (Core Ultra 9 285) on 2026-09-11, same machine, same
+command, same 228/229-test suite:
+
+| run | wall | note |
+|---|---|---|
+| bare `-q` | **1:15:51** | other work running concurrently |
+| `-q --durations=40` | **15:10** | idle |
+| bare `-q` | **1:15:38** | **idle — nothing else running** |
+
+**Two explanations were proposed and BOTH are refuted. Do not re-propose
+them:**
+1. *"Contention from concurrent work in the repo."* Refuted — the third run
+   was deliberately idle and still took 1:15:38.
+2. *"The `--durations` flag somehow changes it."* Refuted — A/B on
+   `tests/test_stack.py`: **32s without, 31s with**. No effect.
+
+**The one hard clue: CPU time is ~992 s in BOTH slow runs, against ~4540 s of
+wall-clock — a ~22% CPU ratio.** A single-threaded SciPy workload should sit
+near 100%. So the slow runs are not computing more; they are *waiting*, and
+the fast run did the same work in a fifth of the wall time. Something is
+blocking (IO, an antivirus/Defender scan of `.venv`, a filesystem or OneDrive
+hook, power/thermal state) — unidentified as of this session.
+
+**What this means practically:** a slow run is NOT evidence of a regression,
+and the 13:34/2026-09-09 figure is consistent with the FAST path. Time the
+suite more than once before believing any timing claim. **No code was changed**
+and none should be until the blocking cause is identified — the honest next
+step is `-p no:cacheprovider`, a `procmon`/Defender-exclusion check, or timing
+a single expensive test repeatedly to see if it bimodally splits.
+
+Profile (2026-09-11, `--durations=40`, the FAST run): three tests are 38% of
+the total — `test_contradiction_has_zero_false_positives_on_a_mixed_population`
+189s, `test_generated_population_round_trips_through_the_identifier` 106s,
+`test_the_agreement_signal_separates_the_star_hits_from_the_star_misses` 60s.
+All three loop real or planted curves through the 10-model bank, and all three
+are the evidence behind a user-facing claim. **Do not mark them `slow` to buy
+time** — that removes exactly the checks this project's honesty rests on from
+the default run.
 Everything through `uv run`; there is no usable system Python (on the laptop
 `python` is a 0-byte Microsoft Store stub). On a fresh Windows PC also run
 **`gh auth setup-git`** or `git push` will hang forever with no error —

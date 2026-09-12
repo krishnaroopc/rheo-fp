@@ -6,6 +6,57 @@ the end of each working session (what was discussed, decided, and changed).
 
 ---
 
+## 2026-09-11 (OFFICE PC, part 3) — caveat de-overclaimed; a timing scare, closed
+
+Two small items, both consequences of the Pryke run earlier in the session.
+
+**1. The star window caveat overclaimed, and Pryke had just falsified it.**
+`report.py`'s `challenge()` told the user the class "was right on every curve
+that reached flow and unreliable on every curve that did not". The second half
+is false as of this session: both Pryke samples read `terminal_reached` False
+and `star` was right on both, decisively, recovering the paper's own G_0 to
+within 4%. Measured false-alarm rate on that dataset: **2/2**.
+
+The item is **kept** — the evidence really is thinner without a terminal zone —
+but it now reads as a warning to check rather than a verdict that the call is
+unreliable, and it states the counter-evidence explicitly. A new test
+(`test_the_star_window_caveat_does_not_overclaim_after_pryke`) asserts the
+falsified absolute phrasing cannot drift back in, in the same spirit as
+`test_no_text_claims_agreement_beats_the_other_confidence_scores`.
+
+**2. The suite runtime is BIMODAL and the cause is UNKNOWN. I guessed twice
+and was wrong twice; both guesses are now refuted in writing.**
+
+Three timings, same machine, same command, same suite:
+**1:15:51** (busy) → **15:10** (idle, `--durations=40`) → **1:15:38**
+(**idle, nothing else running**).
+
+- Guess 1, *"contention from my own concurrent work"* — I wrote this into
+  next-actions and sessions as settled and recommended closing the item. The
+  third run was deliberately idle and still took 1:15:38. **Refuted.**
+- Guess 2, *"the `--durations` flag changes it"* — A/B'd on `test_stack.py`:
+  **32s without, 31s with. Refuted.**
+
+**The real clue, which neither guess accounted for: CPU time is ~992 s in both
+slow runs against ~4540 s wall — a ~22% CPU ratio**, where single-threaded
+SciPy should be near 100%. The slow runs are not doing more work, they are
+BLOCKING on something (IO, Defender scanning `.venv`, a filesystem hook,
+power state). Unidentified. Next diagnostic steps are recorded in
+next-actions' START HERE block, which now carries the full table and both
+refutations instead of my wrong explanation.
+
+Lesson worth more than the answer would have been: **I recommended a
+"fix the slow suite" task, then declared it closed, on a single unreplicated
+measurement each time.** Time it more than once before believing it. No code
+was changed at any point, which is the one thing that went right.
+
+Profiled during the fast run (`--durations=40`): three tests are 38% of the
+runtime (189s / 106s / 60s), all looping curves through the 10-model bank, all
+three the evidence behind a user-facing claim. Explicitly NOT marked `slow` —
+that would pull the project's own honesty checks out of the default run.
+
+---
+
 ## 2026-09-11 (OFFICE PC, part 2) — Pryke RUN: P1 held, P4's premise failed
 
 The pre-registered Pryke test was executed the same day it was written. User

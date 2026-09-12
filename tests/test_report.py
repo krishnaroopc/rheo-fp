@@ -312,6 +312,33 @@ def test_a_star_call_that_did_reach_flow_gets_no_such_warning():
     assert "retraction" not in text
 
 
+def test_the_star_window_caveat_does_not_overclaim_after_pryke():
+    """The caveat used to assert the class was "right on every curve that
+    reached flow and unreliable on every curve that did not". Pryke 2002
+    falsified the second half on 2026-09-11: BOTH its samples read
+    terminal_reached False and `star` was correct on both, decisively (dAICc
+    170 and 87), with a free fit recovering that paper's own G_0 = 0.765 MPa
+    to +1.4% / -4.4%.
+
+    Measured false-alarm rate of the caveat on real stars is therefore 2/2 on
+    that dataset. The item is KEPT - the evidence genuinely is thinner without
+    a terminal zone - but it must read as a warning to check, not as a verdict
+    that the call is unreliable. This pins that, so the stronger wording cannot
+    drift back in.
+    """
+    s = load_npz("data/santangelo1999.npz")["L176"]
+    m = s["omega"] <= 1e3
+    w, Gp, Gpp = s["omega"][m], s["Gp"][m], s["Gpp"][m]
+    res = identify(w, Gp, Gpp, n_restarts=6)
+    text = " ".join(c["text"] for c in explain(res, w, Gp, Gpp)["challenge"])
+    # the falsified absolute claim must be gone ...
+    assert "unreliable on every curve" not in text
+    assert "right on every curve" not in text
+    # ... and the counter-evidence must be present and framed as such
+    assert "both directions" in text
+    assert "not as a reason to reject" in text
+
+
 # --- branched-vs-vitrimer-power-law contradiction (2026-09-07) --------------
 
 def test_real_vitrimer_called_branched_trips_the_contradiction():
