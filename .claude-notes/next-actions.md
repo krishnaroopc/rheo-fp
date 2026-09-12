@@ -41,9 +41,35 @@ hook, power/thermal state) — unidentified as of this session.
 **What this means practically:** a slow run is NOT evidence of a regression,
 and the 13:34/2026-09-09 figure is consistent with the FAST path. Time the
 suite more than once before believing any timing claim. **No code was changed**
-and none should be until the blocking cause is identified — the honest next
-step is `-p no:cacheprovider`, a `procmon`/Defender-exclusion check, or timing
-a single expensive test repeatedly to see if it bimodally splits.
+and none should be until the blocking cause is identified.
+
+**NARROWED 2026-09-11, not solved. Three more candidates ruled out:**
+- *Per-test variance / bimodality.* Ruled out. One expensive test
+  (`test_stack_overturns_a_network_call_on_a_disguised_melt`) run 4x
+  back-to-back: **10.87 / 10.89 / 11.04 / 10.23 s**. Rock steady. Whatever
+  blocks only appears over a long full-suite run, not in any single test.
+- *CPU throttling / power plan.* Ruled out despite looking guilty. The plan is
+  "HP Optimized (Modern Standby)" and `CurrentClockSpeed` reports 2500 MHz,
+  but **Maximum processor state is 100% (0x64) on BOTH AC and DC** — the 2500
+  figure is the nameplate base clock WMI always reports, not a cap.
+- *A conftest / pytest plugin.* There is no `conftest.py` at all, and
+  `[tool.pytest.ini_options]` defines only the `slow` marker.
+
+**The one candidate left and NOT yet tested: Windows Defender.** Real-time
+monitoring is ON (`DisableRealtimeMonitoring = False`) and the exclusion list
+could not be read — `Get-MpPreference` requires **admin**, which this session
+did not have. A Defender scan of `.venv` / the 10-model SciPy import graph
+fits the evidence exactly: ~22% CPU, no per-test penalty, cost proportional to
+total process-spawn and file-touch volume over a long run.
+
+**NEXT STEP (needs an elevated shell):**
+```
+Get-MpPreference | Select-Object -ExpandProperty ExclusionPath
+Add-MpPreference -ExclusionPath "C:\Users\krish\rheo-fp"
+```
+then re-time the suite twice. If that fixes it, record it in environment.md as
+a per-machine setup step (it is machine-local, like `.venv`, and will need
+doing on the laptop and home PC too).
 
 Profile (2026-09-11, `--durations=40`, the FAST run): three tests are 38% of
 the total — `test_contradiction_has_zero_false_positives_on_a_mixed_population`
@@ -110,6 +136,32 @@ office-PC entry; read that before extending either.
 
 `star` **transfers to a third chemistry**, and a free fit recovered the paper's
 own G_0 = 0.765 MPa to within 1.4% / 4.4%. P1, P3, P5 held; P2 untested.
+
+**ITEM 2 — `terminal_reached` threshold: WATCH-AND-WAIT, trigger written down
+2026-09-11 so it is not re-litigated from scratch.** The feature is
+`(slope_Gp_lo > 1.4) and (slope_Gpp_lo > 0.7)`; Pryke's Ma38k measures
+**1.39 / 0.625** and reads False while plainly flowing. **Deliberately NOT
+changed**, for three reasons worth keeping: n=2; the threshold gates a
+*sound* positive-observation discard (observed flow rules out permanent
+networks, which is the one discard this project defends); and moving a
+threshold to accommodate two curves is the exact failure the
+pre-registration habit exists to prevent.
+
+**THE TRIGGER:** act when a *third independent dataset* shows a curve that
+visibly flows (G″/G′ > 1 at the low end, or raw terminal slopes approaching
+2/1) and still reads `terminal_reached` False. At that point it is a
+systematic threshold problem, not a coincidence.
+
+**WHEN IT TRIGGERS, the change is NOT "lower the threshold".** That would
+weaken the network-class discard, which rests on it. The candidate fixes, in
+the order I would try them: (a) compute the slopes on the RAW trace rather
+than the interpolated common grid — Ma38k's raw slopes are 1.87/0.85 against
+1.39/0.625 after interpolation, so the smoothing is doing real damage and
+this may be the whole bug; (b) add G″/G′ > 1 at the lowest point as an
+alternative sufficient condition; (c) only then consider the numbers.
+**Any change needs the full cannibalisation protocol** (n=30/class planted,
+identical seeds, before/after per class, real data must hold) because this
+feature feeds the pre-filter on every single `identify()` call.
 
 **>>> THE ONE THING TO CARRY FORWARD: P4's PREMISE IS WRONG AS STATED. <<<**
 `terminal_reached` read **False on both** samples and `star` was **right on
