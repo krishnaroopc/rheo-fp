@@ -6,6 +6,120 @@ the end of each working session (what was discussed, decided, and changed).
 
 ---
 
+## 2026-09-14 (OFFICE PC) — comb/H class approved; the LVE source paper corrected before any physics shipped
+
+User approved `docs/proposal_new_classes.md` **Candidate A (comb/H-polymer),
+then B (blends); C and D dropped.** No class is built yet. This entry exists
+because the session's value so far is four findings, not code — the one module
+written was thrown away, and re-deriving these on another PC would be
+expensive.
+
+**1. I mis-cited a paper from memory, and the user caught it.** Asked for DOIs,
+I gave `ma951356b` as Allgaier et al. 1996, *"Synthesis and Characterization of
+Polyisoprenes with an H-Shaped Architecture."* The real title is **"Synthesis
+and Characterization of Polyisoprene/Polybutadiene A2B2 Star Copolymers"** —
+right authors, journal, year, volume and pages, **wrong architecture**. I
+invented the H-shaped title because it was what an Allgaier H-polymer citation
+*ought* to say. I had hedged the DOIs as unverifiable but not the titles, which
+was the wrong half to hedge. **Lesson, and it generalises: when recalling a
+citation, the title is as fabricable as the DOI.** That PDF is now
+`originals/archive/allgaier1996_a2b2_star_blockcopolymers.pdf` — it is an A2B2
+star block copolymer paper, of no use to the comb class.
+
+**2. `originals/` gained three genuinely useful papers** (user-supplied, all
+verified by reading page 1 rather than by recall):
+- `ma990323j.pdf` — **McLeish et al. 1999**, "Dynamics of Entangled
+  H-Polymers: Theory, Rheology, and Neutron-Scattering", Macromolecules 32,
+  6734-6758. **The step-4 dataset and the correct theory source.**
+- `ma050644x.pdf` — Kapnistos, Vlassopoulos, Roovers & Leal 2005, comb
+  polymers with linear backbones, Macromolecules 38, 7852.
+- `ma50004a057.pdf` — Roovers & Graessley **1981**, "Melt Rheology of Some
+  Model Comb Polystyrenes", Macromolecules 14, 766. (NOT the 1984 H-shaped
+  polystyrene paper McLeish & Larson cite — I conflated the two earlier.)
+
+Also **un-archived** `archive/81_1_online.pdf` → `originals/mcleish_larson1998_
+pompom.pdf`. It had been filed under the 2026-07-04 XPP scope decision, which
+was right about the paper's nonlinear half and wrong about the rest.
+`archive/README.md` records the move. (All of `originals/` is gitignored, so
+none of this travels via git — it is the OneDrive junction, one shared copy.)
+
+**3. >>> THE LOAD-BEARING FINDING: McLeish & Larson 1998 is the WRONG source
+for an LVE class, and its own authors superseded it. <<<**
+
+I wrote `rheofp/models/comb.py` against ML1998 eq 8 first. Its physics checked
+out — eq 2 and eq 3 recovered exactly from eq 4's `(1-phi_b)` factor,
+`tau_arm(1) = tau_0`, `F(0) = 1`, `G(0) = G_N` to 9 digits, terminal slopes
+2.000/1.000 — **but the module was still unusable**, because ML1998 eq 8 is
+
+    G(t) = G_0 [ phi_b e^(-t/tau_b) + (1-phi_b) Int e^(-t/tau_a(x)) dx ]^2
+
+a **squared bracket**, which is not a Prony series, so G*(omega) cannot go
+through `maxwell_spectrum` and I reached for a numerical Fourier transform.
+**That transform aliases and the moduli came out ~5 decades high.** Diagnosed
+properly rather than tuned: the same machinery reproduces an analytic single
+Maxwell mode to 4 decimals on a narrow grid and **fails by a factor of 114 on
+the 16-decade grid**, improving only to 16 at 80000 points and not even
+monotonically (52300 → 15400 → 19800 → 6350). Log-spaced trapezoid quadrature
+of an oscillatory `sin(wt)` kernel cannot converge when `dt` at large `t`
+exceeds the oscillation period `1/w`. **Not fixable by adding points.**
+
+**McLeish 1999 section 2.1 eq 2 (= Appendix A eqs 22-24) replaces it with a
+SUM of two weighted integrals, not a square:**
+
+    G*(w) = G_0 (R+1) { Int dx_a phi_a (1-phi_a x_a)^R  [Maxwell kernel, tau_a]
+                      + Int dx_b phi_b^(R+1) (1-x_b)^R  [Maxwell kernel, tau_b] }
+
+Structurally identical to `star.py`'s eq 26 — a mode ladder that hands straight
+to the validated `maxwell_spectrum`. **The aliasing problem does not need
+solving; it needs not creating.** ML1998 assigns the backbone "a single
+relaxation time" by its own admission, because it was building a *nonlinear
+constitutive* model; ML1999 gives the backbone a full spectrum `tau_b(x_b)`.
+
+**The proposal's `G_N,backbone = G_N * phi_b^(4/3)` was wrong too** — neither
+paper does that. Dilution enters as `Me(phi) = Me_0 / phi^R` with the weights
+above.
+
+**4. Two parameters are UNSETTLED BETWEEN THE PAPERS — record before fitting:**
+- **Dilution exponent `R`**: McLeish 1999 Appendix A eq 26 states `R = 4/3`;
+  **Kapnistos 2005 chose `R = 1`** after testing and says outright "the dilution
+  is not a fully resolved issue". Plan: module constant, both values recorded,
+  4/3 default since the module follows ML1999.
+- **Branch-point friction `p^2`**: **1/6 (McLeish 1999 eq 32) vs 1/12
+  (Kapnistos 2005 Table 2)** — a factor of 2 on the same quantity. That
+  disagreement is the argument for FIXING it, not fitting it.
+
+**Two open risks, neither resolved, both to be settled by measurement:**
+- **COST.** ML1999 eq 43 solves the retraction/reptation crossover `x_c`
+  **self-consistently** (`tau_rep` depends on `x_c` via eq 42's `(1-x_c)^2`),
+  nested inside eq 38's **double-integral** first-passage time, per forward
+  call, inside multi-restart fits. Budget is ~11 s/curve for the whole 10-model
+  bank with `branched` worst at 3.36 s. **Measure per-call cost immediately
+  after the forward model works, before anything else.** If unaffordable the
+  options are ML1999's asymptotic eq 30/39 instead of the full double integral,
+  or the class does not ship — a user decision, not one to make by quietly
+  picking an approximation.
+- **FALSIFIABILITY.** ML1999's own Table 2 compares `s_a`/`s_b`/`phi_a`/`phi_b`
+  from synthesis against from fitting, and the less monodisperse samples
+  disagree badly — **H110B52A: phi_b 0.13 (chem) vs 0.63 (fit)**, H200B65A:
+  s_a 27 vs 16. The paper is candid that arm polydispersity matters
+  exponentially and that fits adjusted M_a, M_b AND two polydispersity indices.
+  A k~5 comb model with an adjustable `p^2` risks being unfalsifiable — the
+  same cannibalisation risk the proposal already flagged against BSW's k=5.
+
+**Real-data prospects for step 4 (better than `star` had):** ML1999 Table 1
+gives arm and cross-bar Mn for four H-polyisoprenes; Table 2 gives the
+structural parameters from BOTH synthesis and fitting; `G_0 ~ 0.52 MPa` and
+`tau_e ~ 7e-6 s` at 25 C. Spectra are **figure-only** (Figure 6, four panels),
+so this needs digitizing like every other dataset here. Note **H200B65A did not
+reach terminal flow** — relevant given the `terminal_reached` history.
+
+**State at commit:** `rheofp/models/comb.py` exists, is built on the wrong
+paper, and is **deliberately NOT committed** — it is being rewritten against
+ML1999 Appendix A next. `ALL_MODELS` is untouched, the suite is untouched,
+nothing is wired in.
+
+---
+
 ## 2026-09-11 (OFFICE PC, part 3) — caveat de-overclaimed; a timing scare, closed
 
 Two small items, both consequences of the Pryke run earlier in the session.
