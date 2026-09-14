@@ -156,8 +156,30 @@ _ABSENCE_DISCARD_CLASSES = frozenset({"reptation"})
 # curves the classifier genuinely called `branched` from a mixed synthetic
 # population (branched, reptation, zimm, rouse_screened) - ZERO false
 # positives - and against both real Pivokonsky LDPE curves (also correctly
-# unflagged, slopes +0.73/+0.81, G' span 3.3-3.4 decades). Real vitrimer data
-# is the only case observed to trip both conditions at once.
+# unflagged, slopes +0.73/+0.81, G' span 3.3-3.4 decades).
+#
+# THE `branched` RATE IS ZERO; THE `comb` RATE IS NOT. Measured 2026-09-14
+# when `comb` joined VITRIMER_ABSORBING_WINNERS: **3 of 38** planted comb
+# curves that `comb` itself won trip the check (seed 9, curves pre-generated
+# before any identify() call so the rate is reproducible - an earlier
+# interleaved measurement gave 3/29 and 2/29 on the same population because
+# identify() consumed RNG state, and neither number was quotable).
+#
+# The three are NOT arbitrary. All have flat rather than rising wings
+# (slopes -0.001 / -0.015 / -0.021, against clearly negative for real
+# vitrimers), G' spans 0.218-0.290, long cross-bars (s_b 46.7-55.7) and
+# windows of 2.5-4.4 decades that stop before the cross-bar peak. A comb
+# cropped short of its terminal feature genuinely does show a flat stretch
+# that a vitrimer's power-law regime also shows - which is what the check
+# says out loud ("this measurement cannot settle it either way"). So these
+# are borderline-but-defensible, not misfires.
+#
+# THE THRESHOLD WAS DELIBERATELY NOT TIGHTENED to remove them. Moving
+# VITRIMER_POWERLAW_SLOPE_MAX to, say, -0.05 after seeing these 38 curves
+# would be fitting a threshold to the test set - the exact move the
+# terminal_reached trigger note forbids and the pre-registration habit exists
+# to prevent. The rate is recorded instead, and pinned by
+# test_the_comb_false_positive_rate_is_recorded_not_tuned_away.
 VITRIMER_POWERLAW_SLOPE_MAX = 0.0   # G'' low-w log-slope must be negative
 VITRIMER_POWERLAW_GP_SPAN_MAX = 0.3  # decades - real branched melts span 1-5
 
@@ -168,25 +190,43 @@ def _gpp_low_freq_slope(w, Gpp, frac=0.3):
     return float(np.polyfit(lw[:n], np.log10(Gpp[:n]), 1)[0])
 
 
+# Winners that can absorb an out-of-window vitrimer on genuine fit quality.
+# `branched` (BSW) was the original and only member; `comb` was added
+# 2026-09-14 when its cannibalisation check measured it winning outright on
+# 4 of 9 real vitrimer curves (Edera 2024 180/75/30 C, Ricarte PBv4_8) with
+# the sticky candidates losing by dAICc 46-268 on EVERY real vitrimer curve.
+# Both are broad-spectrum models that fit a rising power-law G" wing well,
+# which is exactly the shape the sticky models cannot make. Leaving `comb` out
+# would have meant adding a second silent route to the same wrong answer while
+# the safeguard watched only the first.
+VITRIMER_ABSORBING_WINNERS = ("branched", "comb")
+
+
 def branched_vitrimer_contradiction(winner_name, w, Gp, Gpp):
-    """Does a `branched` winner actually look like an unreachable vitrimer?
+    """Does a broad-spectrum winner actually look like an unreachable vitrimer?
+
+    Fires for any winner in VITRIMER_ABSORBING_WINNERS - `branched` and
+    `comb`. The name is kept for the callers and tests that already reference
+    it; the check itself is no longer branched-specific.
 
     Returns a dict if the contradiction fires, else None. Needs the raw curve
     (not just identify()'s features), so it is computed here rather than in
     signature_features.
     """
-    if winner_name != "branched" or w is None:
+    if winner_name not in VITRIMER_ABSORBING_WINNERS or w is None:
         return None
     slope = _gpp_low_freq_slope(w, Gpp)
     gp_span = float(np.ptp(np.log10(np.clip(Gp, 1e-30, None))))
     if slope < VITRIMER_POWERLAW_SLOPE_MAX and gp_span < VITRIMER_POWERLAW_GP_SPAN_MAX:
+        architecture = ("branched melt" if winner_name == "branched"
+                        else "comb / H-polymer melt")
         return {
             "slope": slope,
             "gp_span": gp_span,
             "text": (
                 f"Your G\" RISES as frequency falls (low-frequency log-slope "
                 f"{slope:.2f}) while G' stays essentially flat "
-                f"({gp_span:.3f} decades of span). A genuine branched melt "
+                f"({gp_span:.3f} decades of span). A genuine {architecture} "
                 "does the opposite - G\" turns over and G' spans several "
                 "decades as the terminal zone is approached (measured on "
                 "real LDPE: slopes +0.73/+0.81, G' span 3.3-3.4 decades). "
@@ -197,7 +237,7 @@ def branched_vitrimer_contradiction(winner_name, w, Gp, Gpp):
                 "sticky_reptation models cannot currently reproduce this "
                 "shape (they are built from a handful of Maxwell modes "
                 "around one sticker time, which makes a G\" PEAK, not a "
-                "rising power-law wing) - so `branched` wins here on "
+                f"rising power-law wing) - so `{winner_name}` wins here on "
                 "genuine fit quality, not by ruling out a vitrimer. If you "
                 "suspect exchangeable bonds, this measurement cannot settle "
                 "it either way; reaching the sticker peak (a higher "

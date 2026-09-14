@@ -382,14 +382,48 @@ def test_real_branched_melt_does_not_trip_the_contradiction():
         assert "vitrimer_powerlaw" not in kinds
 
 
-def test_contradiction_only_fires_for_a_branched_winner():
-    """The check is specific to `branched` - it says nothing about a
-    sticker-class or any other winner, by construction."""
-    from rheofp.report import branched_vitrimer_contradiction
+def test_contradiction_only_fires_for_a_vitrimer_absorbing_winner():
+    """The check says nothing about a sticker-class or any other winner.
+
+    It fires only for the broad-spectrum models that can absorb an
+    out-of-window vitrimer on genuine fit quality - `branched` and, since
+    2026-09-14, `comb`. A sticker winner is the case the check exists to
+    contrast with, so it must stay silent there.
+    """
+    from rheofp.report import (VITRIMER_ABSORBING_WINNERS,
+                               branched_vitrimer_contradiction)
     v = load_npz("data/ricarte2023.npz")["Ricarte2023_PBv4_120C"]
-    c = branched_vitrimer_contradiction(
-        "sticky_rouse", v["omega"], v["Gp"], v["Gpp"])
-    assert c is None
+    for quiet in ("sticky_rouse", "sticky_reptation", "star", "critical_gel"):
+        assert quiet not in VITRIMER_ABSORBING_WINNERS
+        c = branched_vitrimer_contradiction(
+            quiet, v["omega"], v["Gp"], v["Gpp"])
+        assert c is None, f"{quiet} must not trip the vitrimer contradiction"
+
+
+def test_the_contradiction_covers_comb_not_just_branched():
+    """REGRESSION for the gap `comb` would otherwise have opened.
+
+    `comb` is a second broad-spectrum model that fits a vitrimer's rising
+    power-law G" wing well - measured during its cannibalisation check, where
+    it won outright on 4 of 9 real vitrimer curves while every sticky
+    candidate lost by dAICc 46-268. Wiring it into the bank without widening
+    this safeguard would have added a silent second route to the same wrong
+    answer, with the check still watching only `branched`.
+
+    Uses the same real Ricarte curve as the branched case, so the two are
+    compared on identical data.
+    """
+    from rheofp.report import (VITRIMER_ABSORBING_WINNERS,
+                               branched_vitrimer_contradiction)
+    assert "comb" in VITRIMER_ABSORBING_WINNERS
+    v = load_npz("data/ricarte2023.npz")["Ricarte2023_PBv4_120C"]
+    c = branched_vitrimer_contradiction("comb", v["omega"], v["Gp"], v["Gpp"])
+    assert c is not None
+    assert c["slope"] < 0
+    # The prose must name the winner it is actually challenging, not assert
+    # that a "branched melt" would behave differently when the winner is comb.
+    assert "comb" in c["text"]
+    assert "branched melt" not in c["text"]
 
 
 def test_contradiction_is_skipped_without_the_raw_curve():
@@ -423,6 +457,61 @@ def test_contradiction_has_zero_false_positives_on_a_mixed_population():
                     flagged += 1
     assert checked > 10, "test did not exercise enough branched winners"
     assert flagged == 0
+
+
+def test_the_comb_false_positive_rate_is_recorded_not_tuned_away():
+    """`comb`'s vitrimer-contradiction false-positive rate is 3/38, not zero.
+
+    Unlike `branched` (0/31 synthetic, 0/2 real LDPE), `comb` trips this check
+    on a few of its OWN planted curves: long cross-bars measured over windows
+    that stop before the cross-bar peak show a flat low-frequency stretch that
+    a vitrimer's power-law regime also shows. The check's own text concedes
+    exactly that ("this measurement cannot settle it either way"), so these
+    are borderline rather than wrong.
+
+    The threshold was deliberately NOT tightened to remove them - that would
+    be fitting a threshold to the curves that revealed it. This test pins the
+    rate so a future change to VITRIMER_POWERLAW_SLOPE_MAX, to the comb model,
+    or to the generator shows up here instead of drifting silently.
+
+    Curves are pre-generated BEFORE any identify() call: interleaving them
+    lets identify() consume RNG state and the rate stops being reproducible
+    (the same population measured 3/29 and 2/29 that way).
+    """
+    from rheofp.data import synth
+    from rheofp.fitting import identify as ident
+    from rheofp.models.comb import (COMB_MODELS, Q_FIXED, comb_spectrum,
+                                    phi_b_from_architecture)
+    from rheofp.report import branched_vitrimer_contradiction
+
+    rng = np.random.default_rng(9)
+    curves = []
+    for _ in range(40):
+        w = synth._omega_window(rng)
+        s_a, s_b = rng.uniform(4, 16), rng.uniform(15, 60)
+        phi_b = phi_b_from_architecture(s_a, s_b, q=Q_FIXED)
+        phi_b = float(np.clip(phi_b * (1 + rng.uniform(-.15, .15)), .05, .95))
+        Gp, Gpp = comb_spectrum(w, 10 ** rng.uniform(4.5, 6.5), s_a, s_b,
+                                phi_b, 10 ** rng.uniform(-7, -3))
+        curves.append((w,) + synth._add_noise(rng, Gp, Gpp))
+
+    original = dict(ident.ALL_MODELS)
+    ident.ALL_MODELS = {**original, **COMB_MODELS}
+    try:
+        won = flagged = 0
+        for w, Gp, Gpp in curves:
+            if ident.identify(w, Gp, Gpp, n_restarts=6)["best"] != "comb":
+                continue
+            won += 1
+            if branched_vitrimer_contradiction("comb", w, Gp, Gpp):
+                flagged += 1
+    finally:
+        ident.ALL_MODELS = original
+
+    assert won >= 30, f"population too weak to measure a rate ({won} winners)"
+    assert flagged <= 5, (
+        f"comb false-positive rate rose to {flagged}/{won} (was 3/38) - the "
+        "contradiction check has become noisier for this class")
 
 
 def test_an_unopposed_winner_after_an_absence_discard_is_linked_to_it():
