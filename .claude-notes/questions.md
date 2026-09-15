@@ -222,8 +222,11 @@ and compares against `checkpoints/rheonet.pt` is comparing across a class
 boundary. Regenerated this session as `data/synthetic_train_10class.npz`
 (`-n 16000 --seed 1`, 42,783 curves, 1600/class); split at seed 1 reproduces
 **exactly 2400 test stacks**, matching the checkpoint. Statistically identical
-to the retrain's data, not byte-identical. **Untracked, ~24 MB — needs a
-commit/ignore decision.**
+to the retrain's data, not byte-identical. ~~**Untracked, ~24 MB — needs a
+commit/ignore decision.**~~ **Corrected 2026-09-14: it is 190 MB and ALREADY
+IGNORED** by `.gitignore:12` (`data/synthetic_train*.npz`). There was never a
+decision to make — it cannot be committed without a force. Regenerate per
+machine, like `.venv/` and `checkpoints/`.
 
 ---
 
@@ -242,3 +245,100 @@ commit/ignore decision.**
   against neutral grey instead, which suits the pairwise questions better anyway.
 - Quote the **centroid-separation table**, not the scatter: PC1+PC2 carry only
   39% of variance and 16 components are needed for 90%.
+
+---
+
+## 2026-09-14 (second session that day) — "explain the NN, no jargon"
+
+**Format the user asked for, explicitly, at the top:** *"dont use
+techbro/coder jargon."* And mid-session, twice: *"slow down"*, *"explain like
+im a novice"*. The thread ran end-to-end through one forward pass, in order,
+with the user stopping at each stage until it was exact. Pitch this at the
+level recorded above; do not compress it back into ML vocabulary.
+
+### The thread, in the order it was asked
+
+1. What PCA is → then **"what would the dataset be?"** Four candidates were
+   offered: post-pool stack vectors, pre-pool curve vectors, raw input, and
+   "use a nonlinear map instead". Recommended the curve/stack embedding.
+   **The user then dropped PCA entirely** (*"forget PCA"*) and redirected to
+   how training works. No PCA was run this session — the one in the section
+   above is from the earlier 2026-09-14 session.
+2. 60 -> 128, stage by stage.
+3. **"what exactly do you mean 'bolt', 'squeeze', 'mix'"** — the three words
+   that were doing the hiding. Replaced with arithmetic.
+4. Whether `w1` is the data vector (it is not — data vs weights).
+5. Whether 4 channels means 4 curves (it does not).
+6. When `w` changes → training vs inference.
+7. Whether `z2` is `z1` after another training step (it is not — 128 outputs
+   are simultaneous, from one frozen table).
+8. Where 128 comes from; whether it is the same 128 as the third conv layer.
+9. Where 2,400 rows come from; **"hang on, how are you using the 70%"**.
+10. **"forget PCA. explain how the 70% was used. like i am a novice."**
+11. The six summary facts.
+12. GELU, dropout, and whether they are the same thing.
+13. Attention pooling, end to end, against the critical-gel example.
+14. **"what would happen if i dont use attn pool"** -> logged as an open check
+    in `next-actions.md`.
+
+### Explanations that landed (reuse these)
+
+- **A weight row is a RECIPE.** 262 weights, one per input number; each of the
+  128 rows is a different recipe over the same 262. "Mixing" = every output
+  draws on every input in its own proportions.
+- **128 judges reading the same report at once** — for why z1..z128 are
+  simultaneous, not sequential. This fixed a real misconception (the user had
+  read z2 as z1 after another training iteration).
+- **The bend (GELU) is a threshold**: pattern present and by how much passes
+  through; absent flattens to near zero. Without it, sum-of-sums collapses to
+  one sum and depth buys nothing.
+- **A training curve gets one look, one wrong answer, one tiny correction, and
+  is set aside.** Nothing is ever *told* what a critical gel looks like.
+- **Dropout is not part of the arithmetic** — training only, off at inference.
+  The user asked directly whether "GELU's 0.1 dropout" was the bend; they are
+  adjacent lines in `model.py:57-59` and read as one thing.
+
+### Corrections made mid-session — and their causes
+
+Recording these because each was a real error, not a simplification:
+
+- **Stated 33,536 as if it were the whole network.** It is one table
+  (`proj.0.weight`). True total is **246,387**, verified with
+  `count_parameters`. Per-part: encoder 144,480 / pool 66,432 / trunk 16,512 /
+  head_params 17,157 / head_class 1,419 / head_regime 258 / head_abstain 129.
+  Cause: carried a number from a worked example into a general claim.
+- **Coincidence that had to be killed explicitly:** 60x4 + 6 = **246** input
+  numbers vs **246,387** weights. Unrelated. The user spotted the resemblance
+  and read a pairing into it.
+- **Second coincidence:** `CONV_WIDTHS[-1] = 128` (detector count) and
+  `EMBED_DIM = 128` (description width) are independent settings that happen to
+  match. The user asked directly whether they were related.
+- **Said the four curves of a stack have different point counts.** True as
+  *generated* (`synth.py:299-301`), false at the *encoder*, where everything is
+  60 (`dataset.py:78-101`). The user caught this.
+- **Used `z` for two different 128-vectors** — encoder output and the final
+  pre-head vector. Renamed mid-thread to "the curve's 128" / "the stack's 128".
+- **Said temperature is "used twice, once in the encoder and once in the
+  pool".** It is not. It enters ONCE, as fact 6 inside `CurveEncoder`, and the
+  pool never sees it as a named quantity.
+
+### What answering turned up that the project did not already know
+
+- **The pool cannot see temperature.** It receives only the four 128-vectors.
+  So the mechanism CLAUDE.md describes — weight the hottest curve, where
+  terminal relaxation enters the window — is something the encoder must have
+  encoded for the pool to respond to. **Never verified.** The shares are
+  returned (`model.py:88`) and have never been inspected.
+- **Attention-vs-mean is untested.** Logged as the open check in
+  `next-actions.md`. 27% of the network's weights rest on an unmeasured
+  design argument.
+- **A critical gel's stack is the same curve N times**, by construction:
+  `is_network` pins `Ea = 0.0` for `cured_elastomer` and `critical_gel`
+  (`synth.py:291-292`), so no thermal shift is applied. The curves differ only
+  by noise, redrawn point count, and the temperature fact. That *absence of
+  shift* is precisely the melt-vs-network evidence, and it exists only at N>=2
+  — which is a clean physical reading of the 0.898 (N=1) -> ~0.94 (N>=2) gap.
+- **A missing temperature is encoded as 0.0, identical to a genuine 298.15 K
+  measurement** (`dataset.py:74`). "Room temperature" and "unknown" are
+  indistinguishable on that channel. Not acted on; probably harmless given
+  most data carries a T, but it is a real ambiguity in the input.

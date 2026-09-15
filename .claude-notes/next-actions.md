@@ -46,10 +46,48 @@ to 7.6-27.4. Full reasoning in CLAUDE.md's comb paragraph.
    fell below -10), and `terminal_reached` measured **50%** on planted combs.
 7. **Retrain afterwards** — the checkpoint is 10-class. Note the other chat
    found `data/synthetic_train.npz` is STALE (9-class); there is an untracked
-   `data/synthetic_train_10class.npz` awaiting a commit-or-ignore decision.
+   `data/synthetic_train_10class.npz` — but it is 190 MB and ALREADY IGNORED by
+   `.gitignore:12` (`data/synthetic_train*.npz`), so there is no decision to
+   make: it cannot be committed without a force, and must be regenerated per
+   machine. Corrected 2026-09-14 (the ~24 MB figure in questions.md was wrong).
 
 **Do NOT lower `test_star.py`'s `runner_up["delta"] > 50`** to make a wired
 `comb` pass. That assertion is correctly reporting a regression.
+
+---
+
+# OPEN CHECK (logged 2026-09-14, user said "keep that check in mind")
+
+**Attention pooling has never been measured against a plain mean.** The
+justification in `rheofp/ml/model.py:16-19` ("a stack's information is often
+carried by ONE curve ... a mean would dilute it; attention can select it") is a
+*design argument*, not a result. No mean-pooled variant was ever trained and
+compared. It is an untested assumption sitting in the frozen architecture, and
+it is currently costing 66,432 of the network's 246,387 weights — 27%.
+
+Two reasons to doubt it is large: **40% of stacks are N=1** (`STACK_SIZES` /
+`STACK_WEIGHTS`, `synth.py:54-55`), where attention and mean are identical by
+construction, so any difference lives in the other 60%; and the pool cannot see
+temperature directly — it reaches the pool only as whatever trace the encoder
+left in each curve's 128 numbers, because temperature enters once, as fact 6 of
+6, inside `CurveEncoder`. The "select the hottest curve" story is therefore
+something the network would have to *discover*, not something it was given.
+
+**Cheapest informative step, before any retrain:** the pool already returns its
+shares (`"attention"` in `RheoNet.forward`'s output dict, `model.py:88`). Print
+them against each curve's temperature on a real stack (Edera or Ricarte). If the
+shares are near-uniform, attention is doing nothing a mean would not do, and the
+full experiment is worth running. This costs one script and no training.
+
+**Full experiment, on the established cannibalisation pattern:** swap the pool
+for mean, or for mean+max concatenated (the same trick the encoder already uses
+on the frequency axis at `model.py:64` — N-agnostic, recovers some
+"one curve dominates" behaviour with zero learned weights), retrain on the SAME
+data and seed, compare on the SAME test split. Pre-register the prediction.
+Report N=1 and N>=2 separately or the 40% N=1 share will mask the effect.
+
+**Do NOT act on this without the user.** The architecture is marked FROZEN in
+CLAUDE.md; this is a logged question, not a licence to redesign.
 
 ---
 

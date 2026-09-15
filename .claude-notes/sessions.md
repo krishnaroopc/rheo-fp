@@ -2013,3 +2013,35 @@ the invariance shows up immediately).
 
 ---
 
+
+---
+
+## 2026-09-14 (second session) — NN explanation thread; one open check logged
+
+**No code changed.** An explanation session, of the kind
+`.claude-notes/questions.md` exists to capture — the user asked for the network
+to be taken apart in plain language, stage by stage, and stopped at each step
+until it was exact. Full record, including the misconceptions it fixed and the
+six corrections made mid-thread, is appended to `questions.md`.
+
+- Covered, in order: PCA and what its dataset would be (then dropped — no PCA
+  was run this session); 60x4 -> 128 stage by stage; what "bolt / squeeze /
+  mix" actually mean; data-vs-weights; when weights change; why there are 128
+  outputs; how the 70/15/15 split is used; the six summary facts; GELU vs
+  dropout; attention pooling end-to-end against a critical gel.
+- **Verified the true parameter count: 246,387**, per-part breakdown in
+  `questions.md`. An earlier statement in-session that the network was "33,536
+  random numbers" was wrong — that is one table.
+- **Logged an OPEN CHECK in `next-actions.md`** (user: *"keep that check in
+  mind. write in your notes"*): **attention pooling has never been measured
+  against a plain mean.** The argument in `model.py:16-19` is design reasoning,
+  never tested; the pool is 66,432 of 246,387 weights (27%). Cheapest first
+  step is to print the pool's existing shares (`model.py:88`) against curve
+  temperature on a real stack — no retrain needed. Not to be acted on without
+  the user; the architecture is marked FROZEN.
+- Two facts surfaced that the project did not have written down: **the pool
+  never sees temperature as a named quantity** (it enters once, as fact 6
+  inside `CurveEncoder`), so the "weight the hottest curve" mechanism is
+  assumed rather than verified; and **a critical gel's stack is the same curve
+  N times** because `is_network` pins `Ea = 0.0` (`synth.py:291-292`), which
+  gives a clean physical reading of the N=1 vs N>=2 accuracy gap.
