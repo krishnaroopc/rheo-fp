@@ -7,10 +7,57 @@ left off", this is where to look. Update + commit this file as items complete.
 
 Last updated: **2026-09-09 (OFFICE PC, end of session).**
 
+# >>> THE ACTIVE TASK (set 2026-09-14): REAL COMB DATA <<<
+
+**The user is supplying digitized comb data next, possibly from a different
+PC.** Everything else below is context; this is the live item.
+
+**State:** `rheofp/models/comb.py` is built, validated and committed (33 tests,
+forward physics against ML1999's own Figure 4, planted recovery exact). It is
+**deliberately NOT in `identify()`'s bank** — wiring it in cost `star` a real
+sample (MM1998 5/7 → 4/7) and collapsed its winning margins from ΔAICc 194-225
+to 7.6-27.4. Full reasoning in CLAUDE.md's comb paragraph.
+
+**When the data arrives:**
+1. Write `scripts/prep_comb.py` on the established pattern (`prep_mm1998.py`,
+   `prep_pryke2002.py`) → commit `data/<source>.npz` so tests run without
+   `originals/`. Record T_K.
+2. **PRE-REGISTER predictions before fitting anything** — `docs/` already holds
+   `pryke2001_preregistration.md` as the template. This matters more than usual
+   here, because the decision (wire in or not) is already contested and a
+   post-hoc reading would be worthless.
+3. Score with the class **absent** first — that is the baseline, and the
+   comparison is the whole point. Expect confident wrong answers (measured on
+   synthetic: `branched` 12/30, `critical_gel` 10/30, `star` 6/30).
+4. Then wire in and re-run **both** the comb data AND MM1998's seven stars +
+   Pryke's two. `scripts/check_comb_cannibalisation.py` now reports winning
+   MARGINS and scores `REAL_CLASS_VALIDATION` (the real star curves), which is
+   exactly what it failed to do the first time.
+5. The real question: **does a PHYSICAL restriction separate the classes?**
+   Candidates with a basis, not tuned thresholds — requiring an entangled
+   cross-bar (`s_b*phi_b`), or requiring the two-feature signature (arm
+   shoulder AND separate cross-bar peak) that a star cannot produce. If one
+   works on real curves, `comb` can be wired in without costing `star`.
+6. Wiring in requires closing the generator gap in the SAME commit (`synth.py`
+   `CLASS_REGIME`/`FINE_CLASSES` + a `sample_params`/`forward` branch) or the
+   bank-coverage invariant fails in both directions. The code for this was
+   written and reverted on 2026-09-14 — see that commit's diff to recover it.
+   Note `COMB_BNDS`' tau_e floor had to go to **-18** (47% of planted draws
+   fell below -10), and `terminal_reached` measured **50%** on planted combs.
+7. **Retrain afterwards** — the checkpoint is 10-class. Note the other chat
+   found `data/synthetic_train.npz` is STALE (9-class); there is an untracked
+   `data/synthetic_train_10class.npz` awaiting a commit-or-ignore decision.
+
+**Do NOT lower `test_star.py`'s `runner_up["delta"] > 50`** to make a wired
+`comb` pass. That assertion is correctly reporting a regression.
+
+---
+
 # >>> START HERE ON ANY PC <<<
 
 **On arrival, in order:** `git pull` → `uv sync` → `uv run pytest -m "not slow"`.
-Expect **229 passed, 2 skipped**. **Runtime is UNSTABLE on the office PC and
+Expect **~264 passed, 2 skipped** (266 collected, 1 deselected as `slow`;
+re-counted 2026-09-14 after the comb class added 33). **Runtime is UNSTABLE on the office PC and
 the cause is UNKNOWN — see below before reading anything into a slow run.**
 
 ### >>> OPEN: the suite runs at either ~15 min or ~76 min, nondeterministically

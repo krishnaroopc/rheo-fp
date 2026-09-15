@@ -1,0 +1,774 @@
+<title>RheoNet Flowcharts</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --ground: #FAFAF8;
+    --panel: #F1F0EC;
+    --panel-2: #E7E5DF;
+    --ink: #1A1D21;
+    --ink-soft: #55595F;
+    --ink-faint: #8A8E94;
+    --rule: #D6D4CC;
+    --accent: #0E7C7B;
+    --accent-soft: #DCEEED;
+    --accent-ink: #0A5150;
+    --warn: #9A5B18;
+    --warn-soft: #F6E9D8;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #16181B; --panel: #1F2225; --panel-2: #282C30;
+      --ink: #ECEBE6; --ink-soft: #A9ADB3; --ink-faint: #71767C;
+      --rule: #33373B; --accent: #4FB8B4; --accent-soft: #17332F;
+      --accent-ink: #8FD6D2; --warn: #D9A464; --warn-soft: #2E2517;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #16181B; --panel: #1F2225; --panel-2: #282C30;
+    --ink: #ECEBE6; --ink-soft: #A9ADB3; --ink-faint: #71767C;
+    --rule: #33373B; --accent: #4FB8B4; --accent-soft: #17332F;
+    --accent-ink: #8FD6D2; --warn: #D9A464; --warn-soft: #2E2517;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--ground); color: var(--ink);
+    font-family: "IBM Plex Sans", system-ui, sans-serif; line-height: 1.6;
+  }
+  /* Full-width: the ML pipeline is a 1600-unit drawing and was being squeezed
+     into a 1140px column. Text blocks keep their own reading measure below. */
+  .wrap { max-width: min(1840px, 100%); margin: 0 auto; padding-inline: 28px; padding-block: 44px 68px; }
+
+  header { max-width: 60ch; margin-bottom: 28px; }
+  .eyebrow {
+    font-family: "IBM Plex Mono", monospace; font-size: 11.5px;
+    letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--accent-ink); margin: 0 0 10px;
+  }
+  h1 {
+    font-family: "Spectral", Georgia, serif; font-weight: 600;
+    font-size: clamp(28px, 4.6vw, 40px); line-height: 1.12;
+    margin: 0 0 12px; text-wrap: balance;
+  }
+  .standfirst {
+    font-family: "Spectral", Georgia, serif;
+    font-size: clamp(15.5px, 2vw, 18px); color: var(--ink-soft); margin: 0;
+  }
+
+  .tabs { display: flex; flex-wrap: wrap; gap: 4px; border-bottom: 1px solid var(--rule); }
+  .tab {
+    appearance: none; background: none; border: 1px solid transparent;
+    border-bottom: none; border-radius: 6px 6px 0 0; padding: 11px 16px;
+    font-family: "IBM Plex Sans", system-ui, sans-serif; font-size: 14px;
+    font-weight: 500; color: var(--ink-soft); cursor: pointer; margin-bottom: -1px;
+  }
+  .tab:hover { color: var(--ink); background: var(--panel); }
+  .tab:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+  .tab[aria-selected="true"] {
+    background: var(--ground); border-color: var(--rule);
+    color: var(--accent-ink); font-weight: 600;
+  }
+  .tab-sub {
+    display: block; font-family: "IBM Plex Mono", monospace; font-size: 10.5px;
+    letter-spacing: 0.06em; color: var(--ink-faint); font-weight: 400; margin-top: 2px;
+  }
+
+  .panel-intro {
+    font-family: "Spectral", Georgia, serif; font-size: 16.5px;
+    color: var(--ink-soft); max-width: 62ch; margin: 26px 0 8px;
+  }
+
+  figure { margin: 24px 0 0; }
+  .scroller { overflow-x: auto; padding-bottom: 6px; }
+  svg { display: block; height: auto; color: var(--ink); }
+  /* The two vertical flowcharts stay at a readable column width - stretching a
+     700-unit drawing across a wide monitor only inflates the type. */
+  svg.tall { width: 100%; min-width: 660px; max-width: 860px; }
+  /* The ML pipeline is 1600 units wide and SHOULD use the monitor: it scales up
+     to its natural size, scrolling horizontally only on narrower screens. */
+  svg.wide { width: 100%; min-width: 1240px; max-width: 1600px; }
+  figcaption {
+    margin-top: 14px; font-size: 14px; color: var(--ink-soft); max-width: 78ch;
+  }
+  figcaption b { color: var(--ink); font-weight: 600; }
+
+  /* SVG token classes */
+  .s-box { fill: var(--panel); stroke: var(--ink-soft); stroke-width: 1.3; }
+  .s-box-key { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1.6; }
+  .s-box-warn { fill: var(--warn-soft); stroke: var(--warn); stroke-width: 1.3; }
+  .s-box-ghost { fill: none; stroke: var(--rule); stroke-width: 1.2; stroke-dasharray: 4 3; }
+  .s-flow { stroke: var(--ink-soft); stroke-width: 1.5; fill: none; }
+  .s-flow-key { stroke: var(--accent); stroke-width: 2; fill: none; }
+  .s-flow-drop { stroke: var(--warn); stroke-width: 1.3; fill: none; stroke-dasharray: 4 3; }
+  .s-curve { stroke: var(--accent); stroke-width: 1.6; fill: none; }
+  .s-curve-2 { stroke: var(--ink-soft); stroke-width: 1.4; fill: none; }
+  .s-axis { stroke: var(--ink-faint); stroke-width: 1; fill: none; }
+  .t-title { font-family: "IBM Plex Sans", sans-serif; font-size: 13px; font-weight: 600; fill: var(--ink); }
+  .t-body { font-family: "IBM Plex Sans", sans-serif; font-size: 11.5px; fill: var(--ink-soft); }
+  .t-key { font-family: "IBM Plex Sans", sans-serif; font-size: 13px; font-weight: 600; fill: var(--accent-ink); }
+  .t-mono { font-family: "IBM Plex Mono", monospace; font-size: 11px; fill: var(--accent-ink); }
+  .t-edge { font-family: "IBM Plex Mono", monospace; font-size: 10.5px; fill: var(--ink-faint); }
+  .t-num { font-family: "IBM Plex Mono", monospace; font-size: 11px; font-weight: 500; fill: var(--accent-ink); }
+  .t-stage { font-family: "IBM Plex Mono", monospace; font-size: 10px; letter-spacing: 0.14em; fill: var(--ink-faint); }
+  .t-warn { font-family: "IBM Plex Sans", sans-serif; font-size: 11px; fill: var(--warn); }
+
+  .legend {
+    display: flex; flex-wrap: wrap; gap: 18px; margin-top: 18px;
+    padding-top: 14px; border-top: 1px solid var(--rule);
+    font-size: 12.5px; color: var(--ink-soft);
+  }
+  .legend span { display: flex; align-items: center; gap: 7px; }
+  .swatch { width: 22px; height: 0; border-top-width: 2px; border-top-style: solid; }
+  .sw-key { border-color: var(--accent); }
+  .sw-flow { border-color: var(--ink-soft); }
+  .sw-drop { border-color: var(--warn); border-top-style: dashed; }
+
+  footer {
+    margin-top: 44px; padding-top: 18px; border-top: 1px solid var(--rule);
+    font-size: 13.5px; color: var(--ink-faint); max-width: 74ch;
+  }
+  [hidden] { display: none !important; }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <p class="eyebrow">rheo-fp · classifier internals</p>
+    <h1>RheoNet Flowcharts</h1>
+    <p class="standfirst">One network, drawn three ways — for a general reader, for a rheologist, and for an ML practitioner.</p>
+  </header>
+
+  <div class="tabs" role="tablist" aria-label="Audience">
+    <button class="tab" role="tab" id="tab-plain" aria-controls="p-plain" aria-selected="true">
+      In plain words<span class="tab-sub">no background needed</span>
+    </button>
+    <button class="tab" role="tab" id="tab-rheo" aria-controls="p-rheo" aria-selected="false">
+      For rheologists<span class="tab-sub">what happens to the spectrum</span>
+    </button>
+    <button class="tab" role="tab" id="tab-ml" aria-controls="p-ml" aria-selected="false">
+      For ML practitioners<span class="tab-sub">tensor shapes and losses</span>
+    </button>
+  </div>
+
+  <!-- ═══════════════════════ PLAIN ═══════════════════════ -->
+  <section role="tabpanel" id="p-plain" aria-labelledby="tab-plain">
+    <p class="panel-intro">You hand it a measured curve; it hands back a guess at your material. The two places the path <em>splits</em> are the two places the design had a real choice to make.</p>
+
+    <figure>
+      <div class="scroller">
+        <svg class="tall" viewBox="0 0 700 1520" role="img" aria-label="Flowchart: a measured curve is redrawn at 60 points, split into four tracks with six facts set aside, scanned by sliding shape-detectors, summarised by both highest and average score, combined into one description, several curves weighed rather than averaged, then read out as class, family, self-doubt and parameters.">
+          <defs>
+            <marker id="pa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/>
+            </marker>
+            <marker id="pak" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--accent)"/>
+            </marker>
+          </defs>
+
+          <!-- input -->
+          <rect class="s-box-ghost" x="215" y="16" width="270" height="52" rx="26"/>
+          <text class="t-body" x="350" y="40" text-anchor="middle">Your measured curve</text>
+          <text class="t-edge" x="350" y="58" text-anchor="middle">11 points, or 90 — any range</text>
+          <line class="s-flow" x1="350" y1="68" x2="350" y2="106" marker-end="url(#pa)"/>
+
+          <!-- 1 -->
+          <text class="t-stage" x="30" y="100">TIDYING UP</text>
+          <rect class="s-box" x="150" y="108" width="400" height="74" rx="6"/>
+          <circle class="s-box-key" cx="176" cy="134" r="13"/>
+          <text class="t-num" x="176" y="138" text-anchor="middle">1</text>
+          <text class="t-title" x="200" y="138">Redraw at exactly 60 points</text>
+          <text class="t-body" x="170" y="160">Evenly spaced; in-between values filled</text>
+          <text class="t-body" x="170" y="175">in by joining the dots.</text>
+
+          <line class="s-flow" x1="350" y1="182" x2="350" y2="206"/>
+          <text class="t-edge" x="360" y="200">then split what is kept</text>
+
+          <!-- 2 + 3 : the first fork -->
+          <path class="s-flow" d="M 350 206 L 190 206 L 190 232" marker-end="url(#pa)"/>
+          <path class="s-flow" d="M 350 206 L 510 206 L 510 232" marker-end="url(#pa)"/>
+
+          <rect class="s-box" x="50" y="234" width="280" height="102" rx="6"/>
+          <circle class="s-box-key" cx="76" cy="260" r="13"/>
+          <text class="t-num" x="76" y="264" text-anchor="middle">2</text>
+          <text class="t-title" x="100" y="264">Four tracks per point</text>
+          <text class="t-body" x="68" y="288">position along the frequency axis</text>
+          <text class="t-body" x="68" y="306">G′ · G″ · the ratio between them</text>
+          <text class="t-edge" x="68" y="326">position re-centred — shape only</text>
+
+          <rect class="s-box" x="370" y="234" width="280" height="102" rx="6"/>
+          <circle class="s-box-key" cx="396" cy="260" r="13"/>
+          <text class="t-num" x="396" y="264" text-anchor="middle">3</text>
+          <text class="t-title" x="420" y="264">Six facts, set aside</text>
+          <text class="t-body" x="388" y="288">typical size of each measurement,</text>
+          <text class="t-body" x="388" y="306">where the window sits, how wide,</text>
+          <text class="t-body" x="388" y="326">temperature</text>
+
+          <!-- why note -->
+          <rect class="s-box-warn" x="50" y="352" width="600" height="56" rx="5"/>
+          <text class="t-warn" x="68" y="376">Why re-centre the position, then hand it back separately?</text>
+          <text class="t-body" x="68" y="396">So the same shape is recognised wherever it sits — without losing where yours sat.</text>
+
+          <path class="s-flow" d="M 190 336 L 190 344 L 20 344 L 20 424 L 190 424 L 190 440" marker-end="url(#pa)"/>
+
+          <!-- 4 -->
+          <text class="t-stage" x="30" y="434">READING ONE CURVE</text>
+          <rect class="s-box-key" x="50" y="442" width="290" height="136" rx="6"/>
+          <circle class="s-box-key" cx="76" cy="468" r="13"/>
+          <text class="t-num" x="76" y="472" text-anchor="middle">4</text>
+          <text class="t-key" x="100" y="472">Slide shape-detectors</text>
+          <text class="t-body" x="68" y="496">Small detectors, each looking at five</text>
+          <text class="t-body" x="68" y="514">neighbouring points, dragged along</text>
+          <text class="t-body" x="68" y="532">the whole curve.</text>
+          <text class="t-body" x="68" y="554">Learn a shape once → spot it anywhere.</text>
+          <text class="t-edge" x="68" y="570">three passes: small shapes → bigger ones</text>
+
+          <!-- sliding detector illustration -->
+          <rect class="s-box-ghost" x="360" y="442" width="290" height="136" rx="6"/>
+          <text class="t-edge" x="378" y="464">one detector, three positions</text>
+          <path class="s-curve-2" d="M 378 540 C 424 540 444 486 486 484 C 528 482 558 532 634 534"/>
+          <rect x="390" y="516" width="34" height="26" rx="3" fill="none" stroke="var(--accent)" stroke-width="1.4"/>
+          <rect x="470" y="470" width="34" height="26" rx="3" fill="none" stroke="var(--accent)" stroke-width="1.4"/>
+          <rect x="586" y="514" width="34" height="26" rx="3" fill="none" stroke="var(--accent)" stroke-width="1.4"/>
+          <text class="t-edge" x="505" y="568" text-anchor="middle">same detector · any position</text>
+
+          <line class="s-flow" x1="190" y1="578" x2="190" y2="616" marker-end="url(#pa)"/>
+
+          <!-- 5 : the second fork -->
+          <text class="t-stage" x="30" y="610">THE SECOND SPLIT</text>
+          <rect class="s-box" x="50" y="618" width="600" height="60" rx="6"/>
+          <circle class="s-box-key" cx="76" cy="648" r="13"/>
+          <text class="t-num" x="76" y="652" text-anchor="middle">5</text>
+          <text class="t-title" x="100" y="644">Each detector now has 60 scores — too many to carry</text>
+          <text class="t-body" x="100" y="664">Boil them down. But how you boil down decides what you lose.</text>
+
+          <path class="s-flow" d="M 350 678 L 350 700 L 190 700 L 190 722" marker-end="url(#pa)"/>
+          <path class="s-flow" d="M 350 678 L 350 700 L 510 700 L 510 722" marker-end="url(#pa)"/>
+
+          <rect class="s-box" x="50" y="724" width="280" height="84" rx="6"/>
+          <text class="t-key" x="68" y="750">Take the highest score</text>
+          <text class="t-body" x="68" y="774">“Did this shape appear</text>
+          <text class="t-body" x="68" y="792">anywhere at all?”</text>
+
+          <rect class="s-box" x="370" y="724" width="280" height="84" rx="6"/>
+          <text class="t-key" x="388" y="750">Take the average score</text>
+          <text class="t-body" x="388" y="774">“How much of the curve</text>
+          <text class="t-body" x="388" y="792">did it cover?”</text>
+
+          <line class="s-flow" x1="190" y1="808" x2="190" y2="824"/>
+          <line class="s-flow" x1="510" y1="808" x2="510" y2="824"/>
+
+          <rect class="s-box-warn" x="50" y="826" width="280" height="68" rx="5"/>
+          <text class="t-warn" x="68" y="850">Blind to:</text>
+          <text class="t-body" x="68" y="870">a brief blip vs. something</text>
+          <text class="t-body" x="68" y="886">spanning the whole curve</text>
+
+          <rect class="s-box-warn" x="370" y="826" width="280" height="68" rx="5"/>
+          <text class="t-warn" x="388" y="850">Blind to:</text>
+          <text class="t-body" x="388" y="870">a single sharp spike — 59</text>
+          <text class="t-body" x="388" y="886">quiet points drown it out</text>
+
+          <!-- rejoin -->
+          <path class="s-flow-key" d="M 190 894 L 190 932 L 350 932 L 350 952" marker-end="url(#pak)"/>
+          <path class="s-flow-key" d="M 510 894 L 510 932 L 350 932"/>
+          <text class="t-edge" x="350" y="914" text-anchor="middle">keep both — the blind spots do not overlap</text>
+
+          <!-- 6 -->
+          <rect class="s-box" x="150" y="954" width="400" height="72" rx="6"/>
+          <circle class="s-box-key" cx="176" cy="980" r="13"/>
+          <text class="t-num" x="176" y="984" text-anchor="middle">6</text>
+          <text class="t-title" x="200" y="984">Mix into one description</text>
+          <text class="t-body" x="170" y="1008">Both summaries + the six facts</text>
+          <text class="t-edge" x="170" y="1020">→ a list of 128 numbers</text>
+
+          <line class="s-flow" x1="350" y1="1026" x2="350" y2="1064" marker-end="url(#pa)"/>
+
+          <!-- 7 -->
+          <text class="t-stage" x="30" y="1058">SEVERAL CURVES</text>
+          <rect class="s-box-key" x="50" y="1066" width="600" height="142" rx="6"/>
+          <circle class="s-box-key" cx="76" cy="1092" r="13"/>
+          <text class="t-num" x="76" y="1096" text-anchor="middle">7</text>
+          <text class="t-key" x="100" y="1096">Weigh the curves — do not average them</text>
+          <text class="t-body" x="68" y="1122">Same material at several temperatures? The answer often lives in ONE</text>
+          <text class="t-body" x="68" y="1140">curve — the hottest, where it finally starts to flow.</text>
+          <text class="t-body" x="68" y="1166">Averaging four curves waters that one down to a quarter strength.</text>
+          <text class="t-edge" x="68" y="1192">Upload one curve and this step does nothing — it gets all the weight.</text>
+
+          <line class="s-flow" x1="350" y1="1208" x2="350" y2="1231"/>
+          <circle class="s-box-key" cx="350" cy="1244" r="13"/>
+          <text class="t-num" x="350" y="1248" text-anchor="middle">8</text>
+
+          <!-- 8 : four outputs -->
+          <text class="t-stage" x="30" y="1238">ANSWERS</text>
+          <path class="s-flow" d="M 350 1257 L 350 1276 L 95 1276 L 95 1300" marker-end="url(#pa)"/>
+          <path class="s-flow" d="M 350 1257 L 350 1276 L 265 1276 L 265 1300" marker-end="url(#pa)"/>
+          <path class="s-flow" d="M 350 1257 L 350 1276 L 435 1276 L 435 1300" marker-end="url(#pa)"/>
+          <path class="s-flow" d="M 350 1257 L 350 1276 L 605 1276 L 605 1300" marker-end="url(#pa)"/>
+
+          <rect class="s-box" x="20" y="1302" width="150" height="76" rx="6"/>
+          <text class="t-key" x="95" y="1328" text-anchor="middle">Which class</text>
+          <text class="t-body" x="95" y="1350" text-anchor="middle">one of 10</text>
+          <text class="t-body" x="95" y="1366" text-anchor="middle">material types</text>
+
+          <rect class="s-box" x="190" y="1302" width="150" height="76" rx="6"/>
+          <text class="t-key" x="265" y="1328" text-anchor="middle">Which family</text>
+          <text class="t-body" x="265" y="1350" text-anchor="middle">the simpler</text>
+          <text class="t-body" x="265" y="1366" text-anchor="middle">two-way call</text>
+
+          <rect class="s-box-warn" x="360" y="1302" width="150" height="76" rx="6"/>
+          <text class="t-key" x="435" y="1328" text-anchor="middle" fill="var(--warn)">“Am I wrong?”</text>
+          <text class="t-body" x="435" y="1350" text-anchor="middle">learned from its</text>
+          <text class="t-body" x="435" y="1366" text-anchor="middle">own past mistakes</text>
+
+          <rect class="s-box" x="530" y="1302" width="150" height="76" rx="6"/>
+          <text class="t-key" x="605" y="1328" text-anchor="middle">The numbers</text>
+          <text class="t-body" x="605" y="1350" text-anchor="middle">up to five,</text>
+          <text class="t-body" x="605" y="1366" text-anchor="middle">always given</text>
+
+          <!-- 9 -->
+          <line class="s-flow-drop" x1="435" y1="1378" x2="435" y2="1410" marker-end="url(#pa)"/>
+          <rect class="s-box-warn" x="50" y="1412" width="600" height="82" rx="5"/>
+          <circle class="s-box-key" cx="76" cy="1438" r="13"/>
+          <text class="t-num" x="76" y="1442" text-anchor="middle">9</text>
+          <text class="t-warn" x="100" y="1442">What “Am I wrong?” cannot do</text>
+          <text class="t-body" x="68" y="1466">It learned only from mistakes on the ten known types. Hand it a material</text>
+          <text class="t-body" x="68" y="1484">that is NONE of the ten and it has no basis for alarm.</text>
+        </svg>
+      </div>
+      <figcaption><b>The two forks are the whole story.</b> At step 3 the path splits so shape and position travel separately; at step 5 it splits so two ways of summarising can cover each other's blind spots. Everything else is a straight line.</figcaption>
+    </figure>
+
+    <div class="legend">
+      <span><i class="swatch sw-flow"></i> the main path</span>
+      <span><i class="swatch sw-key"></i> where both branches are kept</span>
+      <span><i class="swatch sw-drop"></i> a limit worth knowing</span>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════ RHEOLOGY ═══════════════════════ -->
+  <section role="tabpanel" id="p-rheo" aria-labelledby="tab-rheo" hidden>
+    <p class="panel-intro">The same path, annotated with what each stage does to a SAOS spectrum — and, on the right, what it deliberately throws away.</p>
+
+    <figure>
+      <div class="scroller">
+        <svg class="tall" viewBox="0 0 700 1250" role="img" aria-label="Flowchart for rheologists: resampling onto a fixed log-omega grid discards point density, mean-centring discards window position, convolutions find local log-frequency features, max and mean pooling capture shoulder and plateau breadth respectively, attention pooling over a temperature stack enables the vitrimer versus cured network distinction, and abstention does not detect out-of-taxonomy material.">
+          <defs>
+            <marker id="ra" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/>
+            </marker>
+            <marker id="rad" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--warn)"/>
+            </marker>
+            <marker id="rak" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--accent)"/>
+            </marker>
+          </defs>
+
+          <text class="t-stage" x="20" y="20">SPECTRUM IN</text>
+          <text class="t-stage" x="516" y="20">DISCARDED HERE</text>
+
+          <rect class="s-box-ghost" x="150" y="28" width="230" height="48" rx="6"/>
+          <text class="t-body" x="265" y="49" text-anchor="middle">G′(ω), G″(ω) as measured</text>
+          <text class="t-edge" x="265" y="65" text-anchor="middle">n points, arbitrary ω range</text>
+          <line class="s-flow" x1="265" y1="76" x2="265" y2="102" marker-end="url(#ra)"/>
+
+          <!-- 1 -->
+          <rect class="s-box" x="150" y="104" width="230" height="64" rx="6"/>
+          <circle class="s-box-key" cx="172" cy="127" r="13"/>
+          <text class="t-num" x="172" y="131" text-anchor="middle">1</text>
+          <text class="t-title" x="196" y="131">Resample: 60-pt log ω grid</text>
+          <text class="t-body" x="166" y="151">Linear in log–log — exact for the</text>
+          <text class="t-body" x="166" y="164">power-law segments that dominate.</text>
+
+          <line class="s-flow-drop" x1="380" y1="136" x2="506" y2="136" marker-end="url(#rad)"/>
+          <rect class="s-box-warn" x="510" y="112" width="176" height="48" rx="5"/>
+          <text class="t-warn" x="524" y="131">point density</text>
+          <text class="t-body" x="524" y="148">learned as physics once —</text>
+          <text class="t-edge" x="524" y="156" style="font-size:9.5px">fixed in loader AND generator</text>
+
+          <line class="s-flow" x1="265" y1="168" x2="265" y2="194" marker-end="url(#ra)"/>
+
+          <!-- 2 -->
+          <rect class="s-box" x="150" y="196" width="230" height="64" rx="6"/>
+          <circle class="s-box-key" cx="172" cy="219" r="13"/>
+          <text class="t-num" x="172" y="223" text-anchor="middle">2</text>
+          <text class="t-title" x="196" y="223">Four channels</text>
+          <text class="t-body" x="166" y="243">log ω (mean-centred) · log G′</text>
+          <text class="t-body" x="166" y="256">log G″ · log tan δ</text>
+
+          <line class="s-flow-drop" x1="380" y1="228" x2="506" y2="228" marker-end="url(#rad)"/>
+          <rect class="s-box-warn" x="510" y="204" width="176" height="48" rx="5"/>
+          <text class="t-warn" x="524" y="223">window position</text>
+          <text class="t-body" x="524" y="240">so a feature reads the same</text>
+          <text class="t-body" x="524" y="252" style="font-size:10.5px">wherever it falls in ω</text>
+
+          <line class="s-flow" x1="265" y1="260" x2="265" y2="286" marker-end="url(#ra)"/>
+
+          <!-- 3 -->
+          <rect class="s-box" x="150" y="288" width="230" height="64" rx="6"/>
+          <circle class="s-box-key" cx="172" cy="311" r="13"/>
+          <text class="t-num" x="172" y="315" text-anchor="middle">3</text>
+          <text class="t-title" x="196" y="315">Six scalars, side channel</text>
+          <text class="t-body" x="166" y="335">median G′, G″ · ω-window min,</text>
+          <text class="t-body" x="166" y="348">max, width · temperature</text>
+
+          <path class="s-flow-key" d="M 510 228 L 470 228 L 470 320 L 384 320" marker-end="url(#rak)"/>
+          <text class="t-edge" x="478" y="290">returned</text>
+          <text class="t-edge" x="478" y="302">here</text>
+
+          <line class="s-flow" x1="265" y1="352" x2="265" y2="386" marker-end="url(#ra)"/>
+          <text class="t-stage" x="20" y="380">PER-CURVE ENCODING</text>
+
+          <!-- 4 with feature sketches -->
+          <rect class="s-box-key" x="150" y="388" width="230" height="86" rx="6"/>
+          <circle class="s-box-key" cx="172" cy="411" r="13"/>
+          <text class="t-num" x="172" y="415" text-anchor="middle">4</text>
+          <text class="t-key" x="196" y="415">3× Conv1d, k=5, along log ω</text>
+          <text class="t-body" x="166" y="435">Translation-invariant — windows are</text>
+          <text class="t-body" x="166" y="448">cropped up to 2.5 decades at random.</text>
+          <text class="t-edge" x="166" y="466">64 → 96 → 128 channels</text>
+
+          <rect class="s-box-ghost" x="404" y="388" width="282" height="104" rx="6"/>
+          <text class="t-edge" x="418" y="406">local features it is built to find</text>
+          <line class="s-axis" x1="418" y1="456" x2="672" y2="456"/>
+          <path class="s-curve" d="M 424 450 L 452 418"/>
+          <text class="t-edge" x="424" y="476" style="font-size:9px">slope 2</text>
+          <path class="s-curve" d="M 480 422 L 520 422"/>
+          <text class="t-edge" x="482" y="476" style="font-size:9px">plateau</text>
+          <path class="s-curve" d="M 546 444 C 560 444 562 426 578 428 C 594 430 596 442 610 442"/>
+          <text class="t-edge" x="548" y="476" style="font-size:9px">shoulder</text>
+          <path class="s-curve" d="M 630 446 C 646 446 654 424 670 416"/>
+          <text class="t-edge" x="634" y="476" style="font-size:9px">wing</text>
+
+          <line class="s-flow" x1="265" y1="474" x2="265" y2="500" marker-end="url(#ra)"/>
+
+          <!-- 5 fork -->
+          <rect class="s-box" x="60" y="500" width="580" height="54" rx="6"/>
+          <circle class="s-box-key" cx="84" cy="527" r="13"/>
+          <text class="t-num" x="84" y="531" text-anchor="middle">5</text>
+          <text class="t-title" x="108" y="522">Pool each filter's 60 responses — two ways, concatenated</text>
+          <text class="t-body" x="108" y="542">Neither statistic alone separates the classes this taxonomy needs.</text>
+
+          <path class="s-flow" d="M 350 554 L 350 562 L 190 562 L 190 570" marker-end="url(#ra)"/>
+          <path class="s-flow" d="M 350 554 L 350 562 L 510 562 L 510 570" marker-end="url(#ra)"/>
+
+          <rect class="s-box" x="60" y="570" width="260" height="96" rx="6"/>
+          <text class="t-key" x="76" y="592">max over length</text>
+          <text class="t-body" x="76" y="611">“occurred anywhere?”</text>
+          <text class="t-edge" x="76" y="630">catches: G″ shoulder · loss peak</text>
+          <text class="t-edge" x="76" y="643">· crossover</text>
+          <text class="t-warn" x="76" y="660" style="font-size:10.5px">blind to feature EXTENT</text>
+
+          <rect class="s-box" x="380" y="570" width="260" height="96" rx="6"/>
+          <text class="t-key" x="396" y="592">mean over length</text>
+          <text class="t-body" x="396" y="611">“persisted how long?”</text>
+          <text class="t-edge" x="396" y="630">catches: sustained terminal slope</text>
+          <text class="t-edge" x="396" y="643">· plateau breadth · broad wings</text>
+          <text class="t-warn" x="396" y="660" style="font-size:10.5px">blind to LOCALISED peaks</text>
+
+          <rect class="s-box-warn" x="60" y="678" width="580" height="40" rx="5"/>
+          <text class="t-warn" x="76" y="696">The distinction that needs both</text>
+          <text class="t-body" x="76" y="712">Broad BSW spectrum vs. sharp reptation terminal is a question of BREADTH — max alone cannot see it.</text>
+
+          <path class="s-flow-key" d="M 190 666 L 190 736 L 350 736 L 350 754" marker-end="url(#rak)"/>
+          <path class="s-flow-key" d="M 510 666 L 510 736 L 350 736"/>
+
+          <!-- 6 -->
+          <rect class="s-box" x="150" y="754" width="400" height="48" rx="6"/>
+          <circle class="s-box-key" cx="172" cy="778" r="13"/>
+          <text class="t-num" x="172" y="782" text-anchor="middle">6</text>
+          <text class="t-title" x="196" y="775">Project → 128-number curve descriptor</text>
+          <text class="t-edge" x="196" y="792">a feature vector, not a reconstruction — nothing regenerates the curve</text>
+
+          <line class="s-flow" x1="350" y1="802" x2="350" y2="836" marker-end="url(#ra)"/>
+          <text class="t-stage" x="20" y="830">STACK POOLING</text>
+
+          <!-- 7 -->
+          <rect class="s-box-key" x="60" y="838" width="580" height="126" rx="6"/>
+          <circle class="s-box-key" cx="82" cy="861" r="13"/>
+          <text class="t-num" x="82" y="865" text-anchor="middle">7</text>
+          <text class="t-key" x="106" y="865">Masked attention over the stack — not a mean</text>
+          <text class="t-body" x="76" y="888">A stack's discriminating information is frequently carried by ONE curve: the hottest,</text>
+          <text class="t-body" x="76" y="903">where terminal relaxation finally enters the accessible window. A mean attenuates it by 1/N.</text>
+
+          <rect class="s-box" x="76" y="914" width="176" height="38" rx="4"/>
+          <text class="t-body" x="164" y="930" text-anchor="middle">N = 1 → identity</text>
+          <text class="t-edge" x="164" y="944" text-anchor="middle">no separate code path</text>
+          <rect class="s-box" x="264" y="914" width="176" height="38" rx="4"/>
+          <text class="t-body" x="352" y="930" text-anchor="middle">0.898 → ~0.94</text>
+          <text class="t-edge" x="352" y="944" text-anchor="middle">N = 1 vs N ≥ 2, measured</text>
+          <rect class="s-box" x="452" y="914" width="172" height="38" rx="4"/>
+          <text class="t-body" x="538" y="930" text-anchor="middle">weights readable</text>
+          <text class="t-edge" x="538" y="944" text-anchor="middle">which curve carried it</text>
+
+          <rect class="s-box-warn" x="60" y="976" width="580" height="40" rx="5"/>
+          <text class="t-warn" x="76" y="994">Load-bearing, not an efficiency measure</text>
+          <text class="t-body" x="76" y="1010">The T-stack is the ONLY route separating a dynamic network (vitrimer) from a permanent one.</text>
+
+          <line class="s-flow" x1="350" y1="1016" x2="350" y2="1044" marker-end="url(#ra)"/>
+          <text class="t-stage" x="20" y="1038">HEADS</text>
+
+          <!-- 8 -->
+          <rect class="s-box" x="60" y="1044" width="280" height="76" rx="6"/>
+          <circle class="s-box-key" cx="82" cy="1067" r="13"/>
+          <text class="t-num" x="82" y="1071" text-anchor="middle">8</text>
+          <text class="t-title" x="106" y="1071">Head 1 — identity</text>
+          <text class="t-body" x="76" y="1092">10 fine classes (zimm … star)</text>
+          <text class="t-body" x="76" y="1106">2 regimes · abstention score</text>
+
+          <rect class="s-box" x="360" y="1044" width="280" height="76" rx="6"/>
+          <text class="t-title" x="376" y="1071">Head 2 — parameters</text>
+          <text class="t-body" x="376" y="1092">up to 5 constitutive values,</text>
+          <text class="t-body" x="376" y="1106">always emitted, never withheld</text>
+
+          <path class="s-flow" d="M 350 1032 L 200 1032 L 200 1044" marker-end="url(#ra)"/>
+          <path class="s-flow" d="M 350 1032 L 500 1032 L 500 1044" marker-end="url(#ra)"/>
+
+          <!-- 9 -->
+          <line class="s-flow-drop" x1="200" y1="1120" x2="200" y2="1144" marker-end="url(#rad)"/>
+          <rect class="s-box-warn" x="60" y="1146" width="580" height="76" rx="5"/>
+          <circle class="s-box-key" cx="84" cy="1172" r="13"/>
+          <text class="t-num" x="84" y="1176" text-anchor="middle">9</text>
+          <text class="t-warn" x="108" y="1176">Abstention is NOT an out-of-distribution detector</text>
+          <text class="t-body" x="76" y="1199">Trained only against its own errors on the synthetic set. Blends, block copolymers,</text>
+          <text class="t-body" x="76" y="1215">semicrystalline and filled melts are absent from the taxonomy — and will not raise it.</text>
+        </svg>
+      </div>
+      <figcaption><b>Read the right-hand column as a ledger.</b> Point density and window position are removed on purpose, because each was once learned as if it were physics; the six scalars hand the useful half of that back through a channel the translation-invariant encoder cannot confuse with shape.</figcaption>
+    </figure>
+
+    <div class="legend">
+      <span><i class="swatch sw-flow"></i> spectrum path</span>
+      <span><i class="swatch sw-key"></i> re-injected / both kept</span>
+      <span><i class="swatch sw-drop"></i> discarded, or a known limit</span>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════ ML ═══════════════════════ -->
+  <section role="tabpanel" id="p-ml" aria-labelledby="tab-ml" hidden>
+    <p class="panel-intro">Left-to-right tensor pipeline. <code>B</code> = batch, <code>N</code> = padded stack size, <code>E</code> = 128. Shapes ride on the arrows.</p>
+
+    <figure>
+      <div class="scroller">
+        <svg class="wide" viewBox="0 0 1600 600" role="img" aria-label="Tensor pipeline: input curves resampled to 60 by 4, flattened over batch and stack, three conv1d layers to 128 by 60, mean and max pooled to 256, concatenated with 6 summary scalars and projected to 128, reshaped and pooled by masked attention to B by 128, through a trunk to four heads with cross-entropy, binary cross-entropy and SmoothL1 losses.">
+          <defs>
+            <marker id="ma" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/>
+            </marker>
+            <marker id="mak" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--accent)"/>
+            </marker>
+            <marker id="mad" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--warn)"/>
+            </marker>
+          </defs>
+
+          <text class="t-stage" x="16" y="22">DATASET</text>
+          <text class="t-stage" x="266" y="22">CURVE ENCODER · SHARED WEIGHTS</text>
+          <text class="t-stage" x="958" y="22">SET POOL</text>
+          <text class="t-stage" x="1290" y="22">HEADS + LOSSES</text>
+
+          <!-- input -->
+          <rect class="s-box-ghost" x="16" y="40" width="156" height="56" rx="6"/>
+          <text class="t-body" x="94" y="62" text-anchor="middle">raw upload</text>
+          <text class="t-edge" x="94" y="79" text-anchor="middle">(n, any ω range)</text>
+
+          <!-- 1 -->
+          <rect class="s-box" x="16" y="112" width="156" height="88" rx="6"/>
+          <circle class="s-box-key" cx="38" cy="136" r="12"/>
+          <text class="t-num" x="38" y="140" text-anchor="middle">1</text>
+          <text class="t-title" x="58" y="140">resample</text>
+          <text class="t-body" x="30" y="162">log-linear interp</text>
+          <text class="t-mono" x="30" y="180">N_GRID = 60</text>
+          <text class="t-edge" x="30" y="194">unsorted-safe, EPS-clipped</text>
+          <line class="s-flow" x1="94" y1="96" x2="94" y2="112" marker-end="url(#ma)"/>
+
+          <!-- 2 -->
+          <rect class="s-box" x="16" y="216" width="156" height="84" rx="6"/>
+          <circle class="s-box-key" cx="38" cy="240" r="12"/>
+          <text class="t-num" x="38" y="244" text-anchor="middle">2</text>
+          <text class="t-title" x="58" y="244">4 channels</text>
+          <text class="t-edge" x="30" y="266">log ω centred · log G′</text>
+          <text class="t-edge" x="30" y="281">log G″ · log tan δ</text>
+          <text class="t-edge" x="30" y="294" style="font-size:9.5px">ch. 4 redundant, saves capacity</text>
+          <line class="s-flow" x1="94" y1="200" x2="94" y2="216" marker-end="url(#ma)"/>
+
+          <!-- 3 summary -->
+          <rect class="s-box" x="16" y="382" width="156" height="76" rx="6"/>
+          <circle class="s-box-key" cx="38" cy="406" r="12"/>
+          <text class="t-num" x="38" y="410" text-anchor="middle">3</text>
+          <text class="t-title" x="58" y="410">summary</text>
+          <text class="t-mono" x="30" y="430">N_SUMMARY = 6</text>
+          <text class="t-edge" x="30" y="446">med G′,G″ · ω min,max,ptp · T</text>
+          <line class="s-flow" x1="94" y1="300" x2="94" y2="382" marker-end="url(#ma)"/>
+
+          <!-- flatten: leaves step 2 (the 4-channel tensor) and rises to the conv lane -->
+          <path class="s-flow" d="M 172 258 L 208 258 L 208 188 L 246 188" marker-end="url(#ma)"/>
+          <text class="t-edge" x="212" y="150">flatten B·N</text>
+          <text class="t-mono" x="212" y="166">(B·N, 4, 60)</text>
+
+          <!-- 4 conv -->
+          <rect class="s-box-key" x="250" y="130" width="210" height="116" rx="6"/>
+          <circle class="s-box-key" cx="274" cy="156" r="12"/>
+          <text class="t-num" x="274" y="160" text-anchor="middle">4</text>
+          <text class="t-key" x="294" y="160">3× Conv1d</text>
+          <text class="t-body" x="266" y="184">k=5, pad=2 · GELU · BN</text>
+          <text class="t-mono" x="266" y="204">64 → 96 → 128</text>
+          <text class="t-edge" x="266" y="222">length preserved at 60</text>
+          <text class="t-edge" x="266" y="236">translation-invariant</text>
+
+          <!-- 5 pool fork -->
+          <text class="t-mono" x="484" y="298" text-anchor="middle">(B·N, 128, 60)</text>
+          <circle class="s-box-key" cx="484" cy="188" r="12"/>
+          <text class="t-num" x="484" y="192" text-anchor="middle">5</text>
+          <line class="s-flow" x1="460" y1="188" x2="472" y2="188"/>
+          <path class="s-flow" d="M 496 188 L 512 188 L 512 140 L 530 140" marker-end="url(#ma)"/>
+          <path class="s-flow" d="M 496 188 L 512 188 L 512 236 L 530 236" marker-end="url(#ma)"/>
+
+          <rect class="s-box" x="532" y="116" width="146" height="48" rx="5"/>
+          <text class="t-key" x="605" y="136" text-anchor="middle">amax(dim=2)</text>
+          <text class="t-edge" x="605" y="153" text-anchor="middle">extent-invariant</text>
+          <rect class="s-box" x="532" y="212" width="146" height="48" rx="5"/>
+          <text class="t-key" x="605" y="232" text-anchor="middle">mean(dim=2)</text>
+          <text class="t-edge" x="605" y="249" text-anchor="middle">peak-insensitive</text>
+
+          <path class="s-flow-key" d="M 678 140 L 700 140 L 700 188 L 724 188" marker-end="url(#mak)"/>
+          <path class="s-flow-key" d="M 678 236 L 700 236 L 700 188"/>
+          <text class="t-mono" x="686" y="182">⊕</text>
+          <text class="t-mono" x="646" y="288">(B·N, 256)</text>
+
+          <!-- summary join: routed along the bottom, clear of the shape labels -->
+          <path class="s-flow-key" d="M 172 420 L 640 420 L 640 310 L 714 310 L 714 214 L 724 214" marker-end="url(#mak)"/>
+          <text class="t-edge" x="300" y="414">6 scalars bypass the encoder</text>
+          <text class="t-mono" x="646" y="306">(B·N, 6)</text>
+
+          <!-- 6 project -->
+          <rect class="s-box" x="726" y="126" width="158" height="164" rx="6"/>
+          <circle class="s-box-key" cx="750" cy="152" r="12"/>
+          <text class="t-num" x="750" y="156" text-anchor="middle">6</text>
+          <text class="t-title" x="770" y="156">project</text>
+          <text class="t-mono" x="742" y="180">256 + 6 = 262</text>
+          <text class="t-body" x="742" y="202">Linear · GELU</text>
+          <text class="t-body" x="742" y="220">Dropout 0.10</text>
+          <text class="t-body" x="742" y="238">Linear</text>
+          <text class="t-mono" x="742" y="260">→ 128</text>
+          <text class="t-edge" x="742" y="280">then mask-zero pads</text>
+
+          <text class="t-edge" x="896" y="180">reshape</text>
+          <line class="s-flow" x1="884" y1="192" x2="956" y2="192" marker-end="url(#ma)"/>
+          <text class="t-mono" x="896" y="210">(B, N, 128)</text>
+
+          <!-- 7 attention -->
+          <rect class="s-box-key" x="958" y="126" width="184" height="164" rx="6"/>
+          <circle class="s-box-key" cx="982" cy="152" r="12"/>
+          <text class="t-num" x="982" y="156" text-anchor="middle">7</text>
+          <text class="t-key" x="1002" y="156">attention pool</text>
+          <text class="t-body" x="974" y="180">MultiheadAttention</text>
+          <text class="t-mono" x="974" y="200">4 heads · learned q</text>
+          <text class="t-body" x="974" y="222">key_padding_mask</text>
+          <text class="t-edge" x="974" y="238">pads → −∞ pre-softmax</text>
+          <text class="t-body" x="974" y="260">LayerNorm</text>
+          <text class="t-edge" x="974" y="278">N=1 is the identity</text>
+
+          <text class="t-mono" x="1176" y="178" text-anchor="middle">(B, 128)</text>
+          <line class="s-flow" x1="1142" y1="192" x2="1210" y2="192" marker-end="url(#ma)"/>
+
+          <!-- trunk -->
+          <rect class="s-box" x="1212" y="168" width="124" height="50" rx="5"/>
+          <text class="t-title" x="1274" y="188" text-anchor="middle">trunk</text>
+          <text class="t-edge" x="1274" y="205" text-anchor="middle">Linear·GELU·Drop</text>
+
+          <!-- 8 heads: fan out on a lane well right of the trunk -->
+          <circle class="s-box-key" cx="1360" cy="192" r="12"/>
+          <text class="t-num" x="1360" y="196" text-anchor="middle">8</text>
+          <line class="s-flow" x1="1336" y1="192" x2="1348" y2="192"/>
+          <path class="s-flow" d="M 1372 192 L 1388 192 L 1388 64 L 1406 64" marker-end="url(#ma)"/>
+          <path class="s-flow" d="M 1372 192 L 1388 192 L 1388 136 L 1406 136" marker-end="url(#ma)"/>
+          <path class="s-flow" d="M 1372 192 L 1388 192 L 1388 248 L 1406 248" marker-end="url(#ma)"/>
+          <path class="s-flow" d="M 1372 192 L 1388 192 L 1388 320 L 1406 320" marker-end="url(#ma)"/>
+
+          <text class="t-key" x="1412" y="58">class · 10</text>
+          <text class="t-edge" x="1412" y="74">CE · w 1.0</text>
+          <text class="t-key" x="1412" y="130">regime · 2</text>
+          <text class="t-edge" x="1412" y="146">CE · w 0.3</text>
+          <text class="t-key" x="1412" y="242" fill="var(--warn)">abstain · 1</text>
+          <text class="t-edge" x="1412" y="258">BCE · w 0.2</text>
+          <text class="t-key" x="1412" y="314">params · 5</text>
+          <text class="t-edge" x="1412" y="330">SmoothL1 · w 0.1</text>
+
+          <!-- 9 abstention feedback: own lane at x=1196, clear of the trunk box -->
+          <path class="s-flow-drop" d="M 1406 64 L 1196 64 L 1196 372 L 1284 372" marker-end="url(#mad)"/>
+          <rect class="s-box-warn" x="1286" y="348" width="286" height="76" rx="5"/>
+          <circle class="s-box-key" cx="1310" cy="374" r="12"/>
+          <text class="t-num" x="1310" y="378" text-anchor="middle">9</text>
+          <text class="t-warn" x="1330" y="378">abstain target</text>
+          <text class="t-mono" x="1300" y="400">(argmax ≠ y)</text>
+          <text class="t-edge" x="1300" y="416">detached · shapes the head only</text>
+
+          <!-- masked param note -->
+          <rect class="s-box-warn" x="726" y="348" width="320" height="76" rx="5"/>
+          <text class="t-warn" x="742" y="372">params are padded AND masked</text>
+          <text class="t-body" x="742" y="394">a 2-param critical gel must not train</text>
+          <text class="t-body" x="742" y="412">slots 3–5, or the head predicts padding</text>
+          <path class="s-flow-drop" d="M 1406 320 L 1170 320 L 1170 386 L 1052 386" marker-end="url(#mad)"/>
+
+          <!-- measured strip -->
+          <line class="s-axis" x1="16" y1="488" x2="1572" y2="488"/>
+          <text class="t-stage" x="16" y="510">MEASURED · 10-class · 16k examples · 55 epochs</text>
+          <rect class="s-box" x="16" y="522" width="228" height="60" rx="5"/>
+          <text class="t-key" x="130" y="546" text-anchor="middle">0.923</text>
+          <text class="t-edge" x="130" y="565" text-anchor="middle">test accuracy</text>
+          <rect class="s-box" x="256" y="522" width="228" height="60" rx="5"/>
+          <text class="t-key" x="370" y="546" text-anchor="middle">0.968</text>
+          <text class="t-edge" x="370" y="565" text-anchor="middle">degenerate pairs merged</text>
+          <rect class="s-box" x="496" y="522" width="228" height="60" rx="5"/>
+          <text class="t-key" x="610" y="546" text-anchor="middle">0.999</text>
+          <text class="t-edge" x="610" y="565" text-anchor="middle">regime</text>
+          <rect class="s-box" x="736" y="522" width="228" height="60" rx="5"/>
+          <text class="t-key" x="850" y="546" text-anchor="middle">0.907</text>
+          <text class="t-edge" x="850" y="565" text-anchor="middle">AICc baseline, same split</text>
+          <rect class="s-box" x="976" y="522" width="268" height="60" rx="5"/>
+          <text class="t-key" x="1110" y="546" text-anchor="middle">0.957 / 0.982 / 0.996</text>
+          <text class="t-edge" x="1110" y="565" text-anchor="middle">abstain 10% / 20% / 30%</text>
+          <rect class="s-box-warn" x="1256" y="522" width="316" height="60" rx="5"/>
+          <text class="t-key" x="1414" y="546" text-anchor="middle" fill="var(--warn)">58%</text>
+          <text class="t-edge" x="1414" y="565" text-anchor="middle">of residual error is Zimm↔Rouse</text>
+        </svg>
+      </div>
+      <figcaption><b>Two edges carry the design decisions.</b> The teal join at step 6 is where the 6 summary scalars re-enter having bypassed the translation-invariant encoder; the amber feedback edge at step 9 is the abstention target — the classifier's own correctness, detached, so it never back-propagates into the classifier it is judging.</figcaption>
+    </figure>
+
+    <div class="legend">
+      <span><i class="swatch sw-flow"></i> forward tensor path</span>
+      <span><i class="swatch sw-key"></i> concat / re-injection</span>
+      <span><i class="swatch sw-drop"></i> detached signal · masking</span>
+    </div>
+
+    <footer>
+      <p><b>Training:</b> AdamW · lr 3e-4 · wd 1e-4 · cosine · grad clip 1.0 · batch 64 · early stop on val accuracy, patience 8 · splits 70/15/15 <em>by stack</em>, normalisation fit on train only · checkpoint selected on val accuracy, not val loss.</p>
+    </footer>
+  </section>
+</div>
+
+<script>
+  (function () {
+    var tabs = Array.prototype.slice.call(document.querySelectorAll('.tab'));
+    function select(tab) {
+      tabs.forEach(function (t) {
+        var on = t === tab;
+        t.setAttribute('aria-selected', on ? 'true' : 'false');
+        document.getElementById(t.getAttribute('aria-controls')).hidden = !on;
+      });
+      tab.focus();
+    }
+    tabs.forEach(function (tab, i) {
+      tab.addEventListener('click', function () { select(tab); });
+      tab.addEventListener('keydown', function (e) {
+        var d = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
+        if (!d) return;
+        e.preventDefault();
+        select(tabs[(i + d + tabs.length) % tabs.length]);
+      });
+    });
+  })();
+</script>

@@ -6,6 +6,166 @@ the end of each working session (what was discussed, decided, and changed).
 
 ---
 
+## 2026-09-14 — Comb/H-polymer class: built, validated, and deliberately NOT wired in
+
+**The headline is a negative result, and it is the useful part.** The class is
+complete and tested; putting it on the ballot costs `star` real-data accuracy,
+so it stays out until real comb data says otherwise. User approved Candidate A
+(comb/H) then B (blends) from `docs/proposal_new_classes.md`; C and D dropped.
+
+**1. The source paper was wrong at first and had to be replaced.** I built
+`comb.py` against McLeish & Larson 1998 (pom-pom). Its eq 8 is a SQUARED
+bracket, so G*(w) needs a numerical Fourier transform, and that transform
+ALIASES: identical machinery reproduces an analytic Maxwell mode to 4 decimals
+on a narrow grid and fails by **114x** on the 16-decade grid the model needs,
+improving only to 16x at 80000 points and not monotonically. Not fixable by
+adding points. **McLeish et al. 1999 (`originals/ma990323j.pdf`) section 2.1
+supersedes it** — eqs 22-24 are a SUM of two weighted integrals, a mode ladder
+through the validated `maxwell_spectrum`, exactly like `star.py`'s eq 26. The
+problem did not need solving; it needed not creating.
+
+**2. I mis-cited a paper from memory and the user caught it.** Asked for DOIs, I
+gave `ma951356b` an H-polymer title it does not have (it is *A2B2 Star Block
+Copolymers*). Right authors, journal, year, volume, pages — wrong architecture.
+I had hedged the DOIs as unverifiable but not the TITLES, which was the wrong
+half to hedge. Archived as
+`originals/archive/allgaier1996_a2b2_star_blockcopolymers.pdf`.
+**Lesson: in a recalled citation the title is as fabricable as the DOI.**
+
+**3. Three forward-model defects, all found by measurement, all fixed:**
+  - Arm ladder spanned **37 decades** (to 2.5e-37 s). Eq 3 is an `x -> 0`
+    ASYMPTOTE, not a spectrum; the entangled description stops at `tau_e`.
+    `star.py` records the identical trap for its eq 13. Floored at `tau_e`.
+  - Cross-bar ladder began **15.8 decades BELOW** where the arm ladder ended,
+    inverting the hierarchy and destroying the two-feature signature (1 G''
+    maximum, 0 minima over 14 decades). A branch point cannot hop until its
+    arms retract, so `tau_a(1)` is a FLOOR. Gap now +0.00; signature now
+    2 maxima + 1 minimum.
+  - Planted recovery returned `s_a` -38%, `tau_e` **+1311%**. NOT a degeneracy:
+    `fit_comb`'s tau_e bound was anchored to `1/median(omega)`, putting the
+    true value OUTSIDE the box. Cost at truth beat the pinned point by 13
+    orders of magnitude. Anchored to `1/omega_max`; all five planted sets now
+    recover exactly at rms 0.0000.
+
+**Two hypotheses tested and REFUTED, recorded so they are not re-tried:** an
+`x_c` discontinuity (varies smoothly 0.872 -> 0.841 through the failing case)
+and an `s_b*phi_b` recovery threshold (not monotone; 8.0 both fails and
+succeeds). The real cause was optimizer restarts — same curve recovers at seed
+2, fails at seed 1, both at 12 restarts. **`N_RESTARTS = 24` is a measured
+floor.**
+
+**External gate passed:** both ML1999 Figure 4 panels reproduced against the
+paper's own words. Arm shoulder width grows with arm MW (4.34 -> 5.51 -> 6.47
+decades); cross-bar peak strengthens with `phi_b` and slows as the cross-bar
+lengthens. **The latter must be measured on the cross-bar contribution ALONE** —
+a naive probe on the full spectrum reported it REFUTED, because at low `phi_b`
+the two features MERGE. That merging makes the **number of G'' maxima not fixed**
+for this class (2 at `phi_b <= 0.40`, 3 at `>= 0.50`), so no pre-filter may
+assume a fixed peak count — same caveat `star.py` carries past Z ~ 40.
+
+**4. >>> THE CANNIBALISATION CHECK PASSED AND I READ IT WRONG. <<<**
+Synthetic: every class unchanged except `sticky_reptation` 29->27, benchmark
+6/6, `comb` self-recovery 27/30. I reported that as safe. **It was not**, and
+the script had two flaws — both now fixed in
+`scripts/check_comb_cannibalisation.py`:
+  - it scored only WHETHER the winner changed, never **by how much**;
+  - its real-data set (`REAL_TRUTH`) contains **no star curve at all**, so
+    "6/6 holds" was true and meaningless for a candidate whose whole risk was
+    impersonating a star. Added `REAL_CLASS_VALIDATION` (MM1998 x7, Pryke x2).
+
+Measured by hand afterwards against MM1998's seven real four-arm PI stars:
+
+| sample | without comb | with comb | margin |
+|---|---|---|---|
+| PI4_Ma47k | **star** | **comb** | lost outright (was dAICc 110) |
+| PI4_Ma44k | star | star | **194.1 -> 7.6** |
+| PI4_Ma36k | star | star | **224.6 -> 27.4** |
+| PI4_Ma17k | star | star | **202.0 -> 13.4** |
+
+`star` **5/7 -> 4/7**, and three surviving calls went from "no support
+whatsoever" to marginal. Cause is physical: a comb with a short cross-bar is
+nearly a star, and k=5 beats k=3. **UNWIRED by user decision.** The 2/30
+`sticky_reptation` loss was separately investigated and is GENUINE (dAICc 46.8
+/ 114.5), accepted only because every sticky candidate loses by dAICc 46-268 on
+EVERY real vitrimer curve — a known forward-model limit `comb` exposes rather
+than causes.
+
+**5. The vitrimer safeguard was widened FIRST, in its own commit.** `comb` wins
+outright on 4 of 9 real vitrimer curves, so `VITRIMER_ABSORBING_WINNERS =
+("branched", "comb")`. Its false-positive rate is **not** zero for comb: 3/38,
+all with FLAT rather than rising wings (slopes -0.001/-0.015/-0.021) on windows
+cropped before the cross-bar peak. **The threshold was deliberately NOT
+tightened** — that would be fitting it to the test set. The rate is only
+reproducible if curves are generated BEFORE any `identify()` call (interleaved,
+the same population measured 3/29 and 2/29 — neither quotable).
+
+**6. Framework audit (user request).** Healthy: no TODO/FIXME/bare-except, no
+`np.trapz`, all 26 scripts referenced, bank == generator == ml.CLASSES == 10.
+Fixed: **three live instruction surfaces stated wrong test counts** (266
+collected; next-actions said 229, environment.md ~185, CLAUDE.md 213).
+Recorded, not changed: `STAR_BNDS`' floor holds with only **0.64 decades** of
+headroom (comb's identical design overflowed and needed -18);
+`tube.fit_linear_melt` is unreferenced but a deliberate keep; `predict` exists
+in `neural_report.py` and `ml/evaluate.py` but they are different functions
+with different signatures — not redundancy.
+
+**NEXT: the user supplies real comb data, possibly from another PC.** Full
+instructions at the top of `next-actions.md`.
+
+---
+
+## 2026-09-14 (later) — NN explanation session; `questions.md` created; a STALE DATASET found
+
+**No physics changed. Two things came out of it that matter.**
+
+The user asked a run of questions about the neural head (loss functions,
+parameter ranges, grid size, SmoothL1 vs CE, attention, mean+max, conv vs
+linear, a full no-jargon walkthrough), then asked for explainer HTML and a
+PCA/k-means analysis of the curve embeddings. **All answers, the level to pitch
+at, and the artifacts are now in `.claude-notes/questions.md`** — a new file,
+indexed in the notes README. It exists because these sessions produce no commit,
+so this journal never recorded them and the same reasoning was being re-derived
+each time. There is a separate chat ("Rheology project ML presentation") that
+will append its own session to that file.
+
+**1. >>> `data/synthetic_train.npz` IS STALE AND DOES NOT MATCH THE CHECKPOINT
+<<<** Found while setting up the embedding analysis; it would have silently
+corrupted it. The committed npz is **9-class, 2000 stacks, dated 3 Sep, with
+`star` count = 0**. `checkpoints/rheonet.pt` is the **10-class 9 Sep retrain
+whose test split alone is 2400 stacks**. The regenerated 16k dataset from that
+retrain **was never committed.** Anything loading the npz and comparing against
+the checkpoint is comparing across a class boundary.
+Regenerated as **`data/synthetic_train_10class.npz`** (`-n 16000 --seed 1`,
+42,783 curves, 1600/class); seed-1 split reproduces **exactly 2400 test
+stacks**, matching the checkpoint. Statistically identical to the retrain's
+data, not byte-identical. **Untracked, ~24 MB — needs a commit-or-ignore
+decision, and `synthetic_train.npz` needs one too.**
+
+**2. The embedding geometry independently supports the Zimm↔Rouse degeneracy
+claim**, and contradicts `AMBIGUOUS_PAIRS` in two places. Measured per-curve
+before attention pooling, 6,589 held-out curves, 128-D centroid separations:
+`zimm↔rouse_screened` **0.095** (superimposed — centroids 0.24 apart against
+~2.5 within-class spread), `cured_elastomer↔critical_gel` **2.220**,
+`star↔branched` **1.041**. So the 58%-of-error Zimm↔Rouse confusion is
+degeneracy in the *representation*, not a boundary the network drew badly.
+But **`cured↔gel` is the second-FARTHEST pair in the whole matrix** (3.85) while
+being merged by `merged_pair_accuracy`, and **`branched↔star` is the
+fourth-CLOSEST** (1.40) while deliberately excluded — the same neighbourhood as
+the AICc bank's documented 25/30 star-absorption failure. k-means with no labels
+put 639 star + 413 branched in one cluster (0.588 purity). **Nothing changed;
+recorded in `questions.md` for a user decision.** ARI 0.381, so k-means is
+corroboration only.
+
+**Artifacts, all untracked in `docs/`:** `rheonet_flowcharts.html` (three
+audience-specific SVG flowcharts), `sliding_detectors.html` (step 4 alone),
+`rheonet_three_readings.html` (text version, superseded), and
+`rheonet_embedding_analysis.html` **+ `embed_data.js`, which must ship
+together.** Method notes — numpy-only PCA/k-means because sklearn is not in the
+locked env, and no palette validation because Node is absent — are in
+`questions.md`.
+
+---
+
 ## 2026-09-14 (OFFICE PC) — comb/H class approved; the LVE source paper corrected before any physics shipped
 
 User approved `docs/proposal_new_classes.md` **Candidate A (comb/H-polymer),

@@ -283,6 +283,44 @@ G_N is the plateau LEVEL, not the curve maximum.** Cannibalisation check passed
 (matched before/after: overall 0.845 → 0.855, star self-recovery 18/20 → 20/20,
 other 8 classes byte-identical).
 
+**Comb / H-polymer melts — BUILT AND VALIDATED, DELIBERATELY NOT IN THE BANK
+(2026-09-14).** `rheofp/models/comb.py` implements McLeish et al. (1999,
+Macromolecules 32, 6734) section 2.1 + Appendix A: arms retract first against
+an effective potential carrying a `(1-phi_b)` factor (cross-bar material acts
+as a permanent network throughout, eq 4), the relaxed arms then act as solvent,
+and the cross-bar reptates in a tube diluted to `s_b*phi_b` effective
+entanglements with all friction at the branch points. Five parameters
+`(G_0, s_a, s_b, phi_b, tau_e)`, k=5, `COMB_MODELS`. 33 tests.
+
+**Use ML1999, NOT McLeish & Larson 1998.** ML1998's eq 8 is a SQUARED bracket,
+not a Prony series, so it needs a numerical Fourier transform — which aliases
+unfixably (the same machinery reproduces an analytic Maxwell mode to 4 decimals
+on a narrow grid and fails by 114x on the 16-decade grid this model needs, not
+converging with added points). ML1999 eqs 22-24 give a SUM of two weighted
+integrals: a mode ladder through the validated `maxwell_spectrum`, like
+`star.py`'s eq 26.
+
+**Why it is NOT on the ballot.** The pre-registered cannibalisation check
+passed on its own terms (synthetic: every class unchanged but
+`sticky_reptation` 29→27; benchmark 6/6). That reading was WRONG, and the
+script had two flaws now fixed: it scored only WHETHER the winner changed, never
+BY HOW MUCH, and its real-data set contains **no star curve**. Measured against
+MM1998's seven real four-arm polyisoprene stars, wiring `comb` in took `star`
+from **5/7 to 4/7** (PI4_Ma47k → `comb`) and collapsed the surviving decisive
+margins from ΔAICc **194-225 to 7.6-27.4**. Cause is physical, not a bug: a comb
+with a short cross-bar is very nearly a star, and k=5 beats k=3. `star` has real
+validation across three chemistries; `comb` has none yet, so this trades a
+confirmed capability for an unconfirmed one.
+**Consequence today: an uploaded comb is confidently MISIDENTIFIED** — measured
+over 30 planted combs with the class absent: `branched` 12, `critical_gel` 10,
+`star` 6, `sticky_reptation` 2. Always wrong, never uncertain. Pinned by
+`test_a_planted_comb_is_misidentified_while_the_class_is_unwired`.
+**Next step is real comb data** (Kapnistos 2005 `ma050644x.pdf`, McLeish 1999
+`ma990323j.pdf` Fig 6 — both in `originals/`, both figure-only so they need
+digitizing), then ask whether a PHYSICAL restriction separates the classes.
+Do not lower `test_star.py`'s `runner_up["delta"] > 50` assertion — it is
+correctly reporting a regression, not miscalibrated.
+
 **Bank-coverage invariant (2026-09-04).** `identify()`'s bank must hold a
 candidate for EVERY class `rheofp/data/synth.py` can generate — now enforced by
 `test_every_generated_class_has_a_candidate_in_the_identifier_bank`. It was
@@ -330,13 +368,16 @@ removing the network classes; `wide_plateau` gating reptation).
    regress) with a learned abstention head, on the frozen architecture.
 
 **Current state (2026-09-09, retrained) — these are 10-CLASS numbers.**
-**213 tests pass, 2 skipped** — the full non-slow suite, run on the office PC
-2026-09-09 in 13:34 (RTX A1000 box; the laptop is slower). This run confirms
-the previously-unverified star-caveat commit AND the same session's neural
-second column at once: 194 after the step-4 tests, + 2 for the star window
-caveat, + 17 this session (3 in `test_report.py`, 14 in the new
-`test_neural_report.py`) = 213. Retrained on the ten-class distribution after
-`star` was added (16k examples, 55 epochs, seed 1, office PC).
+**266 tests collected, 1 deselected as `slow`** (counted 2026-09-14). The
+previous figure here was 213, measured 2026-09-09 in 13:34 on the office PC
+(RTX A1000; the laptop is slower); the 33 tests of `tests/test_comb.py` were
+added 2026-09-14 and the rest is arithmetic — 194 after the step-4 tests, + 2
+for the star window caveat, + 17 (3 in `test_report.py`, 14 in the new
+`test_neural_report.py`) = 213, + 33 comb + a few from the widened vitrimer
+safeguard. Retrained on the ten-class distribution after `star` was added
+(16k examples, 55 epochs, seed 1, office PC).
+**The `comb` class is NOT in the bank** — see the comb paragraph below; the
+checkpoint and all accuracy figures here remain 10-class and current.
 
 On synthetic data the classifier scores **0.923** (merged-pair **0.968**,
 regime **0.999**) against an AICc physics baseline of **0.907** measured on the

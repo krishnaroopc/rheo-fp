@@ -548,6 +548,15 @@ STAR_P0 = [5.5, 15.0, -5.0]
 # end is ever raised, widen this floor to match - a planted vector on the
 # bound is a silent fit failure.
 STAR_BNDS = [(-4, 9), Z_BOUNDS, (-10, 2)]
+# HEADROOM AUDIT 2026-09-14: the floor of -10 HOLDS, but only just. Over 4000
+# planted draws the range is -9.360 .. +0.090, i.e. **0.64 decades** of margin
+# below the floor. Nothing is clamped today. The identical derived-tau_e design
+# in comb.py did overflow its floor (47% of draws below -10, since a long
+# cross-bar carries the terminal many decades above tau_e) and needed widening
+# to -18, so treat this as a live constraint rather than a settled one: if
+# STAR_Z's upper end is raised, re-measure before assuming the floor still
+# covers the population. The comment above already says this; the audit
+# supplies the number.
 
 # registry: name -> (forward, p0, bounds, k_params), same shape as
 # rheofp.models.solutions.MODELS and network.NETWORK_MODELS so the banks can be

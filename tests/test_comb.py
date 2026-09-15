@@ -409,14 +409,57 @@ def test_model_comb_takes_log10_moduli_and_times():
     assert np.allclose(direct[1], viareg[1])
 
 
-def test_comb_is_NOT_yet_in_the_identifier_bank():
-    """Guard, to be deleted by the commit that passes cannibalisation.
+def test_comb_is_NOT_in_the_identifier_bank():
+    """DELIBERATELY UNWIRED 2026-09-14, after the check found real-data damage.
 
-    The risk is concrete: this is a broad-spectrum k=5 model going onto a
-    ballot that already carries BSW (`branched`) at k=5, and BSW was silently
-    absorbing 25/30 planted star melts before `star` existed. Wiring it in
-    requires the standard protocol - n=30/class planted, identical seeds,
-    per-class before/after, real data holding 6/6.
+    The synthetic cannibalisation check passed on its own terms (every class
+    unchanged except sticky_reptation 29->27, real benchmark 6/6). It was
+    WRONG to read that as safe, for two reasons now fixed in
+    scripts/check_comb_cannibalisation.py:
+
+      * it scored only WHETHER the winning class changed, never BY HOW MUCH,
+        so a collapse in winning margin was invisible;
+      * it scored real data only against the 6-curve benchmark, which contains
+        no star curve at all.
+
+    Wiring `comb` in was then measured directly against MM1998's seven real
+    four-arm polyisoprene stars, where the architecture is known from
+    synthesis. `star` went 5/7 -> 4/7 (PI4_Ma47k flipped to `comb`), and the
+    surviving decisive calls collapsed from margins of 194-225 to 7.6-27.4,
+    with Ma44k at dAICc 7.6 leaving `comb` a live contender.
+
+    The cause is physical, not a bug: a comb with a short cross-bar is very
+    nearly a star, and `comb` has 5 parameters against `star`'s 3. `star` has
+    real validation across three chemistries; `comb` has none yet. Trading a
+    confirmed capability for an unconfirmed one is the wrong direction.
+
+    This is not permanent. Real comb data (Kapnistos 2005, McLeish 1999
+    Figure 6) is the next task; with it, the question becomes whether a
+    PHYSICAL restriction - an entangled-cross-bar requirement, or the
+    two-feature signature - separates the classes on real curves. See
+    .claude-notes/next-actions.md.
     """
     from rheofp.fitting.identify import ALL_MODELS
     assert "comb" not in ALL_MODELS
+
+
+def test_a_planted_comb_is_misidentified_while_the_class_is_unwired():
+    """What an end user uploading comb data is told TODAY, pinned honestly.
+
+    Measured over 30 planted combs with `comb` absent from the bank: branched
+    12/30, critical_gel 10/30, star 6/30, sticky_reptation 2/30 - always
+    wrong, never uncertain, and not even consistently wrong in one direction.
+    This is the documented "good fit of the WRONG class" failure, and the
+    none-of-the-above floor cannot catch it because the most flexible
+    candidate present simply absorbs the curve.
+
+    The test asserts the SHAPE of that failure rather than a specific wrong
+    label, so it records the cost of the unwired state without becoming
+    brittle. It should be deleted by whichever commit wires `comb` in.
+    """
+    from rheofp.fitting.identify import identify
+    w = np.logspace(-3, 4, 70)
+    Gp, Gpp = comb_spectrum(w, G_0_PI, 8.0, 30.0, 0.30, 1e-5)
+    out = identify(w, Gp, Gpp, n_restarts=8)
+    assert out["best"] != "comb"          # unreachable: not in the bank
+    assert out["best_rms_log"] < 0.15     # and it fits WELL, which is the trap

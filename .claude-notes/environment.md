@@ -68,8 +68,11 @@ process list while push produces no output.
 ```powershell
 uv run pytest -m "not slow" -q
 ```
-Expect **~185 passed, 2 skipped**. Runtime is machine-dependent: 5 min on the
-office PC, ~17 min on slower hardware - both are normal, it is not hung.
+Expect **~264 passed, 2 skipped** (266 collected, 1 deselected as `slow`;
+count verified 2026-09-14). Runtime is machine-dependent: 5 min on the office
+PC, ~17 min on slower hardware - both are normal, it is not hung. See
+next-actions.md for a SEPARATE, unexplained bimodal runtime on the office PC
+(~15 min or ~76 min for the same command) - a slow run is not a regression.
 
 **Step 5 - `originals/` (OPTIONAL, and not needed to work).** It holds raw
 paper PDFs and hand-digitized xlsx, is gitignored, and does NOT arrive with the

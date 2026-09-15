@@ -1,0 +1,848 @@
+<title>Three Readings of RheoNet</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --ground: #FAFAF8;
+    --panel: #F1F0EC;
+    --panel-2: #E7E5DF;
+    --ink: #1A1D21;
+    --ink-soft: #55595F;
+    --ink-faint: #8A8E94;
+    --rule: #D6D4CC;
+    --accent: #0E7C7B;
+    --accent-soft: #DCEEED;
+    --accent-ink: #0A5150;
+    --warn: #9A5B18;
+    --warn-soft: #F6E9D8;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #16181B;
+      --panel: #1F2225;
+      --panel-2: #282C30;
+      --ink: #ECEBE6;
+      --ink-soft: #A9ADB3;
+      --ink-faint: #71767C;
+      --rule: #33373B;
+      --accent: #4FB8B4;
+      --accent-soft: #17332F;
+      --accent-ink: #8FD6D2;
+      --warn: #D9A464;
+      --warn-soft: #2E2517;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #16181B;
+    --panel: #1F2225;
+    --panel-2: #282C30;
+    --ink: #ECEBE6;
+    --ink-soft: #A9ADB3;
+    --ink-faint: #71767C;
+    --rule: #33373B;
+    --accent: #4FB8B4;
+    --accent-soft: #17332F;
+    --accent-ink: #8FD6D2;
+    --warn: #D9A464;
+    --warn-soft: #2E2517;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: "IBM Plex Sans", system-ui, sans-serif;
+    line-height: 1.6;
+  }
+  .wrap {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding-inline: 20px;
+    padding-block: 48px 72px;
+  }
+
+  header { max-width: 62ch; margin-bottom: 32px; }
+  .eyebrow {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11.5px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent-ink);
+    margin: 0 0 10px;
+  }
+  h1 {
+    font-family: "Spectral", Georgia, serif;
+    font-weight: 600;
+    font-size: clamp(30px, 5vw, 44px);
+    line-height: 1.12;
+    margin: 0 0 14px;
+    text-wrap: balance;
+  }
+  .standfirst {
+    font-family: "Spectral", Georgia, serif;
+    font-size: clamp(16px, 2.2vw, 19px);
+    color: var(--ink-soft);
+    margin: 0;
+  }
+
+  /* ── tabs ─────────────────────────────────────────────── */
+  .tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    border-bottom: 1px solid var(--rule);
+    margin-bottom: 8px;
+  }
+  .tab {
+    appearance: none;
+    background: none;
+    border: 1px solid transparent;
+    border-bottom: none;
+    border-radius: 6px 6px 0 0;
+    padding: 11px 16px;
+    font-family: "IBM Plex Sans", system-ui, sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--ink-soft);
+    cursor: pointer;
+    margin-bottom: -1px;
+  }
+  .tab:hover { color: var(--ink); background: var(--panel); }
+  .tab:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+  .tab[aria-selected="true"] {
+    background: var(--ground);
+    border-color: var(--rule);
+    color: var(--accent-ink);
+    font-weight: 600;
+  }
+  .tab-sub {
+    display: block;
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 10.5px;
+    letter-spacing: 0.06em;
+    color: var(--ink-faint);
+    font-weight: 400;
+    margin-top: 2px;
+  }
+  .panel-intro {
+    font-family: "Spectral", Georgia, serif;
+    font-size: 17px;
+    color: var(--ink-soft);
+    max-width: 62ch;
+    margin: 24px 0 36px;
+  }
+
+  /* ── shared flow scaffolding ──────────────────────────── */
+  .flow { display: flex; flex-direction: column; gap: 0; }
+  .stage-rule {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 30px 0 14px;
+  }
+  .stage-rule::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--rule);
+  }
+  .stage-name {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 10.5px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    white-space: nowrap;
+  }
+  .arrow {
+    width: 1px;
+    height: 20px;
+    background: var(--rule);
+    margin-left: 27px;
+  }
+  .arrow.accent { background: var(--accent); width: 2px; margin-left: 26px; }
+
+  .step {
+    display: grid;
+    grid-template-columns: 56px 1fr;
+    gap: 16px;
+    align-items: start;
+  }
+  .num {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--accent-ink);
+    background: var(--accent-soft);
+    border: 1px solid var(--accent);
+    border-radius: 50%;
+    width: 34px;
+    height: 34px;
+    display: grid;
+    place-items: center;
+    margin-left: 10px;
+  }
+  .body { padding-top: 4px; }
+  .step h3 {
+    font-family: "Spectral", Georgia, serif;
+    font-size: 20px;
+    font-weight: 600;
+    margin: 0 0 6px;
+    line-height: 1.25;
+    text-wrap: balance;
+  }
+  .step p { margin: 0 0 10px; max-width: 62ch; color: var(--ink-soft); }
+  .step p.lead { color: var(--ink); }
+  .step p:last-child { margin-bottom: 0; }
+  strong { color: var(--ink); font-weight: 600; }
+  code {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.88em;
+    background: var(--panel-2);
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+
+  /* pitfall note — the "why it is built this way" asides */
+  .note {
+    border-left: 2px solid var(--warn);
+    background: var(--warn-soft);
+    padding: 10px 14px;
+    margin: 12px 0 0;
+    max-width: 62ch;
+    font-size: 14.5px;
+    color: var(--ink-soft);
+    border-radius: 0 4px 4px 0;
+  }
+  .note b {
+    color: var(--warn);
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 3px;
+  }
+
+  /* ── tab A: plain — split boxes for the two-way steps ─── */
+  .split {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 12px;
+    margin-top: 12px;
+    max-width: 62ch;
+  }
+  .split > div {
+    border: 1px solid var(--rule);
+    border-radius: 5px;
+    padding: 12px 14px;
+    background: var(--panel);
+  }
+  .split h4 {
+    font-family: "IBM Plex Sans", sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    margin: 0 0 4px;
+    color: var(--accent-ink);
+  }
+  .split p { font-size: 14px; margin: 0; }
+
+  /* ── tab B: rheology — feature rail ───────────────────── */
+  .railed { grid-template-columns: 56px 1fr 190px; }
+  .rail {
+    border-left: 2px solid var(--accent-soft);
+    padding: 2px 0 2px 14px;
+    font-size: 13.5px;
+    color: var(--ink-soft);
+    margin-top: 6px;
+  }
+  .rail .rail-label {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    display: block;
+    margin-bottom: 4px;
+  }
+  .rail ul { margin: 0; padding-left: 15px; }
+  .rail li { margin-bottom: 3px; }
+  @media (max-width: 800px) {
+    .railed { grid-template-columns: 56px 1fr; }
+    .rail { grid-column: 2; margin-top: 4px; }
+  }
+
+  /* ── tab C: ML — shape trace ──────────────────────────── */
+  .shaped { grid-template-columns: 56px 1fr 176px; }
+  .shape {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 12px;
+    color: var(--accent-ink);
+    background: var(--panel);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    padding: 9px 11px;
+    margin-top: 6px;
+    line-height: 1.5;
+  }
+  .shape .shape-label {
+    font-size: 9.5px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    display: block;
+    margin-bottom: 4px;
+  }
+  .shape .dim { color: var(--ink-faint); }
+  @media (max-width: 800px) {
+    .shaped { grid-template-columns: 56px 1fr; }
+    .shape { grid-column: 2; }
+  }
+
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 14px;
+    margin-top: 12px;
+  }
+  .tablewrap { overflow-x: auto; max-width: 62ch; }
+  th, td {
+    text-align: left;
+    padding: 7px 12px 7px 0;
+    border-bottom: 1px solid var(--rule);
+    font-variant-numeric: tabular-nums;
+  }
+  th {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 10.5px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    font-weight: 500;
+  }
+  td.mono { font-family: "IBM Plex Mono", monospace; font-size: 13px; }
+
+  footer {
+    margin-top: 56px;
+    padding-top: 20px;
+    border-top: 1px solid var(--rule);
+    font-size: 13.5px;
+    color: var(--ink-faint);
+    max-width: 62ch;
+  }
+  footer a { color: var(--accent-ink); }
+  [hidden] { display: none !important; }
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+
+<div class="wrap">
+  <header>
+    <p class="eyebrow">rheo-fp · classifier internals</p>
+    <h1>Three Readings of RheoNet</h1>
+    <p class="standfirst">The same nine steps — from an uploaded G′/G″ sweep to a material class — told three ways. Pick the reading that matches what you already know.</p>
+  </header>
+
+  <div class="tabs" role="tablist" aria-label="Audience">
+    <button class="tab" role="tab" id="tab-plain" aria-controls="p-plain" aria-selected="true">
+      In plain words<span class="tab-sub">no background needed</span>
+    </button>
+    <button class="tab" role="tab" id="tab-rheo" aria-controls="p-rheo" aria-selected="false">
+      For rheologists<span class="tab-sub">what it does to the spectrum</span>
+    </button>
+    <button class="tab" role="tab" id="tab-ml" aria-controls="p-ml" aria-selected="false">
+      For ML practitioners<span class="tab-sub">shapes, losses, numbers</span>
+    </button>
+  </div>
+
+  <!-- ══════════════════ PLAIN ══════════════════ -->
+  <section role="tabpanel" id="p-plain" aria-labelledby="tab-plain">
+    <p class="panel-intro">You hand the program a measured curve. It hands back a guess at what kind of material you have. Here is everything that happens in between — nine steps, no assumed background.</p>
+
+    <div class="flow">
+      <div class="stage-rule"><span class="stage-name">Tidying up the data</span></div>
+
+      <div class="step">
+        <div class="num">1</div>
+        <div class="body">
+          <h3>Redraw every curve at the same size</h3>
+          <p class="lead">Your curve might have 11 points read off a printed graph, or 90 from a machine. Every curve gets redrawn using exactly 60 points, evenly spaced, with in-between values filled in by joining the dots.</p>
+          <div class="note">
+            <b>Why it is built this way</b>
+            An earlier version fed in curves that always had the same number of points. The program quietly began using <em>the number of points itself</em> as a clue — which works perfectly in practice and fails on every real curve. Forcing everything to 60 removes the clue.
+          </div>
+        </div>
+      </div>
+      <div class="arrow"></div>
+
+      <div class="step">
+        <div class="num">2</div>
+        <div class="body">
+          <h3>Record four things at each point</h3>
+          <p>At each of the 60 points: how far along the frequency axis you are, the two measured quantities (G′ and G″), and the ratio between them. The ratio is already implied by the other two, but handing it over directly saves working it out, and it carries a lot of the signal.</p>
+        </div>
+      </div>
+      <div class="arrow"></div>
+
+      <div class="step">
+        <div class="num">3</div>
+        <div class="body">
+          <h3>Note six facts in a separate pocket</h3>
+          <p>Six plain numbers: the typical size of each measured quantity, where the frequency window starts and ends, how wide it is, and the temperature.</p>
+          <p>In step 2 the frequency track is deliberately re-centred, so the shape is seen without knowing where it sat. That is what lets the same shape be recognised anywhere. But <strong>where your measurement sat is genuinely useful</strong> — so it is not thrown away, just carried separately.</p>
+        </div>
+      </div>
+
+      <div class="stage-rule"><span class="stage-name">Reading one curve</span></div>
+
+      <div class="step">
+        <div class="num">4</div>
+        <div class="body">
+          <h3>Slide shape-detectors along the curve</h3>
+          <p class="lead">This is the heart of it. There is a set of small detectors, each looking at five neighbouring points at a time, each dragged along the whole curve. One might respond to a steep rise, another to a flattening-off, another to a small bump.</p>
+          <p><strong>Sliding is the key idea.</strong> A detector learns its shape once, then recognises it anywhere. Since measurement windows are cropped at random, the same physical feature turns up in different places on different curves — a detector fixed to one spot would be nearly useless.</p>
+          <p>This happens in three passes: the first finds small simple shapes, the second combines those into bigger ones, the third combines again. By the end it can respond to features spanning a wide stretch, built up from simple pieces.</p>
+        </div>
+      </div>
+      <div class="arrow"></div>
+
+      <div class="step">
+        <div class="num">5</div>
+        <div class="body">
+          <h3>Summarise what each detector found — twice</h3>
+          <p>Each detector has produced 60 scores, one per point. Too much to carry forward, so it gets boiled down. But boiling down loses information, and <em>which</em> information depends on how you do it. So it is done two ways:</p>
+          <div class="split">
+            <div>
+              <h4>The highest score</h4>
+              <p>Did this shape appear <em>anywhere at all?</em></p>
+            </div>
+            <div>
+              <h4>The average score</h4>
+              <p>How much of the curve did this shape <em>cover?</em></p>
+            </div>
+          </div>
+          <div class="note">
+            <b>Each alone is blind to something</b>
+            The highest score cannot tell a brief blip from something spanning the whole curve. The average cannot spot a single sharp spike — 59 quiet points drown it out. Both blind spots matter here: a shoulder is a spike, a plateau is spread out. So both numbers are kept.
+          </div>
+        </div>
+      </div>
+      <div class="arrow"></div>
+
+      <div class="step">
+        <div class="num">6</div>
+        <div class="body">
+          <h3>Combine it all into one description</h3>
+          <p>The two summaries and the six facts from step 3 are laid side by side, then passed through a small mixing stage that weighs them against each other and condenses them into a single list of 128 numbers.</p>
+          <p>That list is the description of your curve — not a picture of it, but a summary of which features are present and how strongly.</p>
+        </div>
+      </div>
+
+      <div class="stage-rule"><span class="stage-name">Combining several curves</span></div>
+
+      <div class="step">
+        <div class="num">7</div>
+        <div class="body">
+          <h3>Decide which curves matter</h3>
+          <p class="lead">If you uploaded several curves — the same material at several temperatures — steps 4 to 6 happen to each separately. Now they must become one description.</p>
+          <p>The obvious move is to average them. That would be a mistake. In a temperature series the answer often lives in <strong>one</strong> curve, typically the hottest, where the material finally starts to flow within the window you measured. Averaging waters that curve down to a quarter strength.</p>
+          <p>So instead the curves are <strong>weighed</strong>, and the weights are worked out by looking at them. Most of the weight might land on one curve. An average is the special case where everything counts equally; this is free to be lopsided when the evidence is lopsided.</p>
+          <p>Upload only one curve and this step does nothing — one curve gets all the weight. Single curves need no special handling; they are just the simplest case. A useful side effect: the weights can be read afterwards, so you can see which curve the answer rested on.</p>
+        </div>
+      </div>
+
+      <div class="stage-rule"><span class="stage-name">Producing answers</span></div>
+
+      <div class="step">
+        <div class="num">8</div>
+        <div class="body">
+          <h3>Four answers from the same description</h3>
+          <p>The combined description passes through one more mixing stage, then four separate readouts each take a turn at it:</p>
+          <div class="split">
+            <div><h4>Which class</h4><p>A score for each of the 10 material types.</p></div>
+            <div><h4>Which broad family</h4><p>The simpler two-way call. An easier question, and being asked it seems to help with the harder one.</p></div>
+            <div><h4>How likely it is wrong</h4><p>A single number — see step 9.</p></div>
+            <div><h4>The fitted numbers</h4><p>Up to five parameter values, always produced, never withheld.</p></div>
+          </div>
+        </div>
+      </div>
+      <div class="arrow accent"></div>
+
+      <div class="step">
+        <div class="num">9</div>
+        <div class="body">
+          <h3>The “am I wrong?” readout</h3>
+          <p class="lead">During training this is <em>not</em> shown a human judgement about which cases are hard. It is shown whether the class readout, on that very example, actually got it right. So it learns to predict its own mistakes.</p>
+          <p>That sidesteps a trap: a program rewarded for hesitating will hesitate constantly; one never rewarded for it will never hesitate. Tying it to real errors avoids both.</p>
+          <p>It works, measurably: setting aside the 10% of cases it feels shakiest about raises accuracy on the rest from 0.923 to 0.957. Setting aside 30% takes it to 0.996.</p>
+          <div class="note">
+            <b>The limit worth understanding</b>
+            It only ever learned from mistakes made on the ten known types. Hand it a material that is <em>none</em> of the ten and it has no basis for alarm — it may well report high confidence. It can flag “a difficult example of something I know.” It cannot flag “something I have never seen.” That is why the written report exists, and why a second, completely separate method runs alongside so the two answers can be compared.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <footer>
+      <p><strong>In one breath:</strong> redraw the curve at a fixed size → note the window details separately → slide shape-detectors along it → summarise what they found two complementary ways → squeeze into one description → if there are several curves, weigh them rather than average → read off the class, the family, a self-doubt score, and the parameters.</p>
+      <p>The recurring theme: at nearly every step something is deliberately discarded so the program cannot lean on it — the point count, the window position — then handed back separately where it is genuinely informative. Much of the design is about controlling what it is allowed to use as a clue.</p>
+    </footer>
+  </section>
+
+  <!-- ══════════════════ RHEOLOGY ══════════════════ -->
+  <section role="tabpanel" id="p-rheo" aria-labelledby="tab-rheo" hidden>
+    <p class="panel-intro">The same nine steps, described by what they do to a SAOS spectrum. The right-hand rail names the physical features each step is built to preserve or discard.</p>
+
+    <div class="flow">
+      <div class="stage-rule"><span class="stage-name">Conditioning the spectrum</span></div>
+
+      <div class="step railed">
+        <div class="num">1</div>
+        <div class="body">
+          <h3>Resample onto a fixed log-ω grid</h3>
+          <p class="lead">Any point count, any frequency range, sorted or not, is interpolated onto 60 points evenly spaced in log ω spanning that curve's <em>own</em> window. Interpolation is linear in log–log, which is exact for the power-law segments that dominate these spectra.</p>
+          <p>Point density therefore becomes a property of the loader, not of the model: a sparse digitized curve and a dense rheometer sweep over the same window give an identical input.</p>
+          <div class="note">
+            <b>Recorded failure</b>
+            Training at a fixed 60 points taught the model to lean on density itself — a sampling artefact learned as physics. It then failed on every real curve until resampled. The generator now varies the count from 10 to 100 <em>and</em> the loader resamples, so density cannot carry information either way.
+          </div>
+        </div>
+        <div class="rail">
+          <span class="rail-label">Preserved</span>
+          <ul><li>Window span and position</li><li>All spectral shape</li></ul>
+          <span class="rail-label" style="margin-top:10px">Discarded</span>
+          <ul><li>Point density</li><li>Point ordering</li></ul>
+        </div>
+      </div>
+      <div class="arrow"></div>
+
+      <div class="step railed">
+        <div class="num">2</div>
+        <div class="body">
+          <h3>Four channels per grid point</h3>
+          <p>Each point carries log ω (mean-centred), log G′, log G″, and log tan δ. The loss tangent is redundant with the two moduli but supplied directly — it is the quantity that carries much of the discriminating signal, and deriving it costs the encoder capacity.</p>
+          <p>Mean-centring log ω is deliberate: it presents window <em>shape</em> without window <em>position</em>, so a feature is recognised identically wherever it falls.</p>
+        </div>
+        <div class="rail">
+          <span class="rail-label">Channels</span>
+          <ul><li>log ω, centred</li><li>log G′</li><li>log G″</li><li>log tan δ</li></ul>
+        </div>
+      </div>
+      <div class="arrow"></div>
+
+      <div class="step railed">
+        <div class="num">3</div>
+        <div class="body">
+          <h3>Six scalars alongside</h3>
+          <p>Median G′ and median G″ (absolute modulus scale), the low and high edges of the window in log ω, its width, and the temperature. These are exactly what step 2's mean-centring removed, returned through a separate route.</p>
+          <p>Absolute scale matters — a 400 kPa plateau and a 4 kPa one are different materials — but it must not be confused with shape, so it travels apart.</p>
+        </div>
+        <div class="rail">
+          <span class="rail-label">Restored here</span>
+          <ul><li>Modulus scale</li><li>ω-window placement</li><li>Window width</li><li>Temperature</li></ul>
+        </div>
+      </div>
+
+      <div class="stage-rule"><span class="stage-name">Per-curve feature extraction</span></div>
+
+      <div class="step railed">
+        <div class="num">4</div>
+        <div class="body">
+          <h3>Convolutions over the frequency axis</h3>
+          <p class="lead">Three stacked passes of translation-invariant filters, each spanning five adjacent grid points, swept along log ω. The discriminating features here are <strong>local shape in log-frequency</strong>: a terminal slope of 2, a plateau, a power-law wing, a G″ shoulder.</p>
+          <p>Translation invariance is not a stylistic preference — the generator crops windows by up to 2.5 decades at random, so the same physical feature lands at different grid positions on different curves. A position-fixed layer would have to relearn each feature at every position.</p>
+          <p>Stacking three passes widens the effective span: early filters see a local slope, later ones see features spanning a substantial fraction of the window, such as a broad plateau.</p>
+        </div>
+        <div class="rail">
+          <span class="rail-label">Features sought</span>
+          <ul><li>Terminal slopes (2 and 1)</li><li>Plateau extent</li><li>G″ shoulder</li><li>Power-law wings</li><li>Crossover</li></ul>
+        </div>
+      </div>
+      <div class="arrow"></div>
+
+      <div class="step railed">
+        <div class="num">5</div>
+        <div class="body">
+          <h3>Pool each filter two ways: max and mean</h3>
+          <p>Each filter's response along the 60 grid points is reduced twice — by its maximum (did this feature occur anywhere?) and by its mean (over how much of the window did it persist?).</p>
+          <div class="note">
+            <b>Why both are required here</b>
+            Max alone cannot distinguish a slope of 2 sustained over three decades from a slope of 2 touched at one point — which is precisely the breadth distinction separating a broad BSW spectrum from a sharp reptation terminal. Mean alone dilutes a localised G″ shoulder, the sticker-class signature, across 60 points into nothing. The two failure modes are complementary, so both statistics are retained.
+          </div>
+        </div>
+        <div class="rail">
+          <span class="rail-label">Max catches</span>
+          <ul><li>G″ shoulder</li><li>Loss peak</li><li>Crossover</li></ul>
+          <span class="rail-label" style="margin-top:10px">Mean catches</span>
+          <ul><li>Sustained terminal slope</li><li>Plateau breadth</li><li>Broad wings</li></ul>
+        </div>
+      </div>
+      <div class="arrow"></div>
+
+      <div class="step railed">
+        <div class="num">6</div>
+        <div class="body">
+          <h3>Project to one curve descriptor</h3>
+          <p>The two pooled statistics and the six scalars are concatenated and passed through a small projection, yielding a 128-number descriptor of that spectrum — a feature vector, not a reconstruction. Nothing regenerates the curve; there is no reconstruction objective anywhere in the model.</p>
+        </div>
+        <div class="rail">
+          <span class="rail-label">Output</span>
+          <ul><li>One descriptor per spectrum</li></ul>
+        </div>
+      </div>
+
+      <div class="stage-rule"><span class="stage-name">Pooling a stack</span></div>
+
+      <div class="step railed">
+        <div class="num">7</div>
+        <div class="body">
+          <h3>Attention over the stack, not an average</h3>
+          <p class="lead">Steps 4–6 run independently on each curve of a temperature or concentration stack. Pooling them by simple averaging would be wrong for a specific physical reason: <strong>a stack's discriminating information is frequently carried by one curve</strong> — characteristically the hottest, where terminal relaxation finally enters the accessible window.</p>
+          <p>Averaging dilutes that curve by the stack size. Instead the descriptors are combined with learned, input-dependent weights, free to concentrate almost entirely on one member.</p>
+          <p>This is the mechanism that makes stacks work at all: measured accuracy is 0.898 at N = 1, rising to about 0.94 at N ≥ 2. N = 1 is the degenerate case — a single curve receives unit weight, so no separate code path exists. The weights are recoverable afterwards, showing which curve the call rested on.</p>
+          <div class="note">
+            <b>Where this matters most</b>
+            The temperature stack is the only route by which a dynamically crosslinked vitrimer is separated from a permanently cured elastomer. That distinction cannot be made from a single isotherm at all, so this pooling step is load-bearing for the taxonomy rather than an efficiency measure.
+          </div>
+        </div>
+        <div class="rail">
+          <span class="rail-label">Stack types</span>
+          <ul><li>Temperature (Arrhenius-tied)</li><li>Concentration (one scaling law)</li></ul>
+          <span class="rail-label" style="margin-top:10px">Enables</span>
+          <ul><li>Vitrimer vs cured network</li><li>Entangled vs unentangled</li></ul>
+        </div>
+      </div>
+
+      <div class="stage-rule"><span class="stage-name">Outputs</span></div>
+
+      <div class="step railed">
+        <div class="num">8</div>
+        <div class="body">
+          <h3>Two heads, four readouts</h3>
+          <p>One shared trunk feeds: the fine class over 10 architectures (zimm, rouse_screened, reptation, sticky_rouse, sticky_reptation, cured_elastomer, critical_gel, wormlike_micelle, branched, star); the regime as a coarser two-way call, trained as an auxiliary task that appears to assist the fine one; an abstention score; and up to five constitutive parameters, always emitted.</p>
+        </div>
+        <div class="rail">
+          <span class="rail-label">Head 1</span>
+          <ul><li>10 fine classes</li><li>2 regimes</li><li>Abstention</li></ul>
+          <span class="rail-label" style="margin-top:10px">Head 2</span>
+          <ul><li>≤ 5 parameters</li></ul>
+        </div>
+      </div>
+      <div class="arrow accent"></div>
+
+      <div class="step railed">
+        <div class="num">9</div>
+        <div class="body">
+          <h3>Abstention, and what it cannot do</h3>
+          <p class="lead">The abstention head is trained against whether the classifier actually erred on that example — it learns to predict its own failures, rather than being thresholded onto a confidence score after the fact.</p>
+          <p>Calibration is good: discarding the least-confident 10% lifts accuracy from 0.923 to 0.957; 20% to 0.982; 30% to 0.996.</p>
+          <div class="note">
+            <b>It is not an out-of-distribution detector</b>
+            It is trained only against the model's own errors on the synthetic distribution, so a low abstention score is <em>not</em> evidence of a correct answer on material whose class is absent from training — polymer blends, block copolymers, semicrystalline melts, filled systems. The dominant error mode of this classifier is a good fit of the wrong class, which no confidence score flags. That is why every report states the winner's absolute fit quality, ranks alternatives by ΔAICc, and carries an unconditional “don't think it's X?” section even on confident, correct answers.
+          </div>
+        </div>
+        <div class="rail">
+          <span class="rail-label">Not detected</span>
+          <ul><li>Polymer blends</li><li>Block copolymers</li><li>Semicrystalline melts</li><li>Filled / nanocomposite</li></ul>
+        </div>
+      </div>
+    </div>
+
+    <footer>
+      <p><strong>The design principle running through it:</strong> at nearly every step something is deliberately withheld from the model — point density, window position, absolute scale — and reintroduced through a controlled route where it is genuinely informative. Every such choice is an answer to a way the model was previously found to cheat.</p>
+    </footer>
+  </section>
+
+  <!-- ══════════════════ ML ══════════════════ -->
+  <section role="tabpanel" id="p-ml" aria-labelledby="tab-ml" hidden>
+    <p class="panel-intro">Two-head set model over variable-length spectra stacks. Shapes trace down the right; <code>B</code> = batch, <code>N</code> = stack size (padded to <code>n_max</code>), <code>E</code> = 128.</p>
+
+    <div class="flow">
+      <div class="stage-rule"><span class="stage-name">Input pipeline</span></div>
+
+      <div class="step shaped">
+        <div class="num">1</div>
+        <div class="body">
+          <h3>Resample to a fixed grid</h3>
+          <p class="lead">Log-linear interpolation onto <code>N_GRID = 60</code> points spanning each curve's own window. Handles unsorted input, clips to <code>EPS = 1e-30</code>, and broadcasts a degenerate single-point curve flat rather than raising.</p>
+          <div class="note">
+            <b>Leakage found and closed</b>
+            Fixed point count at generation time became a discriminative feature — the model learned sampling density as if it were physics, and generalisation to real curves collapsed. Fixed by two independent changes: randomise the count over <code>(10, 100)</code> in the generator, and resample in the loader regardless. Raw and resampled real curves now yield identical predictions, which is asserted as a test.
+          </div>
+        </div>
+        <div class="shape">
+          <span class="shape-label">shape</span>
+          (n<span class="dim">, any</span>) → (60,)
+        </div>
+      </div>
+      <div class="arrow"></div>
+
+      <div class="step shaped">
+        <div class="num">2</div>
+        <div class="body">
+          <h3>Channel stack</h3>
+          <p><code>N_CHANNELS = 4</code>: mean-centred log ω, log G′, log G″, log tan δ. The fourth is algebraically redundant, included to spare encoder capacity.</p>
+        </div>
+        <div class="shape">
+          <span class="shape-label">per curve</span>
+          (60, 4) <span class="dim">float32</span>
+        </div>
+      </div>
+      <div class="arrow"></div>
+
+      <div class="step shaped">
+        <div class="num">3</div>
+        <div class="body">
+          <h3>Summary scalars</h3>
+          <p><code>N_SUMMARY = 6</code>: log median G′, log median G″, min/max/ptp of log ω, and <code>(T − 298.15) / 50</code>. These re-inject exactly what channel 1's mean-centring removes, bypassing the translation-invariant encoder.</p>
+        </div>
+        <div class="shape">
+          <span class="shape-label">per curve</span>
+          (6,)
+        </div>
+      </div>
+
+      <div class="stage-rule"><span class="stage-name">Curve encoder · shared weights</span></div>
+
+      <div class="step shaped">
+        <div class="num">4</div>
+        <div class="body">
+          <h3>3× [Conv1d k=5 · GELU · BatchNorm]</h3>
+          <p class="lead">Widths <code>64 → 96 → 128</code>, <code>padding=2</code>, so length is preserved at 60 throughout. Applied to the flattened <code>B·n_max</code> curves in one pass, then reshaped back.</p>
+          <p>Translation invariance is the load-bearing property: windows are randomly cropped up to 2.5 decades, so features appear at arbitrary offsets. An MLP on the flat grid would need to learn each feature independently per position, at a fraction of the effective sample size per position, with no weight sharing.</p>
+        </div>
+        <div class="shape">
+          <span class="shape-label">conv</span>
+          (B·N, 4, 60)<br>→ (B·N, 128, 60)
+        </div>
+      </div>
+      <div class="arrow"></div>
+
+      <div class="step shaped">
+        <div class="num">5</div>
+        <div class="body">
+          <h3>Global mean ⊕ max over the length axis</h3>
+          <p>Concatenated, not chosen between. Max is invariant to feature extent, mean is insensitive to sharp localised peaks; both failure modes correspond to real discriminators in this domain (plateau breadth vs. G″ shoulder). Costs one concat and no parameters beyond widening the following projection.</p>
+        </div>
+        <div class="shape">
+          <span class="shape-label">pool</span>
+          (B·N, 128, 60)<br>→ (B·N, 256)
+        </div>
+      </div>
+      <div class="arrow"></div>
+
+      <div class="step shaped">
+        <div class="num">6</div>
+        <div class="body">
+          <h3>Concat summary · Linear · GELU · Dropout · Linear</h3>
+          <p><code>256 + 6 = 262 → 128</code>. Dropout <code>0.10</code>. Output is the per-curve embedding. Padded slots are then zeroed by the mask before pooling, so nothing downstream can read them.</p>
+        </div>
+        <div class="shape">
+          <span class="shape-label">embed</span>
+          (B·N, 262) → (B·N, 128)<br>→ (B, N, 128)
+        </div>
+      </div>
+
+      <div class="stage-rule"><span class="stage-name">Set pooling</span></div>
+
+      <div class="step shaped">
+        <div class="num">7</div>
+        <div class="body">
+          <h3>Masked attention pool · 4 heads · learned query</h3>
+          <p class="lead">A single learned query vector attends over the stack via <code>MultiheadAttention</code>, with <code>key_padding_mask</code> setting padded slots to −∞ pre-softmax so they contribute exactly zero. <code>LayerNorm</code> follows.</p>
+          <p>Mean pooling is the wrong inductive bias here: stack information is typically concentrated in one member (the highest temperature, where terminal relaxation enters the window), and a mean attenuates it by 1/N. Attention can place near-unit weight on that member.</p>
+          <p>N = 1 is the identity — softmax over one element — so single-curve inference needs no separate path. Measured: <strong>0.898 at N = 1 → ~0.94 at N ≥ 2.</strong> Attention weights are returned in the output dict for interpretability.</p>
+        </div>
+        <div class="shape">
+          <span class="shape-label">pool</span>
+          (B, N, 128)<br>→ (B, 128)<br><span class="dim">+ weights (B, N)</span>
+        </div>
+      </div>
+
+      <div class="stage-rule"><span class="stage-name">Heads</span></div>
+
+      <div class="step shaped">
+        <div class="num">8</div>
+        <div class="body">
+          <h3>Shared trunk → four outputs</h3>
+          <p>Trunk is <code>Linear · GELU · Dropout(0.10)</code> at 128. Then four readouts, three of them a single <code>Linear</code>, with head 2 as <code>Linear · GELU · Linear</code>.</p>
+          <div class="tablewrap">
+            <table>
+              <thead><tr><th>Output</th><th>Dim</th><th>Loss</th><th>Weight</th></tr></thead>
+              <tbody>
+                <tr><td>class_logits</td><td class="mono">10</td><td class="mono">CE</td><td class="mono">1.0</td></tr>
+                <tr><td>regime_logits</td><td class="mono">2</td><td class="mono">CE</td><td class="mono">0.3</td></tr>
+                <tr><td>abstain_logit</td><td class="mono">1</td><td class="mono">BCE</td><td class="mono">0.2</td></tr>
+                <tr><td>params</td><td class="mono">5</td><td class="mono">SmoothL1</td><td class="mono">0.1</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p style="margin-top:12px">Head 2 targets are zero-padded to width 5 and <strong>masked</strong> — a 2-parameter critical gel must not train slots 3–5, or the head learns to predict padding. SmoothL1 over L2 because unidentifiable parameters (τ<sub>e</sub> outside the window, Z below ~4 where the cost is flat) produce genuinely large residuals whose gradients would otherwise dominate an auxiliary term.</p>
+        </div>
+        <div class="shape">
+          <span class="shape-label">heads</span>
+          128 → 10 / 2 / 1 / 5
+        </div>
+      </div>
+      <div class="arrow accent"></div>
+
+      <div class="step shaped">
+        <div class="num">9</div>
+        <div class="body">
+          <h3>Learned abstention: target is the model's own error</h3>
+          <p class="lead">The BCE target is <code>(argmax ≠ label)</code>, computed under <code>no_grad</code> and detached, so the term shapes the abstention head without back-propagating into the classifier. The head learns to predict its own failures.</p>
+          <p>This resolves the degenerate objective directly: a model rewarded for abstaining abstains on everything, one never rewarded never abstains. <code>ABSTAIN_WEIGHT = 0.2</code> keeps it from dominating.</p>
+          <p>Ranked by AUC during training, which needs no threshold and scores a constant predictor at 0.5.</p>
+          <div class="tablewrap">
+            <table>
+              <thead><tr><th>Abstained</th><th>Coverage</th><th>Accuracy</th></tr></thead>
+              <tbody>
+                <tr><td class="mono">0%</td><td class="mono">1.00</td><td class="mono">0.923</td></tr>
+                <tr><td class="mono">10%</td><td class="mono">0.90</td><td class="mono">0.957</td></tr>
+                <tr><td class="mono">20%</td><td class="mono">0.80</td><td class="mono">0.982</td></tr>
+                <tr><td class="mono">30%</td><td class="mono">0.70</td><td class="mono">0.996</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="note">
+            <b>Calibrated in-distribution only</b>
+            Trained against the model's own errors on the synthetic distribution, so it carries no signal about out-of-taxonomy input. The dominant error mode is a confident good fit of the wrong class, which no confidence score detects. Mitigation is architectural rather than statistical: an independent AICc model-bank identifier runs alongside, sharing no machinery, and the two-way agreement is reported as its own signal.
+          </div>
+        </div>
+        <div class="shape">
+          <span class="shape-label">target</span>
+          argmax ≠ y<br><span class="dim">detached</span>
+        </div>
+      </div>
+    </div>
+
+    <footer>
+      <p><strong>Training:</strong> AdamW, lr 3e-4, weight decay 1e-4, cosine schedule, grad clip 1.0, batch 64, early stop on val accuracy with patience 8. Splits are 70/15/15 <em>by stack</em>, normalisation fit on train only. Checkpoint selection is on val accuracy, not val loss.</p>
+      <p><strong>Headline (10-class, 16k examples, 55 epochs):</strong> 0.923 accuracy · 0.968 with degenerate pairs merged · 0.999 regime · against an AICc physics baseline of 0.907 on the same test split. 58% of residual error is the physically degenerate Zimm↔Rouse pair.</p>
+    </footer>
+  </section>
+</div>
+
+<script>
+  (function () {
+    var tabs = Array.prototype.slice.call(document.querySelectorAll('.tab'));
+    function select(tab) {
+      tabs.forEach(function (t) {
+        var on = t === tab;
+        t.setAttribute('aria-selected', on ? 'true' : 'false');
+        document.getElementById(t.getAttribute('aria-controls')).hidden = !on;
+      });
+      tab.focus();
+    }
+    tabs.forEach(function (tab, i) {
+      tab.addEventListener('click', function () { select(tab); });
+      tab.addEventListener('keydown', function (e) {
+        var d = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
+        if (!d) return;
+        e.preventDefault();
+        select(tabs[(i + d + tabs.length) % tabs.length]);
+      });
+    });
+  })();
+</script>

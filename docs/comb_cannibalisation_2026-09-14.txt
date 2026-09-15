@@ -1,0 +1,66 @@
+Pre-registered cannibalisation check for `comb`
+  n=30 planted single curves per class, seed=20260914, restarts=12
+  existing bank: 10 candidates
+
+Scoring existing classes with the CURRENT bank...
+Scoring planted COMB curves with the CURRENT bank (what absorbs them today)...
+Real data with the current bank...
+Scoring the SAME curves with the +comb bank (11 candidates)...
+Scoring planted COMB curves with the +comb bank...
+Real data with the +comb bank...
+
+========================================================================
+PER-CLASS HIT COUNTS (planted class recovered by identify)
+========================================================================
+class                  before    after   delta   stolen-by (after)
+zimm                       20       20      +0   -
+rouse_screened             23       23      +0   -
+reptation                  21       21      +0   -
+sticky_rouse               30       30      +0   -
+sticky_reptation           29       27      -2   combx2  <-- LOST
+cured_elastomer            29       29      +0   -
+critical_gel               27       27      +0   -
+wormlike_micelle           30       30      +0   -
+branched                   29       29      +0   -
+star                       30       30      +0   -
+OVERALL                   268      266      -2   (0.893 -> 0.887)
+
+========================================================================
+PLANTED COMB CURVES
+========================================================================
+  with the current bank (comb absent - what absorbs it):
+      branched              12/30
+      critical_gel          10/30
+      star                   6/30
+      sticky_reptation       2/30
+  with the +comb bank:
+      comb                  27/30
+      branched               2/30
+      critical_gel           1/30
+  comb self-recovery: 27/30
+
+========================================================================
+REAL DATA (must stay 6/6)
+========================================================================
+  OK  SY184_10-1       expected cured_elastomer  got cured_elastomer
+  OK  Solaris_1-1      expected cured_elastomer  got cured_elastomer
+  OK  EF0030_1-1       expected cured_elastomer  got cured_elastomer
+  OK  Tixier2004_gel   expected critical_gel     got critical_gel
+  OK  E                expected branched         got branched
+  OK  B                expected branched         got branched
+  before: 6/6   after: 6/6
+
+========================================================================
+VERDICT
+========================================================================
+  CANNIBALISATION DETECTED - these classes lost correct answers:
+    sticky_reptation: 29 -> 27   (to: combx2)
+  Real data holds at 6/6.
+  `comb` is reachable (27/30 self-recovery).
+
+  => DO NOT WIRE IN. Report to the user first.
+
+  NOTE: a passing verdict is necessary, not sufficient. Read the
+  per-class table for EXACT TIES (a class losing curves to `comb`
+  at identical rms is a tie, not a loss - see the star check, where
+  zimm 23->21 turned out to be two exact ties at dAICc 0.07/0.00).

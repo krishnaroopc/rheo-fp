@@ -1,0 +1,531 @@
+<title>Embedding Geometry</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --ground: #FAFAF8; --panel: #F1F0EC; --panel-2: #E7E5DF;
+    --ink: #1A1D21; --ink-soft: #55595F; --ink-faint: #8A8E94;
+    --rule: #D6D4CC; --accent: #0E7C7B; --accent-soft: #DCEEED;
+    --accent-ink: #0A5150; --warn: #9A5B18; --warn-soft: #F6E9D8;
+    --alt: #8B4F9F; --alt-soft: #EFE4F2;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #16181B; --panel: #1F2225; --panel-2: #282C30;
+      --ink: #ECEBE6; --ink-soft: #A9ADB3; --ink-faint: #71767C;
+      --rule: #33373B; --accent: #4FB8B4; --accent-soft: #17332F;
+      --accent-ink: #8FD6D2; --warn: #D9A464; --warn-soft: #2E2517;
+      --alt: #C69BD6; --alt-soft: #2C1F33;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #16181B; --panel: #1F2225; --panel-2: #282C30;
+    --ink: #ECEBE6; --ink-soft: #A9ADB3; --ink-faint: #71767C;
+    --rule: #33373B; --accent: #4FB8B4; --accent-soft: #17332F;
+    --accent-ink: #8FD6D2; --warn: #D9A464; --warn-soft: #2E2517;
+    --alt: #C69BD6; --alt-soft: #2C1F33;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--ground); color: var(--ink);
+    font-family: "IBM Plex Sans", system-ui, sans-serif; line-height: 1.6;
+  }
+  .wrap { max-width: 1060px; margin: 0 auto; padding-inline: 20px; padding-block: 44px 68px; }
+  .eyebrow {
+    font-family: "IBM Plex Mono", monospace; font-size: 11.5px; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--accent-ink); margin: 0 0 10px;
+  }
+  h1 {
+    font-family: "Spectral", Georgia, serif; font-weight: 600;
+    font-size: clamp(28px, 4.6vw, 40px); line-height: 1.12; margin: 0 0 12px; text-wrap: balance;
+  }
+  .standfirst {
+    font-family: "Spectral", Georgia, serif; font-size: clamp(15.5px, 2vw, 18px);
+    color: var(--ink-soft); margin: 0 0 6px; max-width: 64ch;
+  }
+  .provenance {
+    font-family: "IBM Plex Mono", monospace; font-size: 11.5px; color: var(--ink-faint);
+    margin: 14px 0 28px; padding: 10px 14px; background: var(--panel);
+    border-left: 2px solid var(--rule); max-width: 78ch;
+  }
+  h2 {
+    font-family: "Spectral", Georgia, serif; font-size: 23px; font-weight: 600;
+    margin: 42px 0 6px; text-wrap: balance;
+  }
+  h3 {
+    font-family: "IBM Plex Sans", sans-serif; font-size: 15px; font-weight: 600;
+    margin: 28px 0 4px;
+  }
+  p { max-width: 66ch; color: var(--ink-soft); }
+  p.lead { color: var(--ink); }
+  strong { color: var(--ink); font-weight: 600; }
+  code { font-family: "IBM Plex Mono", monospace; font-size: 0.88em; background: var(--panel-2); padding: 1px 5px; border-radius: 3px; }
+
+  .tabs { display: flex; flex-wrap: wrap; gap: 4px; border-bottom: 1px solid var(--rule); }
+  .tab {
+    appearance: none; background: none; border: 1px solid transparent; border-bottom: none;
+    border-radius: 6px 6px 0 0; padding: 11px 18px; font-family: inherit; font-size: 14px;
+    font-weight: 500; color: var(--ink-soft); cursor: pointer; margin-bottom: -1px;
+  }
+  .tab:hover { color: var(--ink); background: var(--panel); }
+  .tab:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+  .tab[aria-selected="true"] { background: var(--ground); border-color: var(--rule); color: var(--accent-ink); font-weight: 600; }
+
+  .finding {
+    border: 1px solid var(--accent); background: var(--accent-soft);
+    border-radius: 6px; padding: 16px 20px; margin: 26px 0; max-width: 72ch;
+  }
+  .finding .label {
+    font-family: "IBM Plex Mono", monospace; font-size: 10.5px; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--accent-ink); display: block; margin-bottom: 6px;
+  }
+  .finding p { color: var(--ink); margin: 0; max-width: none; }
+  .finding p + p { margin-top: 10px; }
+  .caution { border-color: var(--warn); background: var(--warn-soft); }
+  .caution .label { color: var(--warn); }
+
+  figure { margin: 22px 0 0; }
+  .scroller { overflow-x: auto; padding-bottom: 6px; }
+  svg { display: block; height: auto; color: var(--ink); }
+  figcaption { margin-top: 12px; font-size: 13.5px; color: var(--ink-soft); max-width: 76ch; }
+  figcaption b { color: var(--ink); font-weight: 600; }
+
+  .controls { display: flex; flex-wrap: wrap; gap: 6px; margin: 18px 0 4px; align-items: center; }
+  .controls .lbl {
+    font-family: "IBM Plex Mono", monospace; font-size: 10.5px; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--ink-faint); margin-right: 6px;
+  }
+  .chip {
+    appearance: none; border: 1px solid var(--rule); background: var(--panel);
+    color: var(--ink-soft); border-radius: 20px; padding: 5px 12px;
+    font-family: "IBM Plex Mono", monospace; font-size: 11.5px; cursor: pointer;
+  }
+  .chip:hover { border-color: var(--ink-faint); color: var(--ink); }
+  .chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .chip[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); color: var(--accent-ink); font-weight: 500; }
+  .chip.alt[aria-pressed="true"] { background: var(--alt-soft); border-color: var(--alt); color: var(--alt); }
+
+  table { border-collapse: collapse; width: 100%; font-size: 13.5px; margin-top: 10px; }
+  .tablewrap { overflow-x: auto; max-width: 100%; }
+  th, td { text-align: left; padding: 7px 12px 7px 0; border-bottom: 1px solid var(--rule); font-variant-numeric: tabular-nums; }
+  th {
+    font-family: "IBM Plex Mono", monospace; font-size: 10.5px; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--ink-faint); font-weight: 500; white-space: nowrap;
+  }
+  td.mono { font-family: "IBM Plex Mono", monospace; }
+  td.num { text-align: right; padding-right: 18px; }
+  tr.hi td { background: var(--accent-soft); }
+  tr.hi-warn td { background: var(--warn-soft); }
+
+  .matrix { font-family: "IBM Plex Mono", monospace; font-size: 11px; border-collapse: collapse; }
+  .matrix th { padding: 4px 5px; font-size: 9.5px; letter-spacing: 0.04em; border: none; }
+  .matrix th.rowh { text-align: right; padding-right: 8px; text-transform: none; font-size: 10px; color: var(--ink-soft); }
+  .matrix td { padding: 0; border: none; }
+  .matrix .cell {
+    width: 42px; height: 26px; display: grid; place-items: center;
+    color: var(--ink); border-radius: 2px; margin: 1px;
+  }
+  footer { margin-top: 48px; padding-top: 18px; border-top: 1px solid var(--rule); font-size: 13px; color: var(--ink-faint); max-width: 76ch; }
+  [hidden] { display: none !important; }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="wrap">
+  <p class="eyebrow">rheo-fp · representation analysis</p>
+  <h1>Embedding Geometry</h1>
+  <p class="standfirst">What the 128-number curve descriptor looks like before the classifier ever votes — and which classes it places on top of each other.</p>
+
+  <div class="provenance" id="prov">loading…</div>
+
+  <div class="tabs" role="tablist" aria-label="Analysis">
+    <button class="tab" role="tab" id="tab-pca" aria-controls="p-pca" aria-selected="true">PCA</button>
+    <button class="tab" role="tab" id="tab-km" aria-controls="p-km" aria-selected="false">k-means</button>
+  </div>
+
+  <!-- ══════════ PCA ══════════ -->
+  <section role="tabpanel" id="p-pca" aria-labelledby="tab-pca">
+
+    <div class="finding">
+      <span class="label">The result worth keeping</span>
+      <p><strong>Zimm and rouse_screened are the same point.</strong> Their centroids sit 0.24 apart while the spread within each class is ~2.5 — a separation ratio of <strong>0.095</strong>. For comparison, cured_elastomer and critical_gel sit at 2.220.</p>
+      <p>This is measured in all 128 dimensions, not read off a picture. It is independent evidence for what the project already claims on physical grounds: the Zimm↔Rouse confusion that accounts for 58% of remaining error is <em>degeneracy in the data</em>, not a decision boundary the network drew badly. There is no gap for a better boundary to occupy.</p>
+    </div>
+
+    <h2>How much a 2-D picture can show you</h2>
+    <p class="lead">Before any scatter: the first two components carry <strong id="evr2"></strong> of the variance, and <strong id="n90"></strong> components are needed to reach 90%. So the projection below is a weak summary of a high-dimensional space — useful for spotting gross structure, not for judging whether two classes overlap.</p>
+
+    <figure>
+      <div class="scroller"><svg id="screeChart" class="chart" width="720" height="200" role="img" aria-label="Scree plot: variance explained by each of the first twelve principal components, declining from about 22 percent to under 2 percent."></svg></div>
+      <figcaption><b>Variance per component.</b> No dominant first component — the representation spreads its information across many directions, which is why the scatter that follows must be read with care.</figcaption>
+    </figure>
+
+    <h2>The projection</h2>
+    <p>Each dot is one curve from the held-out set, placed by its first two principal components. Pick a class to highlight it against the rest; pick two to see whether they occupy the same ground.</p>
+
+    <div class="controls" id="pcaControls">
+      <span class="lbl">highlight</span>
+    </div>
+    <div class="controls" style="margin-top:2px">
+      <button class="chip" id="presetZR" type="button">preset · zimm vs rouse</button>
+      <button class="chip" id="presetSB" type="button">preset · star vs branched</button>
+      <button class="chip" id="presetCG" type="button">preset · cured vs gel</button>
+      <button class="chip" id="clearSel" type="button">clear</button>
+    </div>
+
+    <figure>
+      <div class="scroller"><svg id="pcaChart" width="720" height="520" role="img" aria-label="Scatter plot of curve embeddings projected onto the first two principal components, with selected classes highlighted against the remaining points in grey."></svg></div>
+      <figcaption id="pcaCap"><b>Select a class above.</b> Grey points are every other class. Two highlighted classes that sit in the same region are not separated by this projection — though the reverse is not guaranteed, since 61% of the variance is in directions not shown.</figcaption>
+    </figure>
+
+    <h2>Pairwise separation, in all 128 dimensions</h2>
+    <p>This is the trustworthy artifact. <strong>Separation ratio</strong> is the distance between two class centroids divided by the pooled within-class spread. Below ~0.5 the classes are effectively superimposed; above ~2 they are cleanly apart.</p>
+
+    <div class="tablewrap"><table id="pairTable">
+      <thead><tr><th>Pair</th><th class="num">Centroid dist.</th><th class="num">Pooled spread</th><th class="num">Separation ratio</th><th>Reading</th></tr></thead>
+      <tbody></tbody>
+    </table></div>
+
+    <h3>Every pair, ranked</h3>
+    <p>Centroid distance for all 45 class pairs. The matrix is symmetric; darker means closer.</p>
+    <div class="tablewrap"><div id="matrix"></div></div>
+
+    <div class="finding caution">
+      <span class="label">Two things this contradicts</span>
+      <p><strong>cured_elastomer ↔ critical_gel is not a degenerate pair here.</strong> At 3.85 raw distance it is the second-farthest pair in the entire matrix. <code>AMBIGUOUS_PAIRS</code> treats it as one class and <code>merged_pair_accuracy</code> collapses it — so part of the 0.968 merged figure is credit for a merge that isn't doing anything. That is consistent with the project's own measurement that the pair contributes zero errors, but it means the pair is listed for nested-model reasons the representation does not reflect.</p>
+      <p><strong>branched ↔ star is the fourth-closest pair at 1.40</strong>, and it is not in <code>AMBIGUOUS_PAIRS</code> at all. The classifier does separate them (star scores 0.996), so the exclusion is defensible on its own terms — but the <em>representation</em> places them adjacent, which is exactly where the AICc side's documented failure lives: the 9-model bank silently absorbed 25/30 star melts into <code>branched</code>. Two independent methods, the same neighbourhood.</p>
+    </div>
+  </section>
+
+  <!-- ══════════ K-MEANS ══════════ -->
+  <section role="tabpanel" id="p-km" aria-labelledby="tab-km" hidden>
+
+    <div class="finding">
+      <span class="label">Why this is worth running at all</span>
+      <p>k-means never sees a label. If it independently groups the same classes the classifier confuses, that confusion is a property of the <strong>representation</strong>, not of the decision boundary — a second line of evidence that does not depend on the classifier being right about anything.</p>
+    </div>
+
+    <h2>Choosing k</h2>
+    <p class="lead">Inertia falls with every added cluster, so the question is where it stops falling <em>fast</em>. There is a visible step between k=6 and k=7; there is no sharp elbow at k=10, which is itself informative — the data does not naturally fall into ten equal groups.</p>
+
+    <figure>
+      <div class="scroller"><svg id="elbowChart" width="720" height="260" role="img" aria-label="Elbow plot of k-means inertia against number of clusters from 2 to 14, falling steeply to k equals 7 and then flattening."></svg></div>
+      <figcaption><b>Inertia vs k.</b> The marked drop at k=7 is the only clear step. Ten clusters were used below to match the ten classes — a choice made for comparability, not because the geometry asks for it.</figcaption>
+    </figure>
+
+    <h2>Clusters against true classes</h2>
+    <p>Ten clusters, found without labels, then compared to the labels afterwards. <strong>Purity</strong> is the share of a cluster belonging to its most common class.</p>
+
+    <div class="tablewrap"><table id="clusterTable">
+      <thead><tr><th>Cluster</th><th class="num">n</th><th class="num">Purity</th><th>Dominant class</th><th>Composition</th></tr></thead>
+      <tbody></tbody>
+    </table></div>
+
+    <div class="finding">
+      <span class="label">What the clusters say</span>
+      <p><strong>Three separate clusters are pure cured_elastomer</strong> (167, 196, 225 curves at purity 1.000 / 0.980 / 0.991). The unsupervised view splits one class into three groups rather than confusing it with anything — the opposite of a degeneracy problem. <code>critical_gel</code> and <code>wormlike_micelle</code> likewise get near-pure clusters of their own.</p>
+      <p><strong>Cluster 4 is a 2304-curve pile-up at 0.295 purity</strong>, mixing sticky_reptation, zimm, reptation and rouse_screened. The terminal-flow classes collapse into one region — which is where the classifier's errors live too.</p>
+      <p><strong>Cluster 6 mixes star (639) with branched (413)</strong> at 0.588 purity, and nothing else in quantity. The pairing found by distance in the previous tab reappears here, from an algorithm given no labels.</p>
+    </div>
+
+    <div class="finding caution">
+      <span class="label">Do not over-read this</span>
+      <p>Agreement between clusters and labels is <strong>ARI = 0.381</strong>. That is well above chance (0 would be random) and far below a match (1.0). k-means assumes round, similar-sized clusters in a 128-dimensional space where neither holds, so treat it as corroboration of the centroid distances — not as an independent measurement of its own.</p>
+      <p>The centroid-separation table in the PCA tab is the artifact to quote. This tab's job is to show that an algorithm with no access to labels lands in the same places.</p>
+    </div>
+  </section>
+
+  <footer>
+    <p>Embeddings taken per curve from <code>CurveEncoder</code>, before attention pooling — the representation of a single spectrum, not of a stack. PCA by SVD on the centred matrix; k-means is Lloyd's with k-means++ seeding, both in NumPy (scikit-learn is not in the locked environment). Analysis code and the raw result JSON are in the scratchpad for this session.</p>
+  </footer>
+</div>
+
+<script src="embed_data.js"></script>
+<script>
+(function () {
+  var C = DATA.classes, D = DATA.D, P = DATA.pts;
+  var css = getComputedStyle(document.documentElement);
+  function tok(n) { return css.getPropertyValue(n).trim(); }
+
+  document.getElementById('prov').textContent =
+    DATA.n_curves.toLocaleString() + ' curves from ' + DATA.n_stacks.toLocaleString() +
+    ' held-out stacks · 128 dims · checkpoint rheonet.pt (test accuracy ' +
+    DATA.acc.toFixed(3) + ') · 10 classes · seed 1';
+
+  var evr = DATA.evr;
+  document.getElementById('evr2').textContent = ((evr[0] + evr[1]) * 100).toFixed(0) + '%';
+  document.getElementById('n90').textContent = DATA.n90;
+
+  var NS = 'http://www.w3.org/2000/svg';
+  function el(n, a) { var e = document.createElementNS(NS, n); for (var k in a) e.setAttribute(k, a[k]); return e; }
+
+  // ── scree ────────────────────────────────────────────────
+  (function () {
+    var svg = document.getElementById('screeChart'), W = 720, H = 200;
+    var L = 46, R = 14, T = 14, B = 34, n = 12;
+    var iw = W - L - R, ih = H - T - B, max = evr[0];
+    for (var g = 0; g <= 4; g++) {
+      var gy = T + ih - (g / 4) * ih;
+      svg.appendChild(el('line', { x1: L, y1: gy, x2: W - R, y2: gy, stroke: tok('--rule'), 'stroke-width': 1 }));
+      var tx = el('text', { x: L - 8, y: gy + 4, 'text-anchor': 'end', fill: tok('--ink-faint'),
+        'font-size': 10, 'font-family': 'IBM Plex Mono, monospace' });
+      tx.textContent = (g / 4 * max * 100).toFixed(0) + '%';
+      svg.appendChild(tx);
+    }
+    var bw = iw / n * 0.62;
+    for (var i = 0; i < n; i++) {
+      var x = L + (i + 0.5) * (iw / n) - bw / 2, h = evr[i] / max * ih;
+      svg.appendChild(el('rect', { x: x, y: T + ih - h, width: bw, height: h, rx: 3,
+        fill: i < 2 ? tok('--accent') : tok('--panel-2'),
+        stroke: i < 2 ? 'none' : tok('--rule'), 'stroke-width': 1 }));
+      var lx = el('text', { x: x + bw / 2, y: H - B + 15, 'text-anchor': 'middle',
+        fill: tok('--ink-faint'), 'font-size': 10, 'font-family': 'IBM Plex Mono, monospace' });
+      lx.textContent = 'PC' + (i + 1);
+      svg.appendChild(lx);
+    }
+    var lab = el('text', { x: L, y: T - 2, fill: tok('--ink-soft'), 'font-size': 11,
+      'font-family': 'IBM Plex Sans, sans-serif' });
+    lab.textContent = 'PC1 + PC2 = ' + ((evr[0] + evr[1]) * 100).toFixed(0) + '% of variance';
+    svg.appendChild(lab);
+  })();
+
+  // ── elbow ────────────────────────────────────────────────
+  (function () {
+    var svg = document.getElementById('elbowChart'), W = 720, H = 260;
+    var L = 64, R = 18, T = 18, B = 40, E = DATA.elbow;
+    var iw = W - L - R, ih = H - T - B;
+    var xs = E.map(function (d) { return d.k; }), ys = E.map(function (d) { return d.inertia; });
+    var xmin = Math.min.apply(null, xs), xmax = Math.max.apply(null, xs);
+    var ymin = 0, ymax = Math.max.apply(null, ys) * 1.05;
+    function X(k) { return L + (k - xmin) / (xmax - xmin) * iw; }
+    function Y(v) { return T + ih - (v - ymin) / (ymax - ymin) * ih; }
+    for (var g = 0; g <= 4; g++) {
+      var v = ymin + (g / 4) * (ymax - ymin);
+      svg.appendChild(el('line', { x1: L, y1: Y(v), x2: W - R, y2: Y(v), stroke: tok('--rule'), 'stroke-width': 1 }));
+      var t = el('text', { x: L - 8, y: Y(v) + 4, 'text-anchor': 'end', fill: tok('--ink-faint'),
+        'font-size': 10, 'font-family': 'IBM Plex Mono, monospace' });
+      t.textContent = (v / 1000).toFixed(0) + 'k';
+      svg.appendChild(t);
+    }
+    var dstr = E.map(function (d, i) { return (i ? 'L' : 'M') + X(d.k) + ' ' + Y(d.inertia); }).join(' ');
+    svg.appendChild(el('path', { d: dstr, fill: 'none', stroke: tok('--accent'), 'stroke-width': 2 }));
+    E.forEach(function (d) {
+      var key = d.k === 7 || d.k === 10;
+      svg.appendChild(el('circle', { cx: X(d.k), cy: Y(d.inertia), r: key ? 5.5 : 3.5,
+        fill: key ? tok('--accent') : tok('--ground'), stroke: tok('--accent'), 'stroke-width': 2 }));
+      var t = el('text', { x: X(d.k), y: H - B + 16, 'text-anchor': 'middle', fill: tok('--ink-faint'),
+        'font-size': 10, 'font-family': 'IBM Plex Mono, monospace' });
+      t.textContent = d.k;
+      svg.appendChild(t);
+    });
+    [[7, 'step here'], [10, '10 classes']].forEach(function (a) {
+      var d = E.filter(function (e) { return e.k === a[0]; })[0];
+      var t = el('text', { x: X(d.k), y: Y(d.inertia) - 14, 'text-anchor': 'middle',
+        fill: tok('--accent-ink'), 'font-size': 11, 'font-weight': 600,
+        'font-family': 'IBM Plex Sans, sans-serif' });
+      t.textContent = a[1];
+      svg.appendChild(t);
+    });
+    var xl = el('text', { x: L + iw / 2, y: H - 4, 'text-anchor': 'middle', fill: tok('--ink-faint'),
+      'font-size': 11, 'font-family': 'IBM Plex Sans, sans-serif' });
+    xl.textContent = 'number of clusters (k)';
+    svg.appendChild(xl);
+  })();
+
+  // ── PCA scatter ──────────────────────────────────────────
+  var sel = [];
+  var chips = document.getElementById('pcaControls');
+  C.forEach(function (c, i) {
+    var b = document.createElement('button');
+    b.className = 'chip'; b.type = 'button'; b.textContent = c;
+    b.setAttribute('aria-pressed', 'false');
+    b.addEventListener('click', function () { toggle(i); });
+    b.dataset.idx = i;
+    chips.appendChild(b);
+  });
+  function toggle(i) {
+    var at = sel.indexOf(i);
+    if (at >= 0) sel.splice(at, 1);
+    else { if (sel.length >= 2) sel.shift(); sel.push(i); }
+    draw();
+  }
+  function setSel(a) { sel = a.slice(); draw(); }
+  document.getElementById('presetZR').addEventListener('click', function () { setSel([0, 1]); });
+  document.getElementById('presetSB').addEventListener('click', function () { setSel([9, 8]); });
+  document.getElementById('presetCG').addEventListener('click', function () { setSel([5, 6]); });
+  document.getElementById('clearSel').addEventListener('click', function () { setSel([]); });
+
+  function draw() {
+    Array.prototype.forEach.call(chips.querySelectorAll('.chip'), function (b) {
+      var i = +b.dataset.idx, at = sel.indexOf(i);
+      b.setAttribute('aria-pressed', at >= 0 ? 'true' : 'false');
+      b.classList.toggle('alt', at === 1);
+    });
+    var svg = document.getElementById('pcaChart'), W = 720, H = 520;
+    while (svg.firstChild) svg.removeChild(svg.firstChild);
+    var L = 52, R = 18, T = 18, B = 40;
+    var iw = W - L - R, ih = H - T - B;
+    var xs = P.map(function (p) { return p[0]; }), ys = P.map(function (p) { return p[1]; });
+    var x0 = Math.min.apply(null, xs), x1 = Math.max.apply(null, xs);
+    var y0 = Math.min.apply(null, ys), y1 = Math.max.apply(null, ys);
+    var px = (x1 - x0) * 0.04, py = (y1 - y0) * 0.04;
+    x0 -= px; x1 += px; y0 -= py; y1 += py;
+    function X(v) { return L + (v - x0) / (x1 - x0) * iw; }
+    function Y(v) { return T + ih - (v - y0) / (y1 - y0) * ih; }
+
+    [0, 0.25, 0.5, 0.75, 1].forEach(function (f) {
+      svg.appendChild(el('line', { x1: L, y1: T + f * ih, x2: W - R, y2: T + f * ih,
+        stroke: tok('--rule'), 'stroke-width': 1 }));
+      svg.appendChild(el('line', { x1: L + f * iw, y1: T, x2: L + f * iw, y2: T + ih,
+        stroke: tok('--rule'), 'stroke-width': 1 }));
+    });
+    [[x0, 0], [x1, 1]].forEach(function (a) {
+      var t = el('text', { x: L + a[1] * iw, y: H - B + 18, 'text-anchor': a[1] ? 'end' : 'start',
+        fill: tok('--ink-faint'), 'font-size': 10, 'font-family': 'IBM Plex Mono, monospace' });
+      t.textContent = a[0].toFixed(1);
+      svg.appendChild(t);
+    });
+    [[y1, 0], [y0, 1]].forEach(function (a) {
+      var t = el('text', { x: L - 8, y: T + a[1] * ih + 4, 'text-anchor': 'end',
+        fill: tok('--ink-faint'), 'font-size': 10, 'font-family': 'IBM Plex Mono, monospace' });
+      t.textContent = a[0].toFixed(1);
+      svg.appendChild(t);
+    });
+    var xl = el('text', { x: L + iw / 2, y: H - 6, 'text-anchor': 'middle', fill: tok('--ink-soft'),
+      'font-size': 11, 'font-family': 'IBM Plex Sans, sans-serif' });
+    xl.textContent = 'PC1 — ' + (evr[0] * 100).toFixed(0) + '% of variance';
+    svg.appendChild(xl);
+    var yl = el('text', { x: 14, y: T + ih / 2, 'text-anchor': 'middle', fill: tok('--ink-soft'),
+      'font-size': 11, 'font-family': 'IBM Plex Sans, sans-serif',
+      transform: 'rotate(-90 14 ' + (T + ih / 2) + ')' });
+    yl.textContent = 'PC2 — ' + (evr[1] * 100).toFixed(0) + '%';
+    svg.appendChild(yl);
+
+    var hues = [tok('--accent'), tok('--alt')];
+    // background points first
+    P.forEach(function (p) {
+      if (sel.indexOf(p[2]) >= 0) return;
+      svg.appendChild(el('circle', { cx: X(p[0]), cy: Y(p[1]), r: 2.4,
+        fill: tok('--ink-faint'), 'fill-opacity': sel.length ? 0.16 : 0.4 }));
+    });
+    sel.forEach(function (ci, k) {
+      P.forEach(function (p) {
+        if (p[2] !== ci) return;
+        svg.appendChild(el('circle', { cx: X(p[0]), cy: Y(p[1]), r: 3.6, fill: hues[k],
+          'fill-opacity': 0.75, stroke: tok('--ground'), 'stroke-width': 1 }));
+      });
+    });
+    // legend
+    if (sel.length) {
+      var lg = el('g', {});
+      sel.forEach(function (ci, k) {
+        lg.appendChild(el('circle', { cx: L + 10, cy: T + 14 + k * 20, r: 5, fill: hues[k] }));
+        var t = el('text', { x: L + 22, y: T + 18 + k * 20, fill: tok('--ink'), 'font-size': 12,
+          'font-weight': 600, 'font-family': 'IBM Plex Sans, sans-serif' });
+        t.textContent = C[ci];
+        lg.appendChild(t);
+      });
+      svg.appendChild(lg);
+    }
+    var cap = document.getElementById('pcaCap');
+    if (sel.length === 2) {
+      var d = D[sel[0]][sel[1]];
+      cap.innerHTML = '<b>' + C[sel[0]] + ' vs ' + C[sel[1]] + ':</b> centroid distance <b>' +
+        d.toFixed(2) + '</b> in the full 128 dimensions' +
+        (d < 0.6 ? ' — effectively the same point.' :
+         d < 1.6 ? ' — adjacent; these are near neighbours in the representation.' :
+         ' — well separated.') +
+        ' Remember PC1+PC2 show only ' + ((evr[0] + evr[1]) * 100).toFixed(0) + '% of the variance.';
+    } else if (sel.length === 1) {
+      cap.innerHTML = '<b>' + C[sel[0]] + '</b> highlighted against all other classes. Pick a second class to compare.';
+    } else {
+      cap.innerHTML = '<b>Select a class above.</b> Grey points are every other class. Two highlighted classes sitting in the same region are not separated by this projection.';
+    }
+  }
+
+  // ── pair table ───────────────────────────────────────────
+  (function () {
+    var tb = document.querySelector('#pairTable tbody');
+    DATA.pairs.forEach(function (p) {
+      var r = p.separation_ratio;
+      var read = r < 0.5 ? 'superimposed' : r < 1.2 ? 'adjacent' : r < 2 ? 'distinct' : 'well separated';
+      var tr = document.createElement('tr');
+      if (r < 0.5) tr.className = 'hi';
+      else if (r < 1.2) tr.className = 'hi-warn';
+      tr.innerHTML = '<td class="mono">' + p.pair + '</td>' +
+        '<td class="num mono">' + p.centroid_distance.toFixed(2) + '</td>' +
+        '<td class="num mono">' + p.pooled_spread.toFixed(2) + '</td>' +
+        '<td class="num mono"><b>' + r.toFixed(3) + '</b></td>' +
+        '<td>' + read + '</td>';
+      tb.appendChild(tr);
+    });
+  })();
+
+  // ── distance matrix ──────────────────────────────────────
+  (function () {
+    var host = document.getElementById('matrix');
+    var flat = [];
+    for (var i = 0; i < C.length; i++) for (var j = i + 1; j < C.length; j++) flat.push(D[i][j]);
+    var lo = Math.min.apply(null, flat), hi = Math.max.apply(null, flat);
+    var t = document.createElement('table');
+    t.className = 'matrix';
+    var head = '<tr><th></th>';
+    C.forEach(function (c) { head += '<th>' + c.slice(0, 5) + '</th>'; });
+    head += '</tr>';
+    var body = '';
+    for (var a = 0; a < C.length; a++) {
+      body += '<tr><th class="rowh">' + C[a] + '</th>';
+      for (var b = 0; b < C.length; b++) {
+        if (a === b) { body += '<td><div class="cell" style="opacity:.25">·</div></td>'; continue; }
+        var v = D[a][b];
+        var f = 1 - (v - lo) / (hi - lo);          // closer = darker
+        var alpha = (0.06 + f * f * 0.82).toFixed(3);
+        body += '<td><div class="cell" style="background:color-mix(in srgb, var(--accent) ' +
+          (alpha * 100).toFixed(0) + '%, transparent)">' + v.toFixed(2) + '</div></td>';
+      }
+      body += '</tr>';
+    }
+    t.innerHTML = head + body;
+    host.appendChild(t);
+  })();
+
+  // ── cluster table ────────────────────────────────────────
+  (function () {
+    var tb = document.querySelector('#clusterTable tbody');
+    DATA.clusters.slice().sort(function (a, b) { return b.purity - a.purity; }).forEach(function (c) {
+      var comp = Object.keys(c.composition).map(function (k) {
+        return k + ' ' + c.composition[k];
+      }).join(' · ');
+      var tr = document.createElement('tr');
+      if (c.purity >= 0.95) tr.className = 'hi';
+      else if (c.purity < 0.6) tr.className = 'hi-warn';
+      tr.innerHTML = '<td class="mono">c' + c.cluster + '</td>' +
+        '<td class="num mono">' + c.n + '</td>' +
+        '<td class="num mono"><b>' + c.purity.toFixed(3) + '</b></td>' +
+        '<td class="mono">' + (c.dominant || '—') + '</td>' +
+        '<td class="mono" style="font-size:12px;color:var(--ink-faint)">' + comp + '</td>';
+      tb.appendChild(tr);
+    });
+  })();
+
+  draw();
+
+  // ── tabs ─────────────────────────────────────────────────
+  var tabs = Array.prototype.slice.call(document.querySelectorAll('.tab'));
+  function select(tab) {
+    tabs.forEach(function (t) {
+      var on = t === tab;
+      t.setAttribute('aria-selected', on ? 'true' : 'false');
+      document.getElementById(t.getAttribute('aria-controls')).hidden = !on;
+    });
+    tab.focus();
+  }
+  tabs.forEach(function (tab, i) {
+    tab.addEventListener('click', function () { select(tab); });
+    tab.addEventListener('keydown', function (e) {
+      var d = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
+      if (!d) return;
+      e.preventDefault();
+      select(tabs[(i + d + tabs.length) % tabs.length]);
+    });
+  });
+})();
+</script>

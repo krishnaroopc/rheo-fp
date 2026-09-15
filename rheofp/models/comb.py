@@ -602,7 +602,15 @@ def model_comb(w, theta):
 
 
 COMB_P0 = [5.7, 8.0, 30.0, 0.30, -5.0]
-COMB_BNDS = [(-4, 9), S_A_BOUNDS, S_B_BOUNDS, PHI_B_BOUNDS, (-10, 2)]
+# log10 G_0, s_a, s_b, phi_b, log10 tau_e. The tau_e floor is deliberately deep:
+# synth.py anchors the TERMINAL time to the window and back-computes tau_e, and
+# a long cross-bar carries the terminal many decades above tau_e - measured over
+# 4000 draws the planted range is -16.41 .. -4.12, median -9.85. A floor of -10
+# put 47% of planted combs BELOW the bound, i.e. unfittable by construction.
+# star.py's STAR_BNDS comment records the identical trap: "a planted vector on
+# the bound is a silent fit failure". If COMB_S_A or COMB_S_B is ever raised,
+# re-measure this range and widen the floor to match.
+COMB_BNDS = [(-4, 9), S_A_BOUNDS, S_B_BOUNDS, PHI_B_BOUNDS, (-18, 2)]
 
 # registry: name -> (forward, p0, bounds, k_params), the same shape as
 # solutions.MODELS, network.NETWORK_MODELS and star.STAR_MODELS.

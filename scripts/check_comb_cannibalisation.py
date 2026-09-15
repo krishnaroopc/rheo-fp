@@ -67,6 +67,28 @@ REAL_TRUTH = {
     "data/pivo2006.npz": {"E": "branched", "B": "branched"},
 }
 
+# >>> THE SECOND FLAW THAT MADE THIS SCRIPT LIE, 2026-09-14. <<<
+# REAL_TRUTH above is the 6-curve benchmark, and it contains NO STAR CURVE.
+# So "real data holds 6/6" was true and meaningless for a candidate whose
+# whole risk was impersonating a star. The damage only appeared when MM1998's
+# seven real four-arm polyisoprene stars were scored by hand afterwards:
+# `star` 5/7 -> 4/7, with PI4_Ma47k flipped to `comb`.
+#
+# Any new candidate must be scored against the real data of the classes it is
+# most likely to absorb, not only against the historical benchmark. These are
+# curves whose architecture is known independently from synthesis.
+REAL_CLASS_VALIDATION = {
+    "data/mm1998.npz": {
+        "PI4_Ma11k": "star", "PI4_Ma17k": "star", "PI4_Ma36k": "star",
+        "PI4_Ma44k": "star", "PI4_Ma47k": "star",
+        # Ma95k and Ma105k are KNOWN misses even without comb (branched wins;
+        # their terminal zone is truncated). Listed so a change in them is
+        # visible, but they were already wrong - see CLAUDE.md.
+        "PI4_Ma95k": "star", "PI4_Ma105k": "star",
+    },
+    "data/pryke2002.npz": {"PBD3_Ma38k": "star", "PBD3_Ma78k": "star"},
+}
+
 # Planted-comb parameter ranges. s_a is bounded below at 4 for the same reason
 # star.Z_BOUNDS is: under ~4 entanglements there is no retraction barrier worth
 # the name and the architecture stops being detectable. s_b spans the
@@ -83,6 +105,13 @@ COMB_LOG_TAU_E = (-7.0, -3.0)
 # Table 2 fits phi_b well away from the synthesis value on its less
 # monodisperse samples).
 COMB_PHI_B_JITTER = 0.15
+
+# A class keeps its curves but its median winning margin falls below this
+# fraction of what it was -> flagged as a MARGIN COLLAPSE and the verdict
+# fails. 0.5 (a halving) is deliberately loose: on MM1998 the real collapse
+# was 194->7.6, a ratio of 0.04, so anything remotely near this bound is
+# already severe. Not tuned on the synthetic population.
+MARGIN_COLLAPSE_RATIO = 0.5
 
 
 def planted_curves(name, n, seed):
@@ -127,12 +156,37 @@ def planted_comb_curves(n, seed):
 
 
 def score(curves, n_restarts):
-    """Run identify() over curves, returning the list of predicted classes."""
-    preds = []
+    """Run identify() over curves, returning (predicted class, margin) pairs.
+
+    >>> THE MARGIN IS NOT DECORATION - ITS ABSENCE IS WHY THIS SCRIPT LIED. <<<
+    The first version of this function returned bare class names, so the
+    report could only answer "did the winner change?". On 2026-09-14 it
+    reported `star` 30/30 unchanged and the check was read as safe. Wiring
+    `comb` in then cost `star` a real-data sample (MM1998 5/7 -> 4/7) and
+    collapsed the surviving winning margins from dAICc 194-225 down to
+    7.6-27.4 - a competitor moving from "no support whatsoever" to "live
+    contender" while the winner never changed, i.e. entirely invisible here.
+
+    `margin` is the winner's dAICc to the runner-up: how decisively the call
+    was made. A class can keep every curve and still be gutted.
+    """
+    out = []
     for w, Gp, Gpp in curves:
         r = ident.identify(w, Gp, Gpp, n_restarts=n_restarts)
-        preds.append(r["best"])
-    return preds
+        ranking = r.get("ranking") or []
+        margin = float(ranking[1]["delta"]) if len(ranking) > 1 else float("inf")
+        out.append((r["best"], margin))
+    return out
+
+
+def preds_of(scored):
+    return [name for name, _ in scored]
+
+
+def margin_summary(scored, cls):
+    """Median winning margin over the curves this class actually won."""
+    kept = [m for name, m in scored if name == cls and np.isfinite(m)]
+    return float(np.median(kept)) if kept else float("nan")
 
 
 def with_comb_bank():
@@ -146,22 +200,32 @@ def restore_bank(original):
     ident.ALL_MODELS = original
 
 
-def real_data_hits(n_restarts):
+def real_data_hits(n_restarts, truth_map=None):
+    """Score real curves, carrying the winning MARGIN alongside the label.
+
+    `truth_map` defaults to the 6-curve benchmark; pass REAL_CLASS_VALIDATION
+    to score the per-class real data instead. Both are run by main() - see the
+    comment on REAL_CLASS_VALIDATION for why the benchmark alone is not enough.
+    """
+    truth_map = REAL_TRUTH if truth_map is None else truth_map
     hits, total, detail = 0, 0, []
-    for path, truth in REAL_TRUTH.items():
+    for path, truth in truth_map.items():
         ds = load_npz(path)
         for sample, expected in truth.items():
             rec = ds.get(sample)
             if rec is None:
-                detail.append((sample, "MISSING", expected))
+                detail.append((sample, "MISSING", expected, float("nan")))
                 total += 1
                 continue
             r = ident.identify(rec["omega"], rec["Gp"], rec["Gpp"],
                                n_restarts=n_restarts)
             got = r["best"]
+            ranking = r.get("ranking") or []
+            margin = (float(ranking[1]["delta"]) if len(ranking) > 1
+                      else float("inf"))
             total += 1
             hits += got == expected
-            detail.append((sample, got, expected))
+            detail.append((sample, got, expected, margin))
     return hits, total, detail
 
 
@@ -197,6 +261,9 @@ def main(argv=None):
     print("Real data with the current bank...", flush=True)
     real_hits_before, real_total, real_detail_before = real_data_hits(
         args.restarts)
+    print("Real data OF THE AT-RISK CLASSES, current bank...", flush=True)
+    risk_hits_before, risk_total, risk_detail_before = real_data_hits(
+        args.restarts, REAL_CLASS_VALIDATION)
 
     original = with_comb_bank()
     try:
@@ -209,6 +276,10 @@ def main(argv=None):
 
         print("Real data with the +comb bank...", flush=True)
         real_hits_after, _, real_detail_after = real_data_hits(args.restarts)
+
+        print("Real data OF THE AT-RISK CLASSES, +comb bank...", flush=True)
+        risk_hits_after, _, risk_detail_after = real_data_hits(
+            args.restarts, REAL_CLASS_VALIDATION)
     finally:
         restore_bank(original)
 
@@ -217,32 +288,48 @@ def main(argv=None):
     print("=" * 72)
     print("PER-CLASS HIT COUNTS (planted class recovered by identify)")
     print("=" * 72)
-    print(f"{'class':<20} {'before':>8} {'after':>8} {'delta':>7}   "
-          f"stolen-by (after)")
+    print(f"{'class':<20} {'before':>7} {'after':>6} {'d':>4} "
+          f"{'margin b':>9} {'margin a':>9} {'ratio':>6}   stolen-by (after)")
     total_b = total_a = 0
     regressions = []
+    margin_losses = []
     for c in existing:
-        b = sum(p == c for p in before[c])
-        a = sum(p == c for p in after[c])
+        pb, pa = preds_of(before[c]), preds_of(after[c])
+        b = sum(p == c for p in pb)
+        a = sum(p == c for p in pa)
         total_b += b
         total_a += a
-        stolen = Counter(p for p, q in zip(after[c], before[c])
-                         if q == c and p != c)
+        mb = margin_summary(before[c], c)
+        ma = margin_summary(after[c], c)
+        ratio = (ma / mb) if (np.isfinite(mb) and mb > 0
+                              and np.isfinite(ma)) else float("nan")
+        stolen = Counter(p for p, q in zip(pa, pb) if q == c and p != c)
         note = ", ".join(f"{k}x{v}" for k, v in stolen.most_common()) or "-"
-        flag = "" if a >= b else "  <-- LOST"
+        flag = ""
         if a < b:
             regressions.append((c, b, a, note))
-        print(f"{c:<20} {b:>8} {a:>8} {a-b:>+7}   {note}{flag}")
+            flag = "  <-- LOST"
+        elif np.isfinite(ratio) and ratio < MARGIN_COLLAPSE_RATIO:
+            margin_losses.append((c, mb, ma, ratio))
+            flag = "  <-- MARGIN"
+        print(f"{c:<20} {b:>7} {a:>6} {a-b:>+4} {mb:>9.1f} {ma:>9.1f} "
+              f"{ratio:>6.2f}   {note}{flag}")
     n_tot = args.n * len(existing)
-    print(f"{'OVERALL':<20} {total_b:>8} {total_a:>8} {total_a-total_b:>+7}"
+    print(f"{'OVERALL':<20} {total_b:>7} {total_a:>6} {total_a-total_b:>+4}"
           f"   ({total_b/n_tot:.3f} -> {total_a/n_tot:.3f})")
+    print()
+    print("  'margin' = median dAICc from the winner to the runner-up, over the")
+    print("  curves that class actually won. A class can keep EVERY curve and")
+    print("  still be gutted - that is what this column exists to catch, and")
+    print("  its absence is why the 2026-09-14 check reported `star` 30/30")
+    print("  unchanged while real-data margins fell from 194-225 to 7.6-27.4.")
 
     print()
     print("=" * 72)
     print("PLANTED COMB CURVES")
     print("=" * 72)
-    cb = Counter(comb_before)
-    ca = Counter(comb_after)
+    cb = Counter(preds_of(comb_before))
+    ca = Counter(preds_of(comb_after))
     print("  with the current bank (comb absent - what absorbs it):")
     for k, v in cb.most_common():
         print(f"      {k:<20} {v:>3}/{args.n}")
@@ -255,12 +342,29 @@ def main(argv=None):
     print("=" * 72)
     print("REAL DATA (must stay 6/6)")
     print("=" * 72)
-    for (s, gb, e), (_, ga, _) in zip(real_detail_before, real_detail_after):
+    for (s, gb, e, mb), (_, ga, _, ma) in zip(real_detail_before,
+                                              real_detail_after):
         mark = "OK " if ga == e else "FAIL"
         change = "" if ga == gb else f"   CHANGED from {gb}"
-        print(f"  {mark} {s:<16} expected {e:<16} got {ga}{change}")
+        print(f"  {mark} {s:<16} expected {e:<16} got {ga:<16} "
+              f"margin {mb:>7.1f} -> {ma:>7.1f}{change}")
     print(f"  before: {real_hits_before}/{real_total}   "
           f"after: {real_hits_after}/{real_total}")
+
+    # The real data of the classes this candidate is most likely to absorb.
+    # REAL_TRUTH above has no star curve; this is what caught the damage.
+    print()
+    print("=" * 72)
+    print("REAL DATA OF THE CLASSES MOST AT RISK (the check that was missing)")
+    print("=" * 72)
+    for (s, gb, e, mb), (_, ga, _, ma) in zip(risk_detail_before,
+                                              risk_detail_after):
+        mark = "OK " if ga == e else "FAIL"
+        change = "" if ga == gb else f"   CHANGED from {gb}"
+        print(f"  {mark} {s:<16} expected {e:<16} got {ga:<16} "
+              f"margin {mb:>7.1f} -> {ma:>7.1f}{change}")
+    print(f"  before: {risk_hits_before}/{risk_total}   "
+          f"after: {risk_hits_after}/{risk_total}")
 
     print()
     print("=" * 72)
@@ -274,11 +378,27 @@ def main(argv=None):
             print(f"    {c}: {b} -> {a}   (to: {note})")
     else:
         print("  No existing class lost a correct answer.")
+    if margin_losses:
+        ok = False
+        print(f"  MARGIN COLLAPSE (kept the curves, lost the certainty - "
+              f"median dAICc fell below {MARGIN_COLLAPSE_RATIO:.0%}):")
+        for c, mb, ma, ratio in margin_losses:
+            print(f"    {c}: {mb:.1f} -> {ma:.1f}  ({ratio:.2f}x)")
+    else:
+        print("  No class suffered a margin collapse.")
     if real_hits_after < real_total:
         ok = False
         print(f"  REAL DATA REGRESSED: {real_hits_after}/{real_total}")
     else:
         print(f"  Real data holds at {real_hits_after}/{real_total}.")
+    if risk_hits_after < risk_hits_before:
+        ok = False
+        print(f"  >>> AT-RISK REAL DATA REGRESSED: {risk_hits_before}"
+              f"/{risk_total} -> {risk_hits_after}/{risk_total} <<<")
+        print("      This is the check whose ABSENCE let the 2026-09-14 run")
+        print("      report `comb` as safe while it cost `star` MM1998 5/7->4/7.")
+    else:
+        print(f"  At-risk real data holds at {risk_hits_after}/{risk_total}.")
     if ca.get("comb", 0) == 0:
         ok = False
         print("  `comb` is UNREACHABLE - absorbed by another class even when "
