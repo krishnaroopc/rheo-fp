@@ -1,0 +1,251 @@
+{
+  "checkpoint": "checkpoints/rheonet.pt",
+  "classes": [
+    "zimm",
+    "rouse_screened",
+    "reptation",
+    "sticky_rouse",
+    "sticky_reptation",
+    "cured_elastomer",
+    "critical_gel",
+    "wormlike_micelle",
+    "branched",
+    "star"
+  ],
+  "rows": [
+    {
+      "sample": "c6bb-PS",
+      "role": "LINEAR CONTROL",
+      "physics": "branched",
+      "physics_weight": 0.8873479393714169,
+      "physics_rms": 0.24679161653590048,
+      "neural": "critical_gel",
+      "neural_p": 0.6936754584312439,
+      "neural_ranked": [
+        [
+          "critical_gel",
+          0.6936754584312439
+        ],
+        [
+          "cured_elastomer",
+          0.28766611218452454
+        ],
+        [
+          "branched",
+          0.017516804859042168
+        ]
+      ],
+      "abstain_p": 0.0027488518971949816,
+      "agreement": "disagree",
+      "delta": null
+    },
+    {
+      "sample": "c612-PS",
+      "role": "unentangled arms",
+      "physics": "star",
+      "physics_weight": 0.9997251925600049,
+      "physics_rms": 0.2265602927963899,
+      "neural": "critical_gel",
+      "neural_p": 0.9923698902130127,
+      "neural_ranked": [
+        [
+          "critical_gel",
+          0.9923698902130127
+        ],
+        [
+          "branched",
+          0.00487163383513689
+        ],
+        [
+          "cured_elastomer",
+          0.0026403283700346947
+        ]
+      ],
+      "abstain_p": 0.002203184412792325,
+      "agreement": "disagree",
+      "delta": null
+    },
+    {
+      "sample": "c622-PS",
+      "role": "unentangled arms",
+      "physics": "star",
+      "physics_weight": 1.0,
+      "physics_rms": 0.17654026951530497,
+      "neural": "critical_gel",
+      "neural_p": 0.9943588376045227,
+      "neural_ranked": [
+        [
+          "critical_gel",
+          0.9943588376045227
+        ],
+        [
+          "branched",
+          0.0049650585278868675
+        ],
+        [
+          "wormlike_micelle",
+          0.0003623853554017842
+        ]
+      ],
+      "abstain_p": 0.0011981877032667398,
+      "agreement": "disagree",
+      "delta": null
+    },
+    {
+      "sample": "c632-PS",
+      "role": "marginal",
+      "physics": "star",
+      "physics_weight": 0.9999999999926392,
+      "physics_rms": 0.13731033664277775,
+      "neural": "critical_gel",
+      "neural_p": 0.9045276045799255,
+      "neural_ranked": [
+        [
+          "critical_gel",
+          0.9045276045799255
+        ],
+        [
+          "branched",
+          0.08852028846740723
+        ],
+        [
+          "wormlike_micelle",
+          0.005847266409546137
+        ]
+      ],
+      "abstain_p": 0.0008981049177236855,
+      "agreement": "disagree",
+      "delta": null
+    },
+    {
+      "sample": "c642-PS",
+      "role": "comb",
+      "physics": "branched",
+      "physics_weight": 0.9999999999999996,
+      "physics_rms": 0.10341616376013399,
+      "neural": "critical_gel",
+      "neural_p": 0.8273002505302429,
+      "neural_ranked": [
+        [
+          "critical_gel",
+          0.8273002505302429
+        ],
+        [
+          "branched",
+          0.16484707593917847
+        ],
+        [
+          "wormlike_micelle",
+          0.005962594412267208
+        ]
+      ],
+      "abstain_p": 0.0008810959407128394,
+      "agreement": "disagree",
+      "delta": null
+    },
+    {
+      "sample": "c652-PS",
+      "role": "comb",
+      "physics": "branched",
+      "physics_weight": 1.0,
+      "physics_rms": 0.02989170864276715,
+      "neural": "cured_elastomer",
+      "neural_p": 0.5294380784034729,
+      "neural_ranked": [
+        [
+          "cured_elastomer",
+          0.5294380784034729
+        ],
+        [
+          "branched",
+          0.46591928601264954
+        ],
+        [
+          "critical_gel",
+          0.003949848469346762
+        ]
+      ],
+      "abstain_p": 0.002108649117872119,
+      "agreement": "disagree",
+      "delta": null
+    },
+    {
+      "sample": "lc3-PBd",
+      "role": "comb",
+      "physics": "star",
+      "physics_weight": 0.9999998891473091,
+      "physics_rms": 0.3100375751286587,
+      "neural": "critical_gel",
+      "neural_p": 0.6487020254135132,
+      "neural_ranked": [
+        [
+          "critical_gel",
+          0.6487020254135132
+        ],
+        [
+          "cured_elastomer",
+          0.3453023135662079
+        ],
+        [
+          "wormlike_micelle",
+          0.004080251790583134
+        ]
+      ],
+      "abstain_p": 0.00017990342166740447,
+      "agreement": "disagree",
+      "delta": null
+    },
+    {
+      "sample": "lc1-PBd",
+      "role": "comb",
+      "physics": "star",
+      "physics_weight": 0.9999951749589266,
+      "physics_rms": 0.26761481885114385,
+      "neural": "critical_gel",
+      "neural_p": 0.8524037003517151,
+      "neural_ranked": [
+        [
+          "critical_gel",
+          0.8524037003517151
+        ],
+        [
+          "cured_elastomer",
+          0.13822603225708008
+        ],
+        [
+          "wormlike_micelle",
+          0.006538597866892815
+        ]
+      ],
+      "abstain_p": 0.00015056252595968544,
+      "agreement": "disagree",
+      "delta": null
+    },
+    {
+      "sample": "lc2-PBd",
+      "role": "comb",
+      "physics": "star",
+      "physics_weight": 0.445580668512101,
+      "physics_rms": 0.2546638058252367,
+      "neural": "critical_gel",
+      "neural_p": 0.9409315586090088,
+      "neural_ranked": [
+        [
+          "critical_gel",
+          0.9409315586090088
+        ],
+        [
+          "wormlike_micelle",
+          0.04367953538894653
+        ],
+        [
+          "cured_elastomer",
+          0.009291807189583778
+        ]
+      ],
+      "abstain_p": 0.00013940299686510116,
+      "agreement": "disagree_ranked",
+      "delta": null
+    }
+  ]
+}

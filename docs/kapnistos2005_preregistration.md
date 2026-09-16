@@ -208,5 +208,143 @@ itself weak evidence for the two-plateau structure P6 depends on.
 
 ## OUTCOME
 
-*(empty — to be filled after the measurements, without editing anything
-above)*
+Nothing above this line has been edited since `058d4f7`. Check the diff.
+
+### Baseline, `comb` ABSENT — measured 2026-09-16
+
+`scripts/eval_kapnistos_baseline.py`, shipped 10-model bank, full output in
+`docs/kapnistos_baseline_2026-09-16.json`.
+
+| sample | role | winner | weight | rms | runner-up | ΔAICc |
+|---|---|---|---|---|---|---|
+| c6bb-PS | LINEAR CONTROL | `branched` | 0.887 | 0.247 | star | **4.1** |
+| c612-PS | unentangled | `star` | 1.000 | 0.227 | branched | 16.4 |
+| c622-PS | unentangled | `star` | 1.000 | 0.177 | branched | 86.3 |
+| c632-PS | marginal | `star` | 1.000 | 0.137 | branched | 51.3 |
+| c642-PS | comb | `branched` | 1.000 | 0.103 | star | 70.5 |
+| c652-PS | comb | `branched` | 1.000 | 0.030 | star | 165.7 |
+| lc3-PBd | comb | `star` | 1.000 | 0.310 | branched | 32.8 |
+| lc1-PBd | comb | `star` | 1.000 | 0.268 | critical_gel | 25.1 |
+| lc2-PBd | comb | `star` | 0.446 | 0.255 | critical_gel | **0.2** |
+
+All nine misidentified, as expected. **But the distribution is not the
+predicted one, and this is the finding.**
+
+|  | predicted (synthetic n=30, 2026-09-14) | measured (real n=9) |
+|---|---|---|
+| `star` | 6/30 = 20% | **6/9 = 67%** |
+| `branched` | 12/30 = 40% | 3/9 = 33% |
+| `critical_gel` | 10/30 = 33% | **0/9** |
+
+**Real combs are absorbed by `star`, not by `branched`.** The synthetic
+measurement said the opposite. Third time on this project a synthetic-derived
+expectation has failed to survive contact with real data; do not quote the
+30-curve figures as the comb-absent behaviour any more.
+
+**Consequence for P3, which is worse than P3 itself states.** `star` is not
+merely *adjacent* to `comb` on real comb melts — it is already the *preferred*
+answer, at weight 1.000 on five of six. Wiring `comb` in therefore puts a k=5
+model into direct competition with the k=3 model that currently wins these
+curves outright. P1 may well pass, but it would pass because `comb` out-flexes
+`star`, which is the definition of the failure this gate exists to catch.
+
+**P2 passes at baseline but by a margin that is itself the warning.** The
+linear control returns `branched` over `star` by **ΔAICc 4.1** — a linear
+backbone is already nearly indistinguishable from a star in this bank. A k=5
+comb on that ballot is very likely to flip it.
+
+**Fit quality, recorded because it is the one encouraging number.** rms
+0.10–0.31 decades, only **3/9** under `FLOOR_CHI2`, against `star`'s genuine
+real-data wins at rms 0.024–0.041. So the none-of-the-above floor **is firing
+on 6/9** — the first case in this project where the floor correctly flags a
+class missing from the bank, rather than the most flexible candidate absorbing
+it silently (the wormlike_micelle failure). `lc2-PBd` is additionally a true
+tie: `star` 0.446 against `critical_gel` at ΔAICc 0.2, won on nothing.
+
+### P7, the two brains — measured 2026-09-16
+
+`scripts/eval_kapnistos_neural.py`, 10-class checkpoint,
+`docs/kapnistos_neural_2026-09-16.json`.
+
+**9/9 disagreements. P7 HELD, at the maximum possible value.** But the
+prediction was right for reasons it did not anticipate: the two methods fail in
+*completely different directions*, with zero overlap in nine tries.
+
+| | physics (AICc) | network |
+|---|---|---|
+| what it reaches for | `star` 6, `branched` 3 | **`critical_gel` 8**, `cured_elastomer` 1 |
+
+**The network is confident on every single one**: `abstain_p` 0.000–0.003,
+p up to 0.994, on nine melts of a class it has never been trained on. This is
+the sharpest real-data demonstration the project has of the documented blind
+spot — abstention cannot flag out-of-distribution material.
+
+**The pair is uninformative in this regime, and that is new.** The shortlist is
+`star or critical_gel`; the truth is in neither. The pooled either-right
+figures (97.5% agree / 86.4% disagree) were all measured with the true class
+IN the bank. **Do not quote them for a material whose class is absent** —
+here the pair's answer is 0/9.
+
+**`critical_gel` is a physically motivated wrong answer, not a dumb one.** The
+paper itself (p.7854) records that these combs show a low-frequency power law
+that "has been associated with the behavior of critical gels", and argues it
+should be read as dynamic dilution instead. The network found that resemblance
+from curve shape alone.
+
+**Consequence for P6, which was written aimed at the wrong target.** The
+proposed separator (arm shoulder AND cross-bar peak) addresses comb↔`star`.
+It does nothing about comb↔`critical_gel`, which is what the *network* does
+8/9. The confusion is method-dependent, and a separator for one half of the
+tool does not fix the other.
+
+### The decision measurement, `comb` WIRED IN — 2026-09-16
+
+`scripts/eval_kapnistos_withcomb.py`,
+`docs/kapnistos_withcomb_2026-09-16.json`.
+
+**All three predictions FAILED. The verdict is DO NOT WIRE IN, and it is
+unanimous.**
+
+| | result | |
+|---|---|---|
+| P1 | combs → `comb`: **0/6** | FAIL |
+| P2 | control c6bb-PS → **`comb`** | FAIL (VETO) |
+| P3 | MM1998 **4/7**, worst surviving margin ΔAICc **4.2** | FAIL |
+
+**P1 failed in the direction I did not predict.** I wrote that P1 would likely
+pass "for the wrong reason" — `comb` out-flexing `star`. Instead **not one of
+the six real combs came back as `comb`.** `star` still takes four, `branched`
+two, and on `lc3-PBd` the `comb` model is the runner-up at ΔAICc 23.1. The
+class cannot win on the very material it was built for.
+
+**P2 is the result that settles it.** The linear backbone — a molecule with no
+branches at all — comes back **`comb` at weight 1.000, ΔAICc 161.8** over
+`branched`, with rms improving 0.247 → 0.126. So the model fits a LINEAR chain
+better than it fits any actual comb in the same figure. That is flexibility
+winning, not physics, and it was pre-registered as a veto on its own.
+
+**P3 is worse than 2026-09-14's already-failing measurement.** `star` drops to
+4/7 again, but the surviving margins collapse further: 202→13.4, 224.6→27.4,
+193.6→7.6, and Ma47k lost outright. Worst surviving margin **4.2**, against
+`test_star.py`'s floor of 50. Note `comb` also *takes* Ma95k and Ma105k — the
+two known-truncated stars — at ΔAICc 157 and 165, which is not a gain: it is
+the same over-flexibility absorbing whatever is hardest to fit.
+
+**Pryke's two curves are untouched** (170.0 and 86.8, byte-identical). Those
+are the two best-resolved star melts in the set, which is consistent with
+`comb` taking only what is poorly constrained.
+
+### What this dataset actually established
+
+Not "comb needs more work". Three things, all of which outlive this decision:
+
+1. **`comb` as parameterised cannot be wired in**, and real comb data made the
+   case *against* it, not for it. The class stays out; the honest note that an
+   uploaded comb is confidently misidentified stands, with real-data backing
+   now instead of synthetic.
+2. **The comb↔star confusion is real but is not the whole problem.** The
+   physics half confuses combs with stars; the neural half confuses them with
+   critical gels. P6's separator addresses one half only.
+3. **A 5-parameter model preferring a linear chain over a comb** is a fact
+   about `comb.py`, not about the bank. Before any future attempt, that is the
+   thing to explain — see next-actions.

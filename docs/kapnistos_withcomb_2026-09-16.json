@@ -1,0 +1,232 @@
+{
+  "kapnistos": {
+    "c6bb-PS": {
+      "role": "LINEAR CONTROL",
+      "best": "comb",
+      "weight": 1.0,
+      "rms": 0.12575385167794675,
+      "runner_up": "branched",
+      "delta": 161.81229231423123,
+      "low_confidence": false
+    },
+    "c612-PS": {
+      "role": "unentangled arms",
+      "best": "star",
+      "weight": 0.9996835862518727,
+      "rms": 0.2265602927963899,
+      "runner_up": "branched",
+      "delta": 16.39833015711622,
+      "low_confidence": true
+    },
+    "c622-PS": {
+      "role": "unentangled arms",
+      "best": "star",
+      "weight": 1.0,
+      "rms": 0.17654026951530497,
+      "runner_up": "branched",
+      "delta": 86.25725542543427,
+      "low_confidence": true
+    },
+    "c632-PS": {
+      "role": "marginal",
+      "best": "star",
+      "weight": 0.9999999999926392,
+      "rms": 0.13731033664277775,
+      "runner_up": "branched",
+      "delta": 51.26969122995337,
+      "low_confidence": false
+    },
+    "c642-PS": {
+      "role": "comb",
+      "best": "branched",
+      "weight": 0.9999999999999996,
+      "rms": 0.10341616376013399,
+      "runner_up": "star",
+      "delta": 70.46446986536239,
+      "low_confidence": false
+    },
+    "c652-PS": {
+      "role": "comb",
+      "best": "branched",
+      "weight": 1.0,
+      "rms": 0.02989170864276715,
+      "runner_up": "star",
+      "delta": 165.66131498044717,
+      "low_confidence": false
+    },
+    "lc3-PBd": {
+      "role": "comb",
+      "best": "star",
+      "weight": 0.9999901641969746,
+      "rms": 0.3100375751286587,
+      "runner_up": "comb",
+      "delta": 23.0816116575555,
+      "low_confidence": true
+    },
+    "lc1-PBd": {
+      "role": "comb",
+      "best": "star",
+      "weight": 0.9999951749414259,
+      "rms": 0.26761481885114385,
+      "runner_up": "critical_gel",
+      "delta": 25.08351076492619,
+      "low_confidence": true
+    },
+    "lc2-PBd": {
+      "role": "comb",
+      "best": "star",
+      "weight": 0.4455806371022135,
+      "rms": 0.2546638058252367,
+      "runner_up": "critical_gel",
+      "delta": 0.16732651356369388,
+      "low_confidence": true
+    }
+  },
+  "stars_before": {
+    "data/mm1998.npz": {
+      "PI4_Ma11k": {
+        "best": "star",
+        "weight": 0.9178729284792438,
+        "rms": 0.03073818544804202,
+        "runner_up": "branched",
+        "delta": 4.827582648669022
+      },
+      "PI4_Ma17k": {
+        "best": "star",
+        "weight": 1.0,
+        "rms": 0.024175581489881245,
+        "runner_up": "branched",
+        "delta": 202.00828531525167
+      },
+      "PI4_Ma36k": {
+        "best": "star",
+        "weight": 1.0,
+        "rms": 0.02458706490354521,
+        "runner_up": "branched",
+        "delta": 224.61899781023556
+      },
+      "PI4_Ma44k": {
+        "best": "star",
+        "weight": 1.0,
+        "rms": 0.03342094907802738,
+        "runner_up": "branched",
+        "delta": 193.62472629313936
+      },
+      "PI4_Ma47k": {
+        "best": "star",
+        "weight": 1.0,
+        "rms": 0.04073950922643715,
+        "runner_up": "branched",
+        "delta": 93.09209374336729
+      },
+      "PI4_Ma95k": {
+        "best": "branched",
+        "weight": 0.999999999999474,
+        "rms": 0.07652663254274428,
+        "runner_up": "star",
+        "delta": 56.54702824960759
+      },
+      "PI4_Ma105k": {
+        "best": "branched",
+        "weight": 1.0,
+        "rms": 0.08215220034508425,
+        "runner_up": "star",
+        "delta": 102.54527525092061
+      }
+    },
+    "data/pryke2002.npz": {
+      "PBD3_Ma38k": {
+        "best": "star",
+        "weight": 1.0,
+        "rms": 0.036126712650182385,
+        "runner_up": "branched",
+        "delta": 169.958763868554
+      },
+      "PBD3_Ma78k": {
+        "best": "star",
+        "weight": 1.0,
+        "rms": 0.08822010835248305,
+        "runner_up": "branched",
+        "delta": 86.76083078344965
+      }
+    }
+  },
+  "stars_after": {
+    "data/mm1998.npz": {
+      "PI4_Ma11k": {
+        "best": "star",
+        "weight": 0.8266115321459342,
+        "rms": 0.03073818544804202,
+        "runner_up": "comb",
+        "delta": 4.235821314429813
+      },
+      "PI4_Ma17k": {
+        "best": "star",
+        "weight": 0.9987772861742995,
+        "rms": 0.024175581489881245,
+        "runner_up": "comb",
+        "delta": 13.410917962822737
+      },
+      "PI4_Ma36k": {
+        "best": "star",
+        "weight": 0.99999886575061,
+        "rms": 0.02458706490354521,
+        "runner_up": "comb",
+        "delta": 27.37907664384545
+      },
+      "PI4_Ma44k": {
+        "best": "star",
+        "weight": 0.978138724146942,
+        "rms": 0.03342094907802738,
+        "runner_up": "comb",
+        "delta": 7.601869317857677
+      },
+      "PI4_Ma47k": {
+        "best": "comb",
+        "weight": 0.9999994975669704,
+        "rms": 0.03545753414870377,
+        "runner_up": "star",
+        "delta": 29.007605955631902
+      },
+      "PI4_Ma95k": {
+        "best": "comb",
+        "weight": 1.0,
+        "rms": 0.03974645847570502,
+        "runner_up": "branched",
+        "delta": 157.22833821117592
+      },
+      "PI4_Ma105k": {
+        "best": "comb",
+        "weight": 1.0,
+        "rms": 0.04134974104899158,
+        "runner_up": "branched",
+        "delta": 164.76179269768977
+      }
+    },
+    "data/pryke2002.npz": {
+      "PBD3_Ma38k": {
+        "best": "star",
+        "weight": 1.0,
+        "rms": 0.036126712650182385,
+        "runner_up": "branched",
+        "delta": 169.958763868554
+      },
+      "PBD3_Ma78k": {
+        "best": "star",
+        "weight": 1.0,
+        "rms": 0.08822010835248305,
+        "runner_up": "branched",
+        "delta": 86.76083078344965
+      }
+    }
+  },
+  "verdict": {
+    "P1": false,
+    "P2": false,
+    "P3": false,
+    "n_comb": 0,
+    "control": "comb",
+    "star_hits": 4,
+    "worst": 4.235821314429813
+  }
+}
