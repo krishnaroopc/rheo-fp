@@ -5,54 +5,74 @@ kept in git so it syncs between the user's home and office PCs. When the user
 says something like "let's continue" / "do the next thing" / "pick up where we
 left off", this is where to look. Update + commit this file as items complete.
 
-Last updated: **2026-09-09 (OFFICE PC, end of session).**
+Last updated: **2026-09-16 (end of session).**
 
-# >>> THE ACTIVE TASK (set 2026-09-14): REAL COMB DATA <<<
+# >>> THE COMB TASK IS CLOSED (2026-09-16). `comb` STAYS UNWIRED. <<<
 
-**The user is supplying digitized comb data next, possibly from a different
-PC.** Everything else below is context; this is the live item.
+Real comb data arrived, was pre-registered against, and **decided the question
+against wiring in — unanimously, on all three pre-registered criteria.** Do not
+reopen this without new evidence of the kind listed at the bottom.
 
-**State:** `rheofp/models/comb.py` is built, validated and committed (33 tests,
-forward physics against ML1999's own Figure 4, planted recovery exact). It is
-**deliberately NOT in `identify()`'s bank** — wiring it in cost `star` a real
-sample (MM1998 5/7 → 4/7) and collapsed its winning margins from ΔAICc 194-225
-to 7.6-27.4. Full reasoning in CLAUDE.md's comb paragraph.
+**Data:** `data/kapnistos2005.npz` (committed) — 9 curves, Kapnistos et al.
+2005 Fig 1a (6 PS combs incl. a linear-backbone control) and Fig 2a (3 PBd
+combs). `scripts/prep_kapnistos2005.py`. Every architectural parameter except
+`tau_e` is independently known from the paper's Table 1, which is what made
+this a real test.
 
-**When the data arrives:**
-1. Write `scripts/prep_comb.py` on the established pattern (`prep_mm1998.py`,
-   `prep_pryke2002.py`) → commit `data/<source>.npz` so tests run without
-   `originals/`. Record T_K.
-2. **PRE-REGISTER predictions before fitting anything** — `docs/` already holds
-   `pryke2001_preregistration.md` as the template. This matters more than usual
-   here, because the decision (wire in or not) is already contested and a
-   post-hoc reading would be worthless.
-3. Score with the class **absent** first — that is the baseline, and the
-   comparison is the whole point. Expect confident wrong answers (measured on
-   synthetic: `branched` 12/30, `critical_gel` 10/30, `star` 6/30).
-4. Then wire in and re-run **both** the comb data AND MM1998's seven stars +
-   Pryke's two. `scripts/check_comb_cannibalisation.py` now reports winning
-   MARGINS and scores `REAL_CLASS_VALIDATION` (the real star curves), which is
-   exactly what it failed to do the first time.
-5. The real question: **does a PHYSICAL restriction separate the classes?**
-   Candidates with a basis, not tuned thresholds — requiring an entangled
-   cross-bar (`s_b*phi_b`), or requiring the two-feature signature (arm
-   shoulder AND separate cross-bar peak) that a star cannot produce. If one
-   works on real curves, `comb` can be wired in without costing `star`.
-6. Wiring in requires closing the generator gap in the SAME commit (`synth.py`
-   `CLASS_REGIME`/`FINE_CLASSES` + a `sample_params`/`forward` branch) or the
-   bank-coverage invariant fails in both directions. The code for this was
-   written and reverted on 2026-09-14 — see that commit's diff to recover it.
-   Note `COMB_BNDS`' tau_e floor had to go to **-18** (47% of planted draws
-   fell below -10), and `terminal_reached` measured **50%** on planted combs.
-7. **Retrain afterwards** — the checkpoint is 10-class. Note the other chat
-   found `data/synthetic_train.npz` is STALE (9-class); there is an untracked
-   `data/synthetic_train_10class.npz` — but it is 190 MB and ALREADY IGNORED by
-   `.gitignore:12` (`data/synthetic_train*.npz`), so there is no decision to
-   make: it cannot be committed without a force, and must be regenerated per
-   machine. Corrected 2026-09-14 (the ~24 MB figure in questions.md was wrong).
+**Predictions:** `docs/kapnistos2005_preregistration.md`, committed `058d4f7`
+BEFORE any fit. Outcome appended under its own heading; the predictions above
+that line are untouched and the diff proves it.
+
+**Result (`bfa5a43`):**
+
+| | | |
+|---|---|---|
+| P1 | real combs → `comb`: **0/6** | FAIL |
+| P2 | linear control → **`comb`**, w=1.000, ΔAICc 161.8 | FAIL (veto) |
+| P3 | MM1998 `star` **4/7**, worst margin **4.2** vs floor 50 | FAIL |
+
+**The decisive fact: `comb` fits a LINEAR chain (c6bb-PS) better than it fits
+any real comb in the same figure** — rms 0.247 → 0.126 against `branched`.
+That is a 5-parameter model winning by flexibility, and it was pre-registered
+as a veto on its own. P1 failed in the direction NOT predicted: the expectation
+was that `comb` would win the combs for the wrong reason; instead it won none
+of them.
+
+**Two findings that outlive the decision — both correct earlier notes:**
+
+1. **The synthetic comb-absent figures were WRONG about real data.** Predicted
+   `branched` 12/30, `critical_gel` 10/30, `star` 6/30. Measured on 9 real
+   combs: **`star` 6/9, `branched` 3/9, `critical_gel` 0/9.** Stop quoting the
+   synthetic numbers for this; item 3 of the old list is superseded.
+2. **The confusion is METHOD-DEPENDENT, which item 5 did not anticipate.**
+   Physics confuses comb↔`star`; the NETWORK confuses comb↔`critical_gel`
+   (8/9) at `abstain_p` 0.000-0.003 on material it has never seen. The
+   two-brain shortlist contained the truth **0/9 times**, so the pooled
+   either-right figures (97.5/86.4%) **do not transfer to a class absent from
+   the bank** — that regime now has a real-data counter-example. The old item 5
+   separator (arm shoulder AND cross-bar peak) was aimed at the physics half
+   only and would not have addressed the neural half.
+
+**What an uploaded comb does TODAY** (measured, `docs/kapnistos_baseline_*`):
+6/9 wrong but flagged by the none-of-the-above floor (first real-data case of
+that floor catching a missing class); **2/9 wrong at good fit quality with no
+warning** (c652-PS, rms 0.030 → `branched`); 1/9 a tie. Never right.
+
+**Attempted and NOT usable: the two-step tan-delta signature.** The paper
+describes combs relaxing in two stages, and item 5 proposed keying a rule on
+it. Measured over the 9 real curves (smoothed log tan δ): only **2 of 6** combs
+show two minima, and the **linear backbone shows one**. Not a discriminator at
+n=9. Do not build a rule on it without more chemistries.
 
 **Do NOT lower `test_star.py`'s `runner_up["delta"] > 50`** to make a wired
-`comb` pass. That assertion is correctly reporting a regression.
+`comb` pass. Confirmed twice now as correctly reporting a regression.
+
+**What would justify reopening:** (a) a reparameterised `comb` that cannot
+outfit a linear chain — the c6bb-PS control is the test, and it is cheap;
+(b) real comb data from a second source (ML1999 Fig 6, `originals/ma990323j.pdf`,
+figure-only so it needs digitizing); (c) a physical restriction that survives
+the c6bb-PS control. Items 6 (generator gap, `synth.py`) and 7 (retrain) from
+the old list remain the prerequisites IF it is ever wired, and are unchanged.
 
 ---
 

@@ -315,11 +315,42 @@ confirmed capability for an unconfirmed one.
 over 30 planted combs with the class absent: `branched` 12, `critical_gel` 10,
 `star` 6, `sticky_reptation` 2. Always wrong, never uncertain. Pinned by
 `test_a_planted_comb_is_misidentified_while_the_class_is_unwired`.
-**Next step is real comb data** (Kapnistos 2005 `ma050644x.pdf`, McLeish 1999
-`ma990323j.pdf` Fig 6 — both in `originals/`, both figure-only so they need
-digitizing), then ask whether a PHYSICAL restriction separates the classes.
+**>>> SETTLED 2026-09-16 BY REAL COMB DATA: `comb` STAYS OUT. <<<**
+Kapnistos et al. (2005) Figs 1a + 2a digitized (`data/kapnistos2005.npz`, 9
+curves including a linear-backbone control), predictions pre-registered in
+`docs/kapnistos2005_preregistration.md` and committed BEFORE any fit
+(`058d4f7`; outcome `bfa5a43`). **All three criteria failed: P1 real combs →
+`comb` 0/6; P2 the LINEAR control c6bb-PS → `comb` at weight 1.000, ΔAICc
+161.8, rms 0.247→0.126; P3 MM1998 `star` 4/7 with worst surviving margin 4.2
+against a floor of 50.** The decisive fact is P2 — **the comb model fits a
+straight chain better than it fits any real comb in the same figure**, which is
+flexibility rather than physics. P1 failed in the direction NOT predicted: the
+pre-registered worry was that `comb` would win the combs for the wrong reason,
+and instead it won none of them.
+**Two corrections this produced.** (1) The synthetic comb-absent figures quoted
+above (`branched` 12, `critical_gel` 10, `star` 6 of 30) **do not describe real
+data**: measured on 9 real combs it is **`star` 6/9, `branched` 3/9,
+`critical_gel` 0/9**. (2) **The confusion is METHOD-DEPENDENT** — the AICc side
+confuses comb↔`star`, the NETWORK confuses comb↔`critical_gel` (8/9), a **9/9
+disagreement with zero overlap**, and the two-brain shortlist contained the
+truth **0/9 times**. So the pooled either-right constants (97.5% / 86.4%) **must
+not be quoted for a material whose class is absent from the bank** — that
+regime now has a real-data counter-example. The network was confident on every
+one (`abstain_p` 0.000-0.003, p to 0.994), the sharpest demonstration yet of the
+OOD blind spot; `critical_gel` is not a silly answer, since the paper itself
+(p.7854) records combs showing a critical-gel-like power law.
+**A candidate rule was measured and REJECTED**: the two-step tan-δ signature
+holds on only 2 of 6 real combs while the linear backbone shows one minimum —
+not a discriminator at n=9. Do not build on it without more chemistries.
+**What an uploaded comb does today**: 6/9 wrong but flagged by the
+none-of-the-above floor (the first real-data case of that floor catching a
+missing class rather than being fooled), **2/9 wrong at good fit quality with no
+warning** (c652-PS at rms 0.030 → `branched`), 1/9 a tie. Never right.
+Reopening would need a reparameterised `comb` that cannot outfit a linear chain
+(the c6bb-PS control is the cheap test), or real comb data from a second source
+(ML1999 Fig 6, `originals/ma990323j.pdf`, figure-only so it needs digitizing).
 Do not lower `test_star.py`'s `runner_up["delta"] > 50` assertion — it is
-correctly reporting a regression, not miscalibrated.
+correctly reporting a regression, not miscalibrated, confirmed twice now.
 
 **Bank-coverage invariant (2026-09-04).** `identify()`'s bank must hold a
 candidate for EVERY class `rheofp/data/synth.py` can generate — now enforced by

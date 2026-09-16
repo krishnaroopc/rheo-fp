@@ -6,6 +6,68 @@ the end of each working session (what was discussed, decided, and changed).
 
 ---
 
+## 2026-09-16 — Real comb data settles it: `comb` stays out, on all three criteria
+
+**The pre-registration worked, and it is the reason this session's answer is
+trustworthy.** Predictions were committed (`058d4f7`) before any curve was
+fitted; all three failed; nothing was renegotiated afterwards. Outcome in
+`bfa5a43`.
+
+**1. The user digitized Kapnistos 2005 Figs 1a + 2a.** I had told them
+"Figure 3 or whichever panel carries the master curves" — wrong, Fig 3 is
+shift factors. They asked before digitizing, which caught it. Lesson: name
+the figure from the paper, not from memory.
+
+**2. Two defects in the sheet, found by PLOTTING BEFORE FITTING.**
+  - **Fig1a's G′/G″ columns are swapped** (Fig2a's are not). As labelled,
+    terminal slopes read 1.0/2.0 — the terminal law backwards.
+  - **The caption's decade shifts are descending and it lists 5 factors for
+    6 samples.** The collapsing ladder is 1e5→1, not 1→1e4.
+  Both corrected in `prep_kapnistos2005.py`, not by re-digitizing, so the raw
+  xlsx stays as produced and the correction is auditable. The independent
+  check neither correction saw: unshifted plateaus land at 1.94–2.43e5 Pa (PS,
+  lit. 2.0e5) and 1.09–1.26e6 (PBd, lit. 1.15e6).
+
+**3. >>> THE DECISION: DO NOT WIRE IN. P1 0/6, P2 veto, P3 4/7 at margin
+4.2. <<<** The killer is P2: the **linear backbone** c6bb-PS comes back
+`comb` at weight 1.000, ΔAICc 161.8, rms 0.247→0.126. **The comb model fits a
+straight chain better than it fits any real comb in the same figure.**
+Flexibility, not physics. P1 failed in the direction I did NOT predict — I
+expected `comb` to win the combs for the wrong reason; it won none of them.
+
+**4. Two earlier notes corrected by measurement:**
+  - The **synthetic** comb-absent distribution (`branched` 12/30,
+    `critical_gel` 10/30, `star` 6/30) does not describe real data: measured
+    **`star` 6/9, `branched` 3/9, `critical_gel` 0/9**. Third time a
+    synthetic-derived expectation has failed on real curves.
+  - **The confusion is method-dependent** — physics says `star`, the network
+    says `critical_gel` 8/9, **9/9 disagreement, zero overlap**. The pair's
+    shortlist held the truth **0/9**, so the pooled either-right figures do
+    not transfer to a class absent from the bank. The planned separator was
+    aimed at the physics half only.
+
+**5. The network is confidently wrong on all 9** at `abstain_p` 0.000–0.003,
+p up to 0.994, on an architecture it has never been trained on. Sharpest
+real-data demonstration yet of the documented OOD blind spot. `critical_gel`
+is not a dumb answer — the paper itself (p.7854) notes combs show a
+critical-gel-like power law.
+
+**6. A proposed rule measured and REJECTED.** The two-step tan-δ signature
+(the basis of the old next-actions item 5) holds on only **2 of 6** combs,
+while the **linear backbone shows one minimum**. Not a discriminator at n=9;
+no rule built on it.
+
+**7. User steer on reporting, worth keeping.** I drafted a warning saying "the
+neural column returns critical_gel" — user: *"that would mean little to a
+rheologist / material scientist, who are the end user. ML people aren't going
+to be my target audience."* Correct, and it applies beyond that sentence:
+`report.py` says "bank", "candidate models", "degenerate cluster" — all
+implementation vocabulary. **User deferred the fix: "not yet, the user facing
+stage comes a little later."** So no report copy was written. Flagged for
+that stage.
+
+---
+
 ## 2026-09-14 — Comb/H-polymer class: built, validated, and deliberately NOT wired in
 
 **The headline is a negative result, and it is the useful part.** The class is
