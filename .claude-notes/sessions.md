@@ -2211,3 +2211,23 @@ comment left in the code so it is not retried.
   `scripts/prep_katzarova2018.py`, `scripts/eval_katzarova_baseline.py`.
 - Deferred, still not started: **the polymer-blend class itself** — the
   original request that began this whole thread.
+
+### Session end state (2026-09-17)
+Committed and pushed: `9a05d61` (tube model swap + discard removal + tie rule)
+then `c5ec4df` (tie rule rejected and disabled). Working tree clean.
+
+**Sequencing mistake worth not repeating:** the tie rule was committed while
+its cannibalisation check was still running, and the check then rejected it.
+The commit message of `9a05d61` did say P4/P5 were unfinished, so the history
+is honest, but the repo's protocol exists to gate a model change ON its check
+and that was inverted. Nothing was lost only because the revert was clean.
+**Gate the commit on the check, not the other way round.**
+
+**NOT DONE: the full test suite has never been run since the reptation swap.**
+`tests/test_network.py` passes alone. A full run was started, then killed as
+stale because it predated the tie-rule revert. This is the first thing to do
+next session.
+
+**Not started: polymer blends** - the request that began this thread. The
+validation data is already in hand (`data/katzarova2018.npz` carries HM/HL/ML,
+three 50/50 blends, alongside the three monodisperse samples).

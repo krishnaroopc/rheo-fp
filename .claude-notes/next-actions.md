@@ -7,6 +7,44 @@ left off", this is where to look. Update + commit this file as items complete.
 
 Last updated: **2026-09-17 (end of session).**
 
+# >>> RESUME HERE. Read this block first, then ask the user which way to go. <<<
+
+**Repo state: clean and pushed.** `c5ec4df` on `main`. Nothing half-finished in
+the working tree, nothing running.
+
+**What landed 2026-09-17:**
+- `reptation` is now the verbatim Likhtman-McLeish tube model (was a broken
+  hand-rolled approximation). Recovers Z correctly for the first time.
+- The `wide_plateau` pre-filter discard is removed (it was deleting the true
+  class for short chains).
+- A noise-aware tie rule was built, measured, and **REJECTED** on its own
+  pre-registered criteria. Code kept, call site disabled.
+
+**>>> THE ONE THING NOT DONE: THE FULL TEST SUITE HAS NOT BEEN RUN SINCE THE
+REPTATION SWAP. <<<** `tests/test_network.py` passed on its own; everything
+else is unverified against the new bank entry. **Run `uv run pytest` before
+trusting anything or building on top of it.** Budget for it: `identify()` now
+costs ~160 s/curve, so the suite will take far longer than its old ~22 min.
+A run was started and killed as stale (it predated the tie-rule revert).
+
+**Two open directions. ASK THE USER - do not assume:**
+1. **Polymer blends** - the original request that started this whole thread
+   ("what do you need to incorporate polymer blends into the project?") and
+   still **not started**. Needs: pre-registration doc, a double-reptation
+   forward model, generator support, retrain. Katzarova 2018's three 50/50
+   blends (HM/HL/ML) are already digitized and committed in
+   `data/katzarova2018.npz`, so the validation data is in hand.
+2. **The linear-melt / BSW fault** below. Real, but **n=3 from one paper and
+   one chemistry** - thin ground for redesigning the bank. Worth getting more
+   real monodisperse linear melt data before choosing a route.
+
+Claude's recommendation at session end was **blends**, on the grounds that the
+BSW fault needs more data before it can be solved responsibly. The user had not
+decided when the session ended.
+
+**Also outstanding, independent of which route:** the neural checkpoint is
+stale (see its own section below) and speed is unaddressed (~160 s/curve).
+
 # >>> ACTIVE TASK: the linear-melt / BSW fault. START HERE. <<<
 
 `reptation` is now the **verbatim Likhtman-McLeish tube model** (2026-09-17),
