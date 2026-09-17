@@ -283,12 +283,34 @@ def test_tie_rule_keeps_aicc_order_between_models_of_equal_k():
     assert results[0]["name"] == "zimm"
 
 
-def test_identify_reports_whether_a_tie_was_broken():
-    """The contract addition: `tie_break` is always present, None when unused."""
+def test_the_tie_rule_is_not_applied_by_identify():
+    """>>> The tie rule was MEASURED AND REJECTED on 2026-09-17. <<<
+
+    P1/P2/P3 passed, but P4 - a fixed rejection criterion - failed:
+    cured_elastomer 10->8, branched 8->6, overall 0.890->0.850, firing on 7.0%
+    of curves against a predicted <5%. Outcome in
+    docs/tie_rule_outcome_2026-09-17.txt.
+
+    The cause is that `digitization_scatter` reads ~0.0136 on GENERATED curves
+    (synth.NOISE_DECADES = 0.02) against 0.0015-0.0085 on real digitized ones,
+    so the tie window is ~5x too wide on the training distribution and starts
+    absorbing real differences.
+
+    This test fails the moment the rule is re-enabled, which is the point: it
+    must not come back without the check being re-run at n=30.
+    """
+    rng = np.random.default_rng(0)
+    lw = np.log10(W_WIDE)
+    # A noisy curve - exactly the case where the rule WOULD have fired.
+    smooth_p = 10.0 ** (5.0 - 0.2 * lw)
+    noisy_p = smooth_p * 10.0 ** rng.normal(0.0, 0.02, size=smooth_p.shape)
+    assert digitization_scatter(W_WIDE, noisy_p, noisy_p) > 0.005
+
     Gp, Gpp = maxwell_spectrum(W_WIDE, [1000.0], [1.0])
     out = identify(W_WIDE, Gp, Gpp)
+    # The key stays in the contract so report.py need not special-case it...
     assert "tie_break" in out
-    # A noiseless single Maxwell mode has no scatter, so nothing can tie.
+    # ...but it is always None, because the rule is not applied.
     assert out["tie_break"] is None
 
 

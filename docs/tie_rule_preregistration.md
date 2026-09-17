@@ -119,3 +119,77 @@ PS392 and PS206 by a resolvable margin. That is a separate, deeper problem -
 either BSW is too flexible for the bank, or the tube model is still missing
 something real on well-entangled melts. It is NOT addressed here and must not
 be reported as addressed.
+
+---
+
+# OUTCOME (2026-09-17) — THE RULE IS REJECTED
+
+Everything above this line is as committed in `7856d10`, before the rule was
+implemented. Nothing above was edited; the diff proves it.
+
+Full run: `docs/tie_rule_outcome_2026-09-17.txt`
+(`scripts/check_tie_rule.py --n 10 --restarts 12`, seed 20260917).
+
+## Result against each prediction
+
+| | prediction | outcome | |
+|---|---|---|---|
+| P1 | changes PS105 only, 1/3 | **1/3, PS105 only** | PASS |
+| P2 | benchmark stays 6/6 | **6/6 -> 6/6**, LDPE both `branched` | PASS |
+| P3 | stars stay 5/7 and 2/2 | **7/9 -> 7/9**, all margins identical | PASS |
+| P4 | no class loses >1; accuracy holds | **two classes lost 2; 0.890 -> 0.850** | **FAIL** |
+| P5 | fires on <5% | **7.0%** | missed target (under the 10% reject line) |
+
+P4 detail:
+
+| class | off | on | changed to |
+|---|---|---|---|
+| cured_elastomer | 10 | 8 | critical_gel x2 |
+| branched | 8 | 6 | star x1, reptation x1 |
+| sticky_rouse | 10 | 9 | zimm x1 (within budget) |
+| critical_gel | 9 | 10 | (gained) |
+
+**REJECTED under the criteria fixed in advance** ("the rule is REJECTED and
+reverted if any of: P2 fails; P3 fails; P4 fails; ..."). P4 failed on both of
+its clauses. Not renegotiated.
+
+## Why it failed
+
+The rule's premise - that a residual difference below measured scatter is not
+evidence - is sound on real data and false on synthetic data, because the two
+have different noise:
+
+| | scatter |
+|---|---|
+| real digitized curves | 0.0015 - 0.0089 |
+| generated curves (`synth.NOISE_DECADES = 0.02`) | **~0.0136** |
+
+The tie window is therefore about **5x wider on the training distribution than
+on real data**, wide enough to swallow genuine differences, at which point the
+tie-break hands the win to whichever candidate has fewest parameters. Hence
+`cured_elastomer` -> `critical_gel` (k=3 vs k=2 in that pair's favour) and
+`branched` (k=5) losing to `star` and `reptation` (k=3).
+
+**This was foreseeable from a number measured BEFORE the run.** The 0.0136
+figure was taken while unit-testing the estimator and noted as making P5 "a
+pessimistic upper bound" - but the same widening drives P4, and that was not
+followed through. Recorded because the lesson is the miss, not the rule.
+
+## What was kept
+
+`digitization_scatter` and `_apply_tie_rule` remain in `identify.py`, tested,
+with the call site disabled and commented. The scatter estimator is correct
+and independently useful; the rule is correct code resting on a premise that
+does not survive contact with the generator.
+
+Reviving it needs a window scaled to the curve's ACTUAL noise rather than to
+an estimator that reads planted generator noise as reading error - plus a
+re-run of `scripts/check_tie_rule.py` at n=30.
+
+## What this does NOT change
+
+The open fault stands, untouched and unaddressed: **`branched` out-fits the
+verbatim Likhtman-McLeish tube model on all three real monodisperse linear
+melts**, by 2.9x and 2.1x the digitization scatter on PS392 and PS206. The
+tie rule was never going to fix that - the pre-registration said so - and its
+rejection leaves the problem exactly where it was.

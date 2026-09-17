@@ -44,6 +44,23 @@ sticky/vitrimer contradiction.
 **Get more real monodisperse linear melt data before choosing** — n=3, one
 chemistry, one paper is too thin to redesign the bank on.
 
+**A noise-aware tie rule was tried against this fault and REJECTED
+(2026-09-17). Do not rebuild it without reading why.** Pre-registration
+`docs/tie_rule_preregistration.md`, outcome
+`docs/tie_rule_outcome_2026-09-17.txt`. It worked on real data exactly as
+predicted (recovered PS105, 1/3, benchmark 6/6, stars untouched) and
+**cannibalised the synthetic classes**: `cured_elastomer` 10->8, `branched`
+8->6, overall 0.890 -> 0.850. Cause: `digitization_scatter` reads ~0.0136 on
+GENERATED curves (`synth.NOISE_DECADES = 0.02`) against 0.0015-0.0089 on real
+digitized ones, so the tie window is ~5x too wide on the training distribution
+and starts absorbing real differences. The code and tests are kept;
+the call site in `identify()` is disabled and commented. Reviving it needs a
+window scaled to a curve's ACTUAL noise, plus a re-run of
+`scripts/check_tie_rule.py` at n=30.
+**The generalisable trap: a threshold calibrated on real digitized data does
+not transfer to generated data, because the generator's planted noise is ~5x
+larger.** Any future rule with a noise threshold in it has this bug waiting.
+
 # >>> SECOND PRIORITY: SPEED. `identify()` is ~160 s/curve (was ~2 s). <<<
 
 The tube model is ~80x more expensive. This makes the 22-min suite and the

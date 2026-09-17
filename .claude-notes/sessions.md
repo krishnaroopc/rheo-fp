@@ -2135,10 +2135,21 @@ tube model"*, then *"replace"*.
    missing-evidence fallacy as `has_shoulder`. Now pinned by a test.
    **CLAUDE.md's "two remaining discards are both sound-by-observation" is
    therefore stale** — only `terminal_reached` remains.
-3. **Noise-aware tie rule** (`digitization_scatter`, `_apply_tie_rule`),
-   pre-registered in `docs/tie_rule_preregistration.md` (7856d10) BEFORE
-   implementation. Ties within per-curve digitization scatter break by
-   parsimony. `identify()` gains a `tie_break` key.
+3. **Noise-aware tie rule: BUILT, MEASURED, AND REJECTED.** Pre-registered in
+   `docs/tie_rule_preregistration.md` (7856d10) BEFORE implementation;
+   outcome in `docs/tie_rule_outcome_2026-09-17.txt`. P1/P2/P3 PASSED (1/3
+   exactly as predicted, benchmark 6/6, stars 7/9 unchanged) but **P4 FAILED**
+   and P4 was a fixed rejection criterion: `cured_elastomer` 10->8,
+   `branched` 8->6, overall **0.890 -> 0.850**, firing on 7.0% vs a predicted
+   <5%. The call site in `identify()` is DISABLED (`tie = None`) with the
+   reasoning in a comment; the two functions and their tests are kept.
+   **Cause:** `digitization_scatter` reads ~0.0136 on GENERATED curves
+   (`synth.NOISE_DECADES = 0.02`) vs 0.0015-0.0089 on real digitized ones, so
+   the tie window is ~5x too wide on the training distribution and absorbs
+   real differences, handing wins to whatever has fewest parameters.
+   **I had measured the 0.0136 BEFORE the run** and noted only that it made
+   P5 pessimistic - the same widening drives P4 and I did not follow it
+   through. The miss is the lesson, not the rule.
 
 ### >>> THE OPEN FAULT: BSW OUT-FITS THE CORRECT PHYSICS ON REAL LINEAR MELTS <<<
 With the correct tube model in the bank and the discard gone, `identify()` still
@@ -2188,10 +2199,10 @@ herring. Vectorising `mu_of_t` was tried and is **3x SLOWER** (cache misses) —
 comment left in the code so it is not retried.
 
 ### State at session end
-- Tie rule: P1 **PASS** (1/3, PS105 only, as pre-registered). P2 **PASS** (6/6
-  benchmark unchanged, both LDPE stay `branched`). P3 4/4 stars so far.
-  P4/P5 computed but the n=10 report had not printed. A full **n=30** run was
-  queued to start automatically after it.
+- Tie rule **REJECTED** on P4 (see above). Committed as `9a05d61` BEFORE the
+  check finished, then reverted in the follow-up commit - the commit message
+  of 9a05d61 says P4/P5 were still running, so the history is honest, but the
+  sequencing was wrong and the queued n=30 run was cancelled as moot.
 - 8 new tests added to `tests/test_network.py` (7 tie rule + 1 pinning the
   plateau-discard removal). All pass.
 - **Full suite NOT re-run** since the registry swap and discard removal.

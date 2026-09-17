@@ -564,14 +564,39 @@ def identify(w, Gp, Gpp, floor_chi2=FLOOR_CHI2, seed=RNG_SEED, n_restarts=N_REST
                for name in ALL_MODELS if name in allowed]
     results.sort(key=lambda r: r["aicc"])
 
-    # Noise-aware tie-break, applied BEFORE deltas so the reported ranking and
-    # its deltas stay consistent with each other. Note the consequence, which
-    # is intended and must not be "fixed": after a tie-break the winner's
-    # delta is POSITIVE and its Akaike weight is below the runner-up's,
-    # because the deltas remain honest AICc differences. The ranking says
-    # "this is the call"; the weights say "AICc alone preferred the other one
-    # by this much". Collapsing that would hide the tie-break.
-    tie = _apply_tie_rule(results, digitization_scatter(w, Gp, Gpp))
+    # >>> THE NOISE-AWARE TIE RULE IS NOT APPLIED. IT WAS MEASURED AND
+    # REJECTED, 2026-09-17. DO NOT RE-ENABLE THIS LINE WITHOUT RE-RUNNING THE
+    # CHECK. <<<
+    #
+    #     tie = _apply_tie_rule(results, digitization_scatter(w, Gp, Gpp))
+    #
+    # Pre-registered in docs/tie_rule_preregistration.md, outcome in
+    # docs/tie_rule_outcome_2026-09-17.txt. P1/P2/P3 passed - it recovered
+    # PS105 exactly as predicted, held the 6/6 benchmark, and cost the stars
+    # nothing. P4 FAILED and P4 was a fixed rejection criterion:
+    #
+    #     cured_elastomer  10 -> 8   (critical_gel x2)
+    #     branched          8 -> 6   (star x1, reptation x1)
+    #     overall       0.890 -> 0.850
+    #     fires on 7.0% of curves, against a predicted < 5%
+    #
+    # THE CAUSE IS A PREMISE THAT DOES NOT HOLD ON SYNTHETIC DATA, and it was
+    # visible in a number measured before the run: `digitization_scatter`
+    # reads ~0.0136 on generated curves (synth.NOISE_DECADES = 0.02) against
+    # 0.0015-0.0085 on real digitized ones. The tie window is therefore ~5x
+    # too wide there, so it swallows real differences and hands the win to
+    # whatever has fewest parameters. On real data the rule behaves; on the
+    # training distribution it cannibalises.
+    #
+    # Anyone reviving this needs the window scaled to the curve's ACTUAL
+    # noise rather than to an estimator that reads the generator's planted
+    # noise as if it were reading error - and must re-run scripts/
+    # check_tie_rule.py, at n=30, before shipping it.
+    #
+    # `digitization_scatter` and `_apply_tie_rule` are kept and still tested:
+    # both are correct, the scatter estimate is independently useful, and the
+    # measurement is worth not repeating.
+    tie = None
 
     aicc_min = min(r["aicc"] for r in results)
     for r in results:

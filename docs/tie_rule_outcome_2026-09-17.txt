@@ -1,0 +1,86 @@
+Cannibalisation check: noise-aware tie rule
+  n=10 planted single curves per class, seed=20260917, restarts=12
+  bank: 10 candidates (UNCHANGED by this rule)
+
+  scoring zimm...
+  scoring rouse_screened...
+  scoring reptation...
+  scoring sticky_rouse...
+  scoring sticky_reptation...
+  scoring cured_elastomer...
+  scoring critical_gel...
+  scoring wormlike_micelle...
+  scoring branched...
+  scoring star...
+Real data (6-curve benchmark)...
+    SY184_10-1       cured_elastomer    -> cured_elastomer   
+    Solaris_1-1      cured_elastomer    -> cured_elastomer   
+    EF0030_1-1       cured_elastomer    -> cured_elastomer   
+    Tixier2004_gel   critical_gel       -> critical_gel      
+    E                branched           -> branched          
+    B                branched           -> branched          
+Real data of at-risk classes (stars)...
+    PI4_Ma11k        star               -> star              
+    PI4_Ma17k        star               -> star              
+    PI4_Ma36k        star               -> star              
+    PI4_Ma44k        star               -> star              
+    PI4_Ma47k        star               -> star              
+    PI4_Ma95k        branched           -> branched          
+    PI4_Ma105k       branched           -> branched          
+    PBD3_Ma38k       star               -> star              
+    PBD3_Ma78k       star               -> star              
+
+========================================================================
+P4  PER-CLASS HIT COUNTS (rule off -> on)
+========================================================================
+class                  off    on    d  margin off  margin on  ratio   changed-to
+zimm                     7     7   +0         7.9        7.9   1.00   -
+rouse_screened           6     6   +0        17.1       17.1   1.00   -
+reptation                9     9   +0         8.2        8.2   1.00   -
+sticky_rouse            10     9   -1       136.5      142.4   1.04   zimmx1  <-- lost 1 (within budget)
+sticky_reptation        10    10   +0       197.3      197.3   1.00   -
+cured_elastomer         10     8   -2       181.3      301.1   1.66   critical_gelx2  <-- LOST >1
+critical_gel             9    10   +1         2.1        2.1   1.00   -
+wormlike_micelle        10    10   +0       208.7      208.7   1.00   -
+branched                 8     6   -2       248.3      372.8   1.50   starx1, reptationx1  <-- LOST >1
+star                    10    10   +0        51.1       51.1   1.00   -
+OVERALL                 89    85   -4   (0.890 -> 0.850)
+
+========================================================================
+P5  HOW OFTEN THE RULE CHANGES THE WINNER
+========================================================================
+  7/100 synthetic curves = 7.0%  (target < 5%, reject > 10%)
+
+========================================================================
+P2  6-CURVE BENCHMARK
+========================================================================
+sample           truth              off                on                 margin
+SY184_10-1       cured_elastomer    cured_elastomer    cured_elastomer     118.2->118.2 
+Solaris_1-1      cured_elastomer    cured_elastomer    cured_elastomer     108.6->108.6 
+EF0030_1-1       cured_elastomer    cured_elastomer    cured_elastomer      61.7->61.7  
+Tixier2004_gel   critical_gel       critical_gel       critical_gel          2.4->2.4   
+E                branched           branched           branched             79.3->79.3  
+B                branched           branched           branched             53.3->53.3  
+  6/6 -> 6/6
+
+========================================================================
+P3  REAL DATA OF AT-RISK CLASSES (stars)
+========================================================================
+sample           truth              off                on                 margin
+PI4_Ma11k        star               star               star                  4.8->4.8   
+PI4_Ma17k        star               star               star                202.0->202.0 
+PI4_Ma36k        star               star               star                224.6->224.6 
+PI4_Ma44k        star               star               star                193.6->193.6 
+PI4_Ma47k        star               star               star                 93.1->93.1  
+PI4_Ma95k        star               branched           branched             56.5->56.5  
+PI4_Ma105k       star               branched           branched            102.5->102.5 
+PBD3_Ma38k       star               star               star                170.0->170.0 
+PBD3_Ma78k       star               star               star                 86.8->86.8  
+  7/9 -> 7/9
+
+========================================================================
+VERDICT against docs/tie_rule_preregistration.md
+========================================================================
+  REJECTED. The rule must be reverted.
+    P4 FAILED: cured_elastomer 10->8, branched 8->6
+    P4 FAILED: overall accuracy 0.890 -> 0.850

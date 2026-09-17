@@ -1,0 +1,101 @@
+{
+  "bank": [
+    "branched",
+    "critical_gel",
+    "cured_elastomer",
+    "reptation",
+    "rouse_screened",
+    "star",
+    "sticky_reptation",
+    "sticky_rouse",
+    "wormlike_micelle",
+    "zimm"
+  ],
+  "checkpoint": null,
+  "rows": [
+    {
+      "sample": "PS392",
+      "role": "monodisperse",
+      "correct_answer": "reptation",
+      "physics": "branched",
+      "weight": 1.0,
+      "rms": 0.024994023726942243,
+      "runner_up": "star",
+      "delta": 270.6625793276645,
+      "low_confidence": false,
+      "abstain": false,
+      "terminal_reached": true,
+      "n_allowed": 6
+    },
+    {
+      "sample": "PS206",
+      "role": "monodisperse",
+      "correct_answer": "reptation",
+      "physics": "branched",
+      "weight": 0.9999999999999996,
+      "rms": 0.02611229261678154,
+      "runner_up": "star",
+      "delta": 70.88335668111017,
+      "low_confidence": false,
+      "abstain": false,
+      "terminal_reached": true,
+      "n_allowed": 7
+    },
+    {
+      "sample": "PS105",
+      "role": "monodisperse",
+      "correct_answer": "reptation",
+      "physics": "branched",
+      "weight": 0.9999999999999534,
+      "rms": 0.020699604844152297,
+      "runner_up": "star",
+      "delta": 61.39563558185557,
+      "low_confidence": false,
+      "abstain": false,
+      "terminal_reached": true,
+      "n_allowed": 7
+    },
+    {
+      "sample": "HM",
+      "role": "blend 50/50",
+      "correct_answer": null,
+      "physics": "star",
+      "weight": 1.0,
+      "rms": 0.044759263215536235,
+      "runner_up": "branched",
+      "delta": 95.86275530602552,
+      "low_confidence": false,
+      "abstain": false,
+      "terminal_reached": true,
+      "n_allowed": 8
+    },
+    {
+      "sample": "HL",
+      "role": "blend 50/50",
+      "correct_answer": null,
+      "physics": "branched",
+      "weight": 0.999999703337949,
+      "rms": 0.09973293730063847,
+      "runner_up": "star",
+      "delta": 30.061343848622755,
+      "low_confidence": false,
+      "abstain": false,
+      "terminal_reached": true,
+      "n_allowed": 7
+    },
+    {
+      "sample": "ML",
+      "role": "blend 50/50",
+      "correct_answer": null,
+      "physics": "branched",
+      "weight": 0.5384009709255732,
+      "rms": 0.07328961841372769,
+      "runner_up": "star",
+      "delta": 0.3078139397648556,
+      "low_confidence": false,
+      "abstain": false,
+      "terminal_reached": true,
+      "n_allowed": 7
+    }
+  ]
+}
