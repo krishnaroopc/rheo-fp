@@ -2107,3 +2107,96 @@ six corrections made mid-thread, is appended to `questions.md`.
   assumed rather than verified; and **a critical gel's stack is the same curve
   N times** because `is_network` pins `Ea = 0.0` (`synth.py:291-292`), which
   gives a clean physical reading of the N=1 vs N>=2 accuracy gap.
+
+## 2026-09-17 — Likhtman-McLeish wired in as `reptation`; noise-aware tie rule
+
+**Origin**: "what do you need to incorporate polymer blends into the project?"
+led to digitizing Katzarova 2018 and discovering the shipped `reptation` class
+failed on real monodisperse linear melts. User: *"if we dont use the formalized
+tube model, rheologist peer reviewers will discard this project outright. fix
+tube model"*, then *"replace"*.
+
+### What changed in the code
+1. **`reptation` is now the verbatim Likhtman-McLeish tube model.**
+   `model_reptation_lm` in `solutions.py` is a thin adapter onto `tube.py`
+   (Batch-2 validated, never previously wired in). Same (Ge, tau_d, Z) vector,
+   same k=3, so AICc stays comparable. The old hand-rolled `model_reptation`
+   approximation is RETAINED but no longer shipped.
+   - Measured on Katzarova's three monodisperse PS: rms 0.031/0.030/0.022 vs
+     the approximation's 0.115/0.083/0.044, and **Z recovered 28.9/16.0/9.6
+     against true 29.5/15.5/7.9** (approximation gave ~2x low).
+   - NOTE: `synth.py` imports the same registry, so the GENERATOR swapped too.
+     **The neural checkpoint is stale** — every synthetic `reptation` curve it
+     ever saw came from the approximation. Retrain needed.
+2. **The `wide_plateau` -> discard reptation pre-filter is REMOVED.**
+   `plateau_width` reads 2.29/0.84/0.16 decades at Z=29.5/15.5/7.9 — a monotone
+   function of entanglement count, i.e. a molecular-weight cutoff disguised as
+   a shape test. It deleted the TRUE class for the two shorter chains. Same
+   missing-evidence fallacy as `has_shoulder`. Now pinned by a test.
+   **CLAUDE.md's "two remaining discards are both sound-by-observation" is
+   therefore stale** — only `terminal_reached` remains.
+3. **Noise-aware tie rule** (`digitization_scatter`, `_apply_tie_rule`),
+   pre-registered in `docs/tie_rule_preregistration.md` (7856d10) BEFORE
+   implementation. Ties within per-curve digitization scatter break by
+   parsimony. `identify()` gains a `tie_break` key.
+
+### >>> THE OPEN FAULT: BSW OUT-FITS THE CORRECT PHYSICS ON REAL LINEAR MELTS <<<
+With the correct tube model in the bank and the discard gone, `identify()` still
+returns **`branched` on all three** monodisperse linear polystyrenes.
+
+| sample | Z | reptation rms | branched rms | gap | scatter | gap/scatter |
+|---|---|---|---|---|---|---|
+| PS392 | 29.5 | 0.0314 | 0.0250 | 0.0064 | 0.0017 | **2.9x** |
+| PS206 | 15.5 | 0.0300 | 0.0261 | 0.0039 | 0.0015 | **2.1x** |
+| PS105 |  7.9 | 0.0222 | 0.0207 | 0.0015 | 0.0085 | 0.17x |
+
+**This falsifies CLAUDE.md's claim that BSW's "intrinsically broad spectrum
+cannot fake a sharp reptation terminal".** It can, on real data, by a margin
+larger than the measurement error, on 2 of 3 curves. CORRECT THAT CLAIM.
+
+The AICc arithmetic was verified by hand and is correct; k=5 vs k=3 is properly
+paid for. Nothing is broken — this is a real modelling problem: either BSW is
+too flexible to sit in a bank beside specific physics, or the tube model is
+still missing something on well-entangled chains. **NOT addressed by the tie
+rule**, which only recovers PS105.
+
+### An honest correction recorded
+My motivating hypothesis for the tie rule ("branched wins inside the noise")
+was **falsified by my own measurement** — only PS105 is inside noise. The
+pre-registration was written to predict **1/3, not 3/3**, with 3/3 as an
+explicit REJECTION criterion. It landed 1/3 exactly.
+A free-Prony NNLS noise floor was tried first and **rejected as unstable**
+(PS105: 0.047 at 12 modes, 0.139 at 16 — conditioning, not noise). Do not
+reinstate it; the earlier "0.029-0.047 digitization floor" figure came from it
+and must not be quoted.
+
+### >>> SPEED IS NOW THE PROJECT BLOCKER <<<
+`identify()` went from ~2 s to **~160 s per curve** (one `reptation` fit at 12
+restarts is ~300 s on PS105). The 22-min suite and the standard n=30
+cannibalisation protocol scale accordingly.
+
+**MEASURED LEVER, very promising (PS105, one curve, needs confirming):**
+restarts 1 / 2 / 4 / 12 all converge to the SAME optimum (rms 0.0222, Z=9.6),
+but cost **10.2 s / 18.2 s / 147 s / 298 s**. The data-derived `REP_P0` start
+lands it on restart 1; the other 11 restarts cost 29x and changed nothing.
+**Do not act on n=1** — confirm across curves and classes first, and check
+whether any class RELIES on the random restarts.
+
+Profiling note, already settled: `tube.py` itself is NOT slow (one forward eval
+is 15-35 ms). `fit_linear_melt`'s multi-sample Nelder-Mead was the old red
+herring. Vectorising `mu_of_t` was tried and is **3x SLOWER** (cache misses) —
+comment left in the code so it is not retried.
+
+### State at session end
+- Tie rule: P1 **PASS** (1/3, PS105 only, as pre-registered). P2 **PASS** (6/6
+  benchmark unchanged, both LDPE stay `branched`). P3 4/4 stars so far.
+  P4/P5 computed but the n=10 report had not printed. A full **n=30** run was
+  queued to start automatically after it.
+- 8 new tests added to `tests/test_network.py` (7 tie rule + 1 pinning the
+  plateau-discard removal). All pass.
+- **Full suite NOT re-run** since the registry swap and discard removal.
+- **UNCOMMITTED**: `solutions.py`, `identify.py`, `tube.py`, `test_network.py`,
+  `scripts/check_tie_rule.py`, `data/katzarova2018.npz`,
+  `scripts/prep_katzarova2018.py`, `scripts/eval_katzarova_baseline.py`.
+- Deferred, still not started: **the polymer-blend class itself** — the
+  original request that began this whole thread.

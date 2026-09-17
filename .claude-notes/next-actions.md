@@ -5,7 +5,67 @@ kept in git so it syncs between the user's home and office PCs. When the user
 says something like "let's continue" / "do the next thing" / "pick up where we
 left off", this is where to look. Update + commit this file as items complete.
 
-Last updated: **2026-09-16 (end of session).**
+Last updated: **2026-09-17 (end of session).**
+
+# >>> ACTIVE TASK: the linear-melt / BSW fault. START HERE. <<<
+
+`reptation` is now the **verbatim Likhtman-McLeish tube model** (2026-09-17),
+replacing a hand-rolled approximation that failed on real monodisperse linear
+melts. It recovers entanglement counts correctly for the first time:
+**Z = 28.9 / 16.0 / 9.6 against true 29.5 / 15.5 / 7.9** on Katzarova 2018's
+three monodisperse polystyrenes (the old approximation gave ~2x low).
+
+**AND IT STILL LOSES.** `identify()` returns `branched` (BSW, k=5) on all
+three:
+
+| sample | Z | reptation rms | branched rms | gap | scatter | gap/scatter |
+|---|---|---|---|---|---|---|
+| PS392 | 29.5 | 0.0314 | 0.0250 | 0.0064 | 0.0017 | **2.9x** |
+| PS206 | 15.5 | 0.0300 | 0.0261 | 0.0039 | 0.0015 | **2.1x** |
+| PS105 |  7.9 | 0.0222 | 0.0207 | 0.0015 | 0.0085 | 0.17x (tied) |
+
+The AICc arithmetic was verified by hand; k=5 is correctly paid for. **Nothing
+is broken.** On PS392 and PS206 BSW simply fits better by a margin larger than
+the measurement error.
+
+**>>> THIS FALSIFIES A CLAIM IN CLAUDE.md <<<** — that BSW's "intrinsically
+broad spectrum cannot fake a sharp reptation terminal, so AICc still separates
+it from the linear-melt class." It does not. Corrected in CLAUDE.md
+2026-09-17; do not let the old wording come back.
+
+**Three routes, none attempted.** (1) Constrain `branched` so it cannot
+impersonate a monodisperse linear melt — note the direct precedent: the comb
+class was VETOED for exactly this failure (fitting a linear control better than
+real combs), so the same standard arguably applies to BSW. (2) Ask whether the
+tube model is missing real physics on well-entangled chains (polydispersity is
+the obvious candidate — Katzarova's samples have finite PDI and LM assumes
+monodisperse). (3) Accept and report the ambiguity, as was done for the
+sticky/vitrimer contradiction.
+**Get more real monodisperse linear melt data before choosing** — n=3, one
+chemistry, one paper is too thin to redesign the bank on.
+
+# >>> SECOND PRIORITY: SPEED. `identify()` is ~160 s/curve (was ~2 s). <<<
+
+The tube model is ~80x more expensive. This makes the 22-min suite and the
+standard n=30 cannibalisation protocol impractical.
+
+**Strong measured lead, NOT yet confirmed (n=1, PS105).** Restart counts
+1/2/4/12 all reach the SAME optimum (rms 0.0222, Z=9.6) at
+**10.2 s / 18.2 s / 147 s / 298 s**. The data-derived `REP_P0` start lands it
+on restart 1; the other 11 restarts cost **29x** and changed nothing.
+**Before acting**: confirm across curves AND classes, and check whether any
+class relies on random restarts to escape local minima. A blanket
+`n_restarts=1` would be reckless on that evidence.
+Already settled, do not redo: `tube.py` itself is fast (15-35 ms/forward eval);
+vectorising `mu_of_t` is **3x SLOWER** (comment in the code explains why).
+
+# >>> THE NEURAL CHECKPOINT IS STALE. RETRAIN BEFORE QUOTING ACCURACY. <<<
+
+`synth.py` imports the same model registry, so swapping the bank entry swapped
+the **generator** too. Every synthetic `reptation` curve the current checkpoint
+ever saw came from the discarded approximation. All 10-class accuracy figures
+in CLAUDE.md predate this. Generation cost is fine (~63 ms/curve, ~1.7 min for
+the class in a 16k dataset) — only FITTING pays the 80x.
 
 # >>> THE COMB TASK IS CLOSED (2026-09-16). `comb` STAYS UNWIRED. <<<
 

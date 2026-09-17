@@ -71,6 +71,13 @@ def mu_of_t(t, Z, te):
     es = eps_star(Z, te)
     epsg = np.logspace(np.log10(es), np.log10(es) + 13, 4000)
     w = 0.306 / (Z * te**0.25) * epsg**(-1.25)
+    # The early-time term is int w(eps) exp(-eps t) d(eps) on a fixed eps grid.
+    # This per-t loop LOOKS like the obvious thing to vectorize. It is not:
+    # measured 2026-09-16 at n_t=400, one (n_t x n_eps) outer product is 3x
+    # SLOWER (11 ms -> 33 ms) because the block is ~13 MB and misses cache,
+    # and chunking over t peaks at only 1.13x (chunk=8). All variants are
+    # bit-identical. Leave the loop alone - the cost here is the 4000-point
+    # eps grid, not Python overhead.
     early = np.array([np.trapezoid(w * np.exp(-epsg * tt), epsg) for tt in t])
     return rep + early
 

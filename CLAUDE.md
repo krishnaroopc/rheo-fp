@@ -123,6 +123,20 @@ point. Also hierarchical double-reptation branched/LCB spectrum
 see the branched-class note below).
 Critical constraint: linear melt curves must stay inside the valid frequency
 window or G″ exceeds G_e unphysically.
+**>>> IT IS NOW THE SHIPPED `reptation` CLASS (2026-09-17). <<<** For most of
+the project's life `tube.py` was validated but NEVER WIRED IN: the bank's
+`reptation` entry was a hand-rolled fast approximation, and it was broken on
+real monodisperse linear melts (rms 0.115/0.083/0.044 on Katzarova 2018, with
+Z recovered ~2x LOW). `model_reptation_lm` in `solutions.py` is now a thin
+adapter onto `tube.Gstar` - same (Ge, tau_d, Z) vector, same k=3, so AICc stays
+comparable - and it recovers **Z = 28.9/16.0/9.6 against true 29.5/15.5/7.9**.
+The old `model_reptation` is retained in the file but no longer shipped.
+Never caught earlier because **the 6/6 real-data benchmark contains no
+monodisperse linear melt** - the same blind spot that let the comb check pass
+with no star curve in its real-data set. Two consequences: `identify()` costs
+~160 s/curve (was ~2 s), and because `synth.py` imports the same registry the
+GENERATOR swapped too, so **the neural checkpoint is stale and every accuracy
+figure in this file predates it**.
 
 **Batch 3 — polymer solutions**: two-layer architecture — spectral shape
 layer (Zimm/Rouse/reptation) plus concentration-scaling layer with exponents
@@ -163,9 +177,21 @@ high-frequency wedge tau^-n_g below crossover tau_c), discretized onto a mode
 ladder. It replaced the old 3-param `branched_spectrum` (hierarchical
 double-reptation), which physically **could not represent real LDPE**
 (≥0.28 decades RMS on Pivokonsky 2006 E and B, whatever sigma). BSW fits both
-to ~0.06–0.07 decades and its intrinsically broad spectrum cannot fake a
-sharp reptation terminal, so AICc still separates it from the linear-melt
-class. Now IN `identify()`'s bank as `"branched"` (`BRANCHED_MODELS` in
+to ~0.06–0.07 decades.
+**>>> CORRECTION 2026-09-17: this paragraph used to claim BSW's "intrinsically
+broad spectrum cannot fake a sharp reptation terminal, so AICc still separates
+it from the linear-melt class." THAT IS FALSE, and it had never been tested
+against a real monodisperse linear melt. <<<** On Katzarova 2018's three
+monodisperse polystyrenes, `branched` beats the VERBATIM Likhtman-McLeish tube
+model on ALL THREE - rms 0.0250/0.0261/0.0207 against 0.0314/0.0300/0.0222, at
+dAICc 50.7/28.9/12.1 - and on the two longer chains that margin is **2.9x and
+2.1x the curves' own digitization scatter**, i.e. real resolvable structure and
+not noise. The AICc arithmetic was verified by hand and k=5 is correctly paid
+for; BSW simply fits a real linear melt better than the correct physics does.
+This is the project's ACTIVE OPEN FAULT - see `.claude-notes/next-actions.md`,
+top section. Note the precedent it sits against: `comb` was VETOED for exactly
+this failure mode (fitting a linear control better than real combs).
+Now IN `identify()`'s bank as `"branched"` (`BRANCHED_MODELS` in
 `maxwell.py`); `branched_spectrum`/`fit_branched` are retained for the
 tube-model context + tests. G_N is a window-limited amplitude scale, not a
 measured plateau modulus. Refs: Baumgärtel & Winter (1990, 1992).
@@ -385,8 +411,14 @@ before/after on planted cropped noisy curves (n=30/class, identical seeds):
 models cannibalised nothing. Real data stayed **6/6**. The flagship error is
 gone: vitrimer reported as a permanent network went **0/120**. Cost: two more
 candidates fit per call, so `identify()` is ~1.9 s/curve (suite ~4.5 min).
-The two remaining discards are both sound-by-observation (`terminal_reached`
-removing the network classes; `wide_plateau` gating reptation).
+**The `wide_plateau` discard on reptation was REMOVED 2026-09-16** for the same
+reason: `plateau_width` reads 2.29/0.84/0.16 decades at Z = 29.5/15.5/7.9 on
+Katzarova's three linear melts - a monotone function of entanglement count, so
+a >= 1.0-decade threshold was a cutoff on MOLECULAR WEIGHT wearing a shape
+test's clothes, and it deleted the TRUE class from the ballot for the two
+shorter chains. It was never pinned by a test; it is now (the removal is).
+**Exactly ONE hard discard remains**, and it is sound-by-observation:
+`terminal_reached` removing the network classes.
 
 ## Goals — ALL THREE COMPLETE as of 2026-09-01
 1. DONE. Restructured into the GitHub-ready `rheo-fp` package (rheofp/,

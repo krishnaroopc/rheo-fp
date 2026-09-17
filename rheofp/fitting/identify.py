@@ -66,6 +66,29 @@ RNG_SEED = 0
 # real measurement, so it never perturbs ranking on actual data.
 SSE_FLOOR = 1e-30
 
+# --- noise-aware tie rule (pre-registered in docs/tie_rule_preregistration.md)
+#
+# Two candidates whose rms log-residuals differ by less than the CURVE'S OWN
+# digitization scatter are not distinguishable by that data, and AICc's
+# preference between them is then arithmetic on noise. Such a pair is treated
+# as tied and broken by parsimony (lower k), then by AICc rank.
+#
+# The scatter is measured per curve, not assumed: residual of log10 G about a
+# local quadratic in log10 omega. G'(w) and G''(w) are smooth by construction
+# (they are integrals over a relaxation spectrum), so point-to-point wiggle
+# against a local smooth fit is reading error, not physics. Measured on real
+# digitized figures it reads 0.0009-0.0118 decades.
+#
+# A free-Prony NNLS floor was tried first and REJECTED: it moved
+# non-monotonically with mode count (PS105: 0.047 at 12 modes, 0.139 at 16),
+# i.e. it measured NNLS conditioning, not noise. Do not reinstate it.
+TIE_WINDOW = 5      # points per local fit; must be > TIE_POLY_DEG + 1
+TIE_POLY_DEG = 2
+# Floor on the scatter estimate. A noiseless synthetic curve measures ~1e-16,
+# which would make the rule never fire; that is the correct behaviour (nothing
+# is unresolvable on exact data) but a hard zero invites divide-by-zero
+# thinking downstream. Kept far below any real digitization scatter.
+TIE_SCATTER_FLOOR = 1e-12
 # Full candidate bank: solution family + crosslinked-network family +
 # branched / LCB melt + wormlike micelle + star melt. This must stay in step
 # with rheofp.data.synth.ALL_CLASSES - a class the generator can produce but
@@ -209,8 +232,25 @@ def signature_features(w, Gp, Gpp):
 
     if confident_entangled:
         allowed -= {"zimm", "rouse_screened"}
-    if not wide_plateau:
-        allowed.discard("reptation")
+    # NOTE: `if not wide_plateau: allowed.discard("reptation")` used to sit
+    # here and was REMOVED on 2026-09-16, for the same reason as the
+    # has_shoulder discard below - it is missing-evidence reasoning, and it was
+    # never pinned by a test.
+    #
+    # `plateau_width` measures how many decades G' stays flat with tan(delta)
+    # < 1. On Katzarova 2018's three monodisperse linear polystyrenes it reads
+    # 2.293 / 0.844 / 0.158 decades at Z = 29.5 / 15.5 / 7.9 - a clean monotone
+    # function of entanglement count, with `spectrum_above` True on ALL THREE.
+    # The plateau is genuinely present every time; it just gets SHORTER as the
+    # chain gets shorter, because the terminal and rubbery regions close in on
+    # each other. So a >= 1.0 decade threshold is not a shape test at all, it
+    # is a cutoff on molecular weight: it deleted the true class for PS206 and
+    # PS105 (both plainly entangled linear melts) before any fitting happened,
+    # while admitting only the longest chain.
+    #
+    # A narrow plateau is weak evidence of FEW entanglements, never evidence of
+    # none - the same fallacy the project already rejected for melt-vs-rubber
+    # and for the sticker classes.
     # NOTE: `if not has_shoulder: allowed -= {sticky_rouse, sticky_reptation}`
     # used to sit here and was REMOVED on 2026-09-07. It was missing-evidence
     # reasoning - an absent second G" peak is equally consistent with "no
@@ -446,6 +486,69 @@ def fit_model(name, w, Gp, Gpp, seed=RNG_SEED, n_restarts=N_RESTARTS):
     }
 
 
+def digitization_scatter(w, Gp, Gpp):
+    """Per-curve reading error, in decades of log10 G.
+
+    Residual of log10 G about a local quadratic in log10 omega, pooled over
+    G' and G''. See the TIE_WINDOW comment block for why this is a noise
+    measurement rather than a fit statistic.
+
+    Returns TIE_SCATTER_FLOOR when the curve is too short to fit a local
+    quadratic, which makes the tie rule inert rather than guessing.
+    """
+    lw = np.log10(w)
+    resid = []
+    for G in (Gp, Gpp):
+        lG = np.log10(G)
+        n = len(lw)
+        if n < TIE_WINDOW:
+            continue
+        half = TIE_WINDOW // 2
+        for i in range(half, n - half):
+            sl = slice(i - half, i + half + 1)
+            c = np.polyfit(lw[sl], lG[sl], TIE_POLY_DEG)
+            resid.append(lG[i] - np.polyval(c, lw[i]))
+    if not resid:
+        return TIE_SCATTER_FLOOR
+    return max(float(np.std(resid)), TIE_SCATTER_FLOOR)
+
+
+def _apply_tie_rule(results, scatter):
+    """Re-rank the top of `results` when candidates are within `scatter`.
+
+    Only candidates whose rms is within `scatter` of the LEADER's rms are
+    considered - the rule never promotes a model that is not already tied with
+    the model AICc picked. Among those, the fewest parameters wins; AICc rank
+    breaks a remaining tie.
+
+    Mutates nothing except the list order. Returns the tie record, or None if
+    no tie was found.
+    """
+    if len(results) < 2:
+        return None
+    leader = results[0]
+    tied = [r for r in results if r["rms_log"] - leader["rms_log"] < scatter]
+    if len(tied) < 2:
+        return None
+    # `results` is already AICc-sorted, so the index within it is the AICc rank
+    # and using it as the final key preserves that order among equal-k models.
+    rank = {id(r): i for i, r in enumerate(results)}
+    winner = min(tied, key=lambda r: (r["k"], rank[id(r)]))
+    if winner is leader:
+        return None
+    results.remove(winner)
+    results.insert(0, winner)
+    return {
+        "scatter": scatter,
+        "displaced": leader["name"],
+        "tied_with": [r["name"] for r in tied],
+        "rms_gap": leader["rms_log"] - winner["rms_log"],
+        "reason": (f"{winner['name']} (k={winner['k']}) and {leader['name']} "
+                   f"(k={leader['k']}) fit within the curve's own digitization "
+                   f"scatter of {scatter:.4f} decades; the simpler model wins."),
+    }
+
+
 def identify(w, Gp, Gpp, floor_chi2=FLOOR_CHI2, seed=RNG_SEED, n_restarts=N_RESTARTS,
              n_temperatures=1):
     """Full pipeline. Returns ranked results + features + confidence.
@@ -461,7 +564,16 @@ def identify(w, Gp, Gpp, floor_chi2=FLOOR_CHI2, seed=RNG_SEED, n_restarts=N_REST
                for name in ALL_MODELS if name in allowed]
     results.sort(key=lambda r: r["aicc"])
 
-    aicc_min = results[0]["aicc"]
+    # Noise-aware tie-break, applied BEFORE deltas so the reported ranking and
+    # its deltas stay consistent with each other. Note the consequence, which
+    # is intended and must not be "fixed": after a tie-break the winner's
+    # delta is POSITIVE and its Akaike weight is below the runner-up's,
+    # because the deltas remain honest AICc differences. The ranking says
+    # "this is the call"; the weights say "AICc alone preferred the other one
+    # by this much". Collapsing that would hide the tie-break.
+    tie = _apply_tie_rule(results, digitization_scatter(w, Gp, Gpp))
+
+    aicc_min = min(r["aicc"] for r in results)
     for r in results:
         r["delta"] = r["aicc"] - aicc_min
     Z = sum(np.exp(-0.5 * r["delta"]) for r in results)
@@ -479,6 +591,7 @@ def identify(w, Gp, Gpp, floor_chi2=FLOOR_CHI2, seed=RNG_SEED, n_restarts=N_REST
         "best_weight": best["weight"],
         "best_rms_log": best["rms_log"],
         "low_confidence": low_confidence,
+        "tie_break": tie,
         # Head 1 abstains; head 2 (best) always still emits a model, per the
         # frozen two-head architecture.
         "abstain": abstain,

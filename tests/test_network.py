@@ -7,7 +7,10 @@ from rheofp.models.network import (
     chasset_thirion_spectrum, critical_gel_spectrum,
     fit_chasset_thirion, fit_critical_gel, tan_delta_spread,
 )
-from rheofp.fitting.identify import identify, signature_features, NETWORK_CLASSES
+from rheofp.fitting.identify import (
+    identify, signature_features, NETWORK_CLASSES,
+    digitization_scatter, _apply_tie_rule,
+)
 
 OMEGA = np.logspace(-2, 3, int((3 - (-2)) * 12) + 1)
 W_WIDE = np.logspace(-3, 4, 60)
@@ -195,3 +198,116 @@ def test_chasset_thirion_fit_drives_plateau_to_zero_on_gel_data():
     springpot_at_wmin = fit["c"] * OMEGA.min() ** fit["m"]
     assert fit["G_inf"] < 1e-3 * springpot_at_wmin
     assert _rel(fit["m"], 0.69) < 1e-2
+
+
+# ---------------------------------------------------------------------------
+# The noise-aware tie rule (2026-09-17), pre-registered in
+# docs/tie_rule_preregistration.md. These pin the rule's SHAPE - that it fires
+# only inside measured scatter, only at the top of the ranking, and only
+# toward fewer parameters. They deliberately do not pin which class wins on
+# any real curve; that is measured, not asserted.
+# ---------------------------------------------------------------------------
+
+def test_digitization_scatter_is_at_the_floor_for_an_exactly_smooth_curve():
+    """A noiseless power law has no reading error, so the rule must be inert.
+
+    This is the property that keeps the rule from firing on synthetic data
+    generated without noise: scatter ~ 0 means no two candidates are ever
+    within scatter of each other.
+    """
+    lw = np.log10(W_WIDE)
+    Gp = 10.0 ** (5.0 - 0.5 * lw)
+    Gpp = 10.0 ** (4.5 - 0.3 * lw)
+    assert digitization_scatter(W_WIDE, Gp, Gpp) <= 1e-9
+
+
+def test_digitization_scatter_recovers_planted_noise():
+    """Scatter tracks noise actually added, within a factor of ~2.
+
+    Not an equality: a local quadratic absorbs some of the noise it is fitted
+    through, so the estimate is biased low by a known, bounded amount.
+    """
+    rng = np.random.default_rng(0)
+    lw = np.log10(W_WIDE)
+    smooth = 10.0 ** (5.0 - 0.5 * lw)
+    for planted in (0.005, 0.02):
+        noisy = smooth * 10.0 ** rng.normal(0.0, planted, size=smooth.shape)
+        got = digitization_scatter(W_WIDE, noisy, noisy)
+        assert 0.4 * planted < got < 1.6 * planted, (planted, got)
+
+
+def test_tie_rule_prefers_the_simpler_model_only_inside_the_scatter():
+    """The window is the whole rule: the same pair ties or does not by it."""
+    pair = [{"name": "branched", "rms_log": 0.0200, "k": 5, "aicc": 0.0},
+            {"name": "reptation", "rms_log": 0.0210, "k": 3, "aicc": 10.0}]
+
+    inside = [dict(r) for r in pair]
+    tie = _apply_tie_rule(inside, scatter=0.005)   # gap 0.001 < 0.005
+    assert tie is not None
+    assert inside[0]["name"] == "reptation"
+    assert tie["displaced"] == "branched"
+
+    outside = [dict(r) for r in pair]
+    assert _apply_tie_rule(outside, scatter=0.0005) is None   # gap > scatter
+    assert outside[0]["name"] == "branched"
+
+
+def test_tie_rule_never_promotes_a_model_outside_the_window():
+    """A distant simpler model must NOT be dragged up by a nearby tie."""
+    results = [{"name": "branched", "rms_log": 0.020, "k": 5, "aicc": 0.0},
+               {"name": "wormlike_micelle", "rms_log": 0.021, "k": 4,
+                "aicc": 5.0},
+               {"name": "zimm", "rms_log": 0.400, "k": 3, "aicc": 900.0}]
+    tie = _apply_tie_rule(results, scatter=0.005)
+    assert results[0]["name"] == "wormlike_micelle"   # k=4, inside
+    assert "zimm" not in tie["tied_with"]             # k=3 but far outside
+
+
+def test_tie_rule_is_silent_when_the_leader_is_already_the_simplest():
+    results = [{"name": "reptation", "rms_log": 0.020, "k": 3, "aicc": 0.0},
+               {"name": "branched", "rms_log": 0.021, "k": 5, "aicc": 8.0}]
+    assert _apply_tie_rule(results, scatter=0.005) is None
+    assert results[0]["name"] == "reptation"
+
+
+def test_tie_rule_keeps_aicc_order_between_models_of_equal_k():
+    """Parsimony cannot separate equal-k models, so AICc must still decide.
+
+    This matters for the known zimm<->rouse_screened degenerate pair: the rule
+    must not reshuffle it on noise.
+    """
+    results = [{"name": "zimm", "rms_log": 0.0200, "k": 3, "aicc": 0.0},
+               {"name": "rouse_screened", "rms_log": 0.0205, "k": 3,
+                "aicc": 0.4}]
+    assert _apply_tie_rule(results, scatter=0.005) is None
+    assert results[0]["name"] == "zimm"
+
+
+def test_identify_reports_whether_a_tie_was_broken():
+    """The contract addition: `tie_break` is always present, None when unused."""
+    Gp, Gpp = maxwell_spectrum(W_WIDE, [1000.0], [1.0])
+    out = identify(W_WIDE, Gp, Gpp)
+    assert "tie_break" in out
+    # A noiseless single Maxwell mode has no scatter, so nothing can tie.
+    assert out["tie_break"] is None
+
+
+def test_a_short_chain_linear_melt_keeps_reptation_on_the_ballot():
+    """Pins the `wide_plateau` discard REMOVAL (2026-09-16).
+
+    `if not wide_plateau: allowed.discard("reptation")` used to delete the
+    linear-melt class whenever G' held flat for under a decade. On Katzarova
+    2018's three monodisperse linear polystyrenes that width reads
+    2.29 / 0.84 / 0.16 decades at Z = 29.5 / 15.5 / 7.9 - a monotone function
+    of entanglement count, so the threshold was a cutoff on molecular weight
+    wearing a shape test's clothes, and it removed the TRUE class from the
+    ballot for the two shorter chains.
+
+    Asserts only that the candidate is reachable, not that it wins - what it
+    actually wins is measured elsewhere and is currently 1/3.
+    """
+    d = load_npz("data/katzarova2018.npz")
+    for sample in ("PS392", "PS206", "PS105"):
+        rec = d[sample]
+        _, allowed = signature_features(rec["omega"], rec["Gp"], rec["Gpp"])
+        assert "reptation" in allowed, f"{sample} lost the linear-melt class"
