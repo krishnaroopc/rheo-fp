@@ -333,3 +333,58 @@ def test_a_short_chain_linear_melt_keeps_reptation_on_the_ballot():
         rec = d[sample]
         _, allowed = signature_features(rec["omega"], rec["Gp"], rec["Gpp"])
         assert "reptation" in allowed, f"{sample} lost the linear-melt class"
+
+
+def test_the_surviving_zimm_rouse_discard_rests_on_a_positive_observation():
+    """Pins `confident_entangled`, the OTHER hard discard (2026-09-17).
+
+    CLAUDE.md said for a while that "exactly ONE hard discard remains". There
+    are two: `terminal_reached` striking the network classes, and this one
+    striking the unentangled pair. This second rule was pinned by NO test at
+    all - the same blind spot that let the `wide_plateau` discard survive
+    unexamined until it was found to be deleting the true class.
+
+    It is sound by the project's own standard, and the test says why: it fires
+    only on a POSITIVE observation (a plateau wider than a decade, with the
+    spectrum continuing above it, AND terminal flow below it), never on an
+    absence. A real entangled melt shows all three; an unentangled chain has
+    no plateau to show, so ruling zimm/rouse out is a conclusion from what was
+    SEEN, not from what was missing.
+    """
+    d = load_npz("data/katzarova2018.npz")
+
+    # PS392 - the longest chain, plateau 2.29 decades: the rule fires.
+    rec = d["PS392"]
+    feats, allowed = signature_features(rec["omega"], rec["Gp"], rec["Gpp"])
+    assert feats["confident_entangled"]
+    assert feats["plateau_width"] >= 1.0
+    assert feats["spectrum_above"] and feats["terminal_reached"]
+    assert not {"zimm", "rouse_screened"} & allowed
+
+    # PS105 - same chemistry, plateau only 0.16 decades: it must NOT fire.
+    # A narrow plateau is weak evidence of few entanglements, never a positive
+    # observation of many, so the unentangled classes stay on the ballot.
+    rec = d["PS105"]
+    feats, allowed = signature_features(rec["omega"], rec["Gp"], rec["Gpp"])
+    assert not feats["confident_entangled"]
+    assert {"zimm", "rouse_screened"} <= allowed
+
+
+def test_every_feature_a_discard_rule_names_is_actually_exported():
+    """A rule the report cannot read is a silent deletion.
+
+    `confident_entangled` is built from `plateau_width` and `spectrum_above`,
+    which were LOCALS in signature_features() and never reached `feats`. The
+    report's rule table therefore could not name that discard and fell through
+    to "a pre-filter rule excluded them" - in the layer whose whole purpose is
+    turning a silent deletion into an instruction. This asserts the contract
+    directly, so a future rule keyed off a private local fails here.
+    """
+    from rheofp.report import _DISCARD_RULES
+
+    rec = load_npz("data/katzarova2018.npz")["PS392"]
+    feats, _ = signature_features(rec["omega"], rec["Gp"], rec["Gpp"])
+    for flag, (_, observed, _why) in _DISCARD_RULES.items():
+        assert flag in feats, f"rule {flag!r} keys off a feature not exported"
+        # the wording is a format string over feats - it must render
+        observed.format(**feats)

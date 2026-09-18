@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import numpy as np
 from scipy.optimize import minimize, nnls
+from scipy.special import gamma as _gamma_fn, gammaincc, polygamma
 
 # eq 12 coefficients (best fit, Z = 2..100)
 C1, C2, C3, C4, C5 = 1.69, 4.17, -1.55, 2.0, -1.24
@@ -69,17 +70,50 @@ def mu_of_t(t, Z, te):
         rep += (1.0 / p**2) * np.exp(-t * p**2 / tdf)
     rep *= 8 * Gt / np.pi**2
     es = eps_star(Z, te)
-    epsg = np.logspace(np.log10(es), np.log10(es) + 13, 4000)
-    w = 0.306 / (Z * te**0.25) * epsg**(-1.25)
-    # The early-time term is int w(eps) exp(-eps t) d(eps) on a fixed eps grid.
-    # This per-t loop LOOKS like the obvious thing to vectorize. It is not:
-    # measured 2026-09-16 at n_t=400, one (n_t x n_eps) outer product is 3x
-    # SLOWER (11 ms -> 33 ms) because the block is ~13 MB and misses cache,
-    # and chunking over t peaks at only 1.13x (chunk=8). All variants are
-    # bit-identical. Leave the loop alone - the cost here is the 4000-point
-    # eps grid, not Python overhead.
-    early = np.array([np.trapezoid(w * np.exp(-epsg * tt), epsg) for tt in t])
+    early = _early_term(t, Z, te, es)
     return rep + early
+
+
+def _early_term(t, Z, te, es):
+    """Early-time (eq 13) term, in CLOSED FORM.
+
+        int_{es}^{inf} A eps^-1.25 exp(-eps t) d(eps)
+          = A t^0.25 Gamma(-1/4, es t),        A = 0.306 / (Z te^0.25)
+
+    by the substitution u = eps t. The integral is scale-free: it depends on
+    (es t) alone, so there is nothing to discretize.
+
+    >>> WHY THIS IS NOT THE VECTORIZATION THAT WAS ALREADY REJECTED <<<
+
+    A previous note here (2026-09-16) recorded that turning the per-t trapezoid
+    loop into one (n_t x n_eps) outer product measured 3x SLOWER, and concluded
+    "the cost here is the 4000-point eps grid, not Python overhead. Leave the
+    loop alone." That conclusion was right, and this change agrees with it: it
+    does not vectorize the quadrature, it DELETES the eps grid entirely -
+    exactly the cost that note identified as the real one.
+
+    ACCURACY: this is strictly MORE accurate, not a speed-for-error trade. The
+    old 4000-point trapezoid carried ~1.3e-5 relative error against this
+    closed form, and refining its grid converges TO this value at the clean
+    second-order rate (measured relerr 1.33e-5 / 8.3e-7 / 5.2e-8 / 3.2e-9 at
+    n = 4000 / 16000 / 64000 / 256000). So the discrepancy was the trapezoid
+    rule's, and the closed form is the exact integral it was approximating.
+
+    scipy's `gammaincc` requires a > 0, while a = -1/4 here; the standard
+    recurrence Gamma(a,x) = (Gamma(a+1,x) - x^a e^-x) / a shifts it into range.
+    """
+    A = 0.306 / (Z * te**0.25)
+    x = es * np.asarray(t, float)
+    a = -0.25
+    ap = a + 1.0                       # 0.75, inside gammaincc's domain
+    with np.errstate(divide="ignore", invalid="ignore", under="ignore"):
+        upper = (gammaincc(ap, x) * _gamma_fn(ap) - x**a * np.exp(-x)) / a
+        early = A * np.asarray(t, float)**0.25 * upper
+    # t = 0 gives x = 0, where x^a diverges; the integral there is finite
+    # (Gamma(-1/4, 0) diverges but t^0.25 -> 0 faster). Both limits are
+    # unreachable from the callers' log-spaced grids, so guard rather than
+    # special-case.
+    return np.where(np.isfinite(early), early, 0.0)
 
 
 def _sample_mobilities(Z, te, nseg, rng):
@@ -148,19 +182,82 @@ def R_of_t(t, Z, te, cnu, nchains=60, rng=None):
     return R / R[0] if R[0] > 0 else R
 
 
+# Modes p = Zi..P of the 3rd sum are summed term by term; everything above is
+# added in closed form (see _Gstar_hf_rouse). P is chosen per call, because the
+# tail expansion is in powers of (w tau_p) and is only valid once that is small.
+#
+# HF_P_SPLIT is the FLOOR on P: measured against a 6-million-term partial sum,
+# P = 2000 gives 6e-6 (G') and 4e-5 (G") decades, while P = 1000 degrades to
+# ~1e-2. HF_TAIL_WT is the other half of the rule - P is raised until
+# w tau_P <= HF_TAIL_WT at every frequency. Without that, a corner with large
+# tau_R (w tau_R/2 reaches ~8e6 at Z = 2, tau_d = 1e5 s) leaves w tau_P ~ 2 at
+# p = 2000, the alternating series diverges instead of converging, and the
+# G' correction overshoots to NEGATIVE moduli. Caught by the bounds sweep in
+# test_hf_rouse_is_finite_and_positive_across_the_fitting_bounds.
+HF_P_SPLIT = 2000
+HF_TAIL_WT = 0.05
+
+
 def _Gstar_hf_rouse(omega, Z, te, Ge):
-    """High-frequency Rouse contribution (3rd sum of eq 19), computed analytically."""
+    """High-frequency Rouse contribution (3rd sum of eq 19), computed analytically.
+
+    The sum runs p = Z..infinity over tau_p = tau_R/(2 p^2). It is evaluated as
+    an exact partial sum up to a split P (see HF_P_SPLIT / HF_TAIL_WT above)
+    plus a CLOSED-FORM tail, because tau_p -> 0 as 1/p^2 makes the summand a
+    smooth series in 1/p^2:
+
+        w tau_p = a / p^2,  a = w tau_R / 2
+
+        G"-tail = (Ge/Z) [ a psi1(P+1) - a^3 psi5(P+1)/120 + ... ]
+        G'-tail = (Ge/Z) [ a^2 psi3(P+1)/6 - a^4 psi7(P+1)/5040 + ... ]
+
+    from wt/(1+wt^2) = wt - wt^3 + ... and sum_{p>P} p^-2k = psi_{2k-1}(P+1)
+    / (2k-1)!, with psi_n the polygamma function.
+
+    >>> THIS FIXES A CONVERGENCE BUG, IT DOES NOT TRADE ACCURACY FOR SPEED <<<
+
+    The previous version truncated at p_max = sqrt(tau_R wmax / 2e-4), i.e.
+    where w tau_p = 1e-4 at the TOP of the window, and summed nothing beyond.
+    That ladder is not converged: G" is a sum of terms ~ a/p^2, whose tail
+    falls off only as 1/P, so doubling p_max kept moving G" by ~2e-3 decades
+    each time (measured 1.97e-3 / 9.81e-4 / 4.90e-4 / 2.45e-4 at p_max x2 /x4
+    /x8 /x16). Against a 6-million-term reference the old code sits at
+    **3.87e-3 decades in G"**, which is not negligible next to the ~0.03
+    digitization floor on real data.
+
+    Measured against that same reference, this hybrid gives **4.3e-5** in G"
+    and 6.2e-6 in G' - about 90x more accurate - while summing far fewer
+    terms: 2000 in the common case, against up to 91324 for the old cutoff in
+    the corner where tau_R is largest. (In that same corner the adaptive rule
+    below raises P to ~13000, so the saving there is ~7x rather than ~45x -
+    the point is that P is now set by what the TAIL needs, not by an
+    arbitrary 1e-4 cutoff that never converged.)
+
+    A PLAIN CAP WAS TRIED FIRST AND REJECTED: simply clipping p_max costs
+    0.096 decades in G" at 4000 modes and still 0.014 at 20000, because it
+    discards the tail instead of accounting for it. (Note that
+    solutions.model_reptation's REPT_MODE_COUNT_CAP = 4000 is exactly such a
+    cap - it carries that error, and that model is no longer shipped.)
+    """
     omega = np.atleast_1d(omega)
     Zi = int(round(Z))
     tR = tau_R(Z, te)
-    wmax = omega.max()
-    p_max = int(np.sqrt(tR * wmax / (2 * 1e-4))) + 1
-    p_max = max(p_max, Zi)
-    p_hf = np.arange(Zi, p_max + 1)
+    a = omega * tR / 2.0
+
+    # Raise the split until the tail expansion's small parameter really is
+    # small at every frequency: w tau_P = a/P^2 <= HF_TAIL_WT.
+    P = max(HF_P_SPLIT, Zi, int(np.sqrt(a.max() / HF_TAIL_WT)) + 1)
+    p_hf = np.arange(Zi, P + 1, dtype=float)
     tau_p = tR / (2.0 * p_hf**2)
     wt = omega[:, None] * tau_p[None, :]
     Gp = (Ge / Z) * (wt**2 / (1 + wt**2)).sum(axis=1)
     Gpp = (Ge / Z) * (wt / (1 + wt**2)).sum(axis=1)
+
+    # Closed-form remainder for p > P.
+    Gp += (Ge / Z) * (a**2 * polygamma(3, P + 1) / 6.0
+                      - a**4 * polygamma(7, P + 1) / 5040.0)
+    Gpp += (Ge / Z) * (a * polygamma(1, P + 1)
+                       - a**3 * polygamma(5, P + 1) / 120.0)
     return Gp, Gpp
 
 

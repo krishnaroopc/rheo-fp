@@ -7,6 +7,60 @@ left off", this is where to look. Update + commit this file as items complete.
 
 Last updated: **2026-09-17 (end of session).**
 
+# >>> RESUME HERE (after the 2026-09-17/18 reboot). DO THIS FIRST. <<<
+
+**THE NEXT STEP, decided by the user before the reboot: measure whether
+`N_RESTARTS` can come down from 12.** Everything below in this file is
+context; this is the task.
+
+**Why.** On real Katzarova curves the `reptation` fit CONVERGES BY RESTART 2 -
+restarts 3-12 cost 40-60 s each and change nothing at all (PS392 identical
+from restart 1; PS105 from restart 2; rms and Z identical to 4 dp at 2, 4, 8
+and 12). `N_RESTARTS` is roughly half of every `identify()` call, and
+`identify()` is ~88 s/curve, which is why the test suite now takes hours
+(test_report.py alone ran 104 min before being stopped; the full
+identify()-heavy group was 2h45m).
+
+**Why it was NOT just done.** `N_RESTARTS = 12` in `rheofp/fitting/identify.py`
+is BANK-WIDE. The measurement above is n=2 curves of ONE model. The 5-parameter
+models (`branched`, `comb`) have a harder search than reptation's k=3 and are
+the ones most likely to actually need the restarts. Lowering it blind could
+change which class is reported - a science change wearing a speed change's
+clothes, and exactly the failure mode this project keeps catching.
+
+**How to do it - the repo's standard before/after protocol** (same shape as
+`scripts/check_star_cannibalisation.py` / `check_comb_cannibalisation.py`):
+1. Pre-register the criterion BEFORE running - e.g. "adopt the lower value
+   only if EVERY class's winner is unchanged on n=30 planted curves/class AND
+   real data holds 6/6". Commit that doc first. **Gate the change on the
+   check, not the other way round** - the tie-rule sequencing mistake of
+   2026-09-17 is recorded below.
+2. Score identical planted curves (same seeds) at `n_restarts` = 12 vs the
+   candidate (try 4, and 3 or 2), for ALL TEN classes, not just reptation.
+   `identify()` already takes `n_restarts=`, so no code change is needed to
+   measure - pass it.
+3. Score the real-data benchmark both ways as well.
+4. Only then change the constant, if the criterion passed.
+
+**Cheap and worth doing in the same run:** the star fits are the second-biggest
+cost (~9-12 s each), so record star's numbers too.
+
+---
+
+**BEFORE ANY OF THAT, one loose end:** the working tree has TEN modified files
+and **nothing is committed**, and the full suite has NOT been run since
+`identify.py` was edited. Verified so far: 64 physics/generator tests pass;
+the 4 rewritten `test_report.py` tests + 1 control pass; the 2 new discard pins
+pass; Katzarova real data reproduces exactly. NOT verified: the rest of
+`test_report.py` (stopped at 104 min by user request), `test_stack`,
+`test_neural_report`, `test_star`, `test_comb`.
+**A full `uv run pytest` is the thing that would clear this - and it is
+precisely what the restart measurement above would make affordable.** One
+sensible order: do the restart check first (it needs no commit), and if it
+passes, the full suite afterwards costs half as much.
+
+---
+
 # >>> RESUME HERE. Read this block first, then ask the user which way to go. <<<
 
 **Repo state: clean and pushed.** `c5ec4df` on `main`. Nothing half-finished in
@@ -19,13 +73,97 @@ the working tree, nothing running.
   class for short chains).
 - A noise-aware tie rule was built, measured, and **REJECTED** on its own
   pre-registered criteria. Code kept, call site disabled.
+- **`tube.py` made ~4x faster AND more accurate** - see the block below.
 
-**>>> THE ONE THING NOT DONE: THE FULL TEST SUITE HAS NOT BEEN RUN SINCE THE
-REPTATION SWAP. <<<** `tests/test_network.py` passed on its own; everything
-else is unverified against the new bank entry. **Run `uv run pytest` before
-trusting anything or building on top of it.** Budget for it: `identify()` now
-costs ~160 s/curve, so the suite will take far longer than its old ~22 min.
-A run was started and killed as stale (it predated the tie-rule revert).
+**>>> tube.py: TWO CLOSED FORMS REPLACED TWO BRUTE-FORCE LOOPS (2026-09-17)**
+
+`identify()` went from **348 s/curve to ~88 s** with the science unchanged.
+Neither change trades accuracy for speed; both are strictly MORE accurate,
+because each replaces a truncated numerical approximation with the exact
+expression it was approximating.
+
+1. **`mu_of_t`'s early term** (eq 13) was a 400-iteration Python loop of
+   4000-point trapezoids. It is a scale-free integral with a closed form:
+   `A t^0.25 Gamma(-1/4, es*t)`. The old quadrature carried ~1.3e-5 relative
+   error and converges TO the closed form as its grid refines (1.33e-5 /
+   8.3e-7 / 5.2e-8 / 3.2e-9 at n = 4k/16k/64k/256k). Now in `_early_term`.
+   NOTE: this does NOT contradict the 2026-09-16 note that said "don't
+   vectorize this loop" - that note correctly identified the eps GRID as the
+   cost, and this deletes the grid rather than vectorizing over it.
+
+2. **`_Gstar_hf_rouse` was not converged** - a genuine accuracy BUG, not just
+   slowness. The 3rd sum of eq 19 has a 1/P remainder, so its cutoff at
+   `p_max = sqrt(tau_R*wmax/2e-4)` left **3.87e-3 decades of error in G"**,
+   and doubling p_max kept moving the answer (1.97e-3 / 9.81e-4 / 4.90e-4 /
+   2.45e-4). Now an exact partial sum + a polygamma tail: **4.3e-5 decades**,
+   ~90x better, while summing ~45x fewer terms.
+   A PLAIN CAP WAS TRIED AND REJECTED (0.096 dec at 4000 modes, 0.014 at
+   20000) - the tail must be accounted for, not discarded. Note
+   `solutions.model_reptation`'s `REPT_MODE_COUNT_CAP = 4000` IS such a cap
+   and carries that error; it is no longer the shipped model.
+
+**A regression this introduced and fixed, worth remembering:** a FIXED split
+point applies the tail expansion where its small parameter is not small
+(Z=2, tau_d=1e5 puts w*tau_p ~ 2 at p=2000) - the alternating series then
+diverges and **G' goes NEGATIVE**. The split is now raised until
+w*tau_P <= 0.05. Pinned by a bounds sweep over all of `REP_BNDS`.
+
+**Effect on real data (Katzarova 2018), measured:** Z = 28.9/16.1/9.4 against
+true 29.5/15.5/7.9, unchanged from before. One margin moved: **PS105 now goes
+to `reptation`** (rms 0.0205 vs branched 0.0207, dAICc 7.2 the other way),
+where it previously went to `branched` at dAICc 12.1. PS392 and PS206 still
+go to `branched` at dAICc 51.5 and 27.7, so the BSW fault below is NOT
+resolved - it is now 2/3 rather than 3/3.
+
+**Also measured, NOT acted on (needs a user decision):** on real curves the
+reptation fit converges by **restart 2** - restarts 3-12 cost 40-60 s and
+change rms/Z not at all (PS392 identical from restart 1; PS105 from restart
+2). Dropping `N_RESTARTS` from 12 would roughly halve `identify()` again, but
+it is BANK-WIDE and would perturb every other class, so it is a science call,
+not a speed fix. n=2 curves - measure properly before changing it.
+
+**>>> TEST SUITE NOW FULLY RUN: 272 passed, 4 FAILED, 2 skipped. <<<**
+The 4 failures are ALL in `test_report.py`, all one root cause, and they are
+**pre-existing fallout from `9a05d61`, not from the tube.py work** (that commit
+removed the `wide_plateau -> discard reptation` rule and did NOT update
+`test_report.py`; `git diff` for the tube.py session touches neither
+`identify.py` nor `report.py`). This is audit item 6, now demonstrated by a
+failing test instead of an argument.
+
+  FAILED test_contest_fits_a_class_the_prefilter_struck_off
+  FAILED test_discards_are_reported_with_a_way_to_lift_them
+  FAILED test_an_unopposed_winner_after_an_absence_discard_is_linked_to_it
+  FAILED test_the_link_ignores_discards_that_rest_on_a_positive_observation
+
+All four assert `"reptation" not in out["allowed"]` (or depend on that
+discard firing). **Nothing discards `reptation` any more**, so: `rep["discards"]`
+is now empty on Pivokonsky E, and the `unopposed_after_discard` link never
+fires. The tests are asserting the OLD behaviour; the code is correct and the
+tests are stale. **Do not "fix" this by reinstating the discard** - it was
+removed on purpose (it was a molecular-weight cutoff wearing a shape test's
+clothes, and it deleted the true class for short chains).
+
+What actually needs doing, and it is the same fix as audit item 6:
+  - `report.py`'s `_DISCARD_RULES` still carries a dead `has_plateau ->
+    reptation` entry. Delete it.
+  - The discard that CAN still fire (`confident_entangled` striking
+    zimm/rouse_screened) has NO entry, because `plateau_width` and
+    `spectrum_above` are locals in `signature_features` never exported into
+    `feats`. Export them and give that rule an entry, or users keep getting
+    "a pre-filter rule excluded them".
+  - Then rewrite these 4 tests against the CURRENT rule set.
+
+**Earlier partial result, superseded but consistent:**
+`tests/test_tube.py + test_solutions.py + test_maxwell.py + test_synth.py`:
+**64 passed, 2 skipped in 1:02:41** against the FINAL code (tube.py closed
+forms + adaptive split). That is the physics/generator half.
+**Still unrun: test_report.py, test_network.py, test_stack.py,
+test_neural_report.py, test_star.py, test_comb.py, test_ml.py, test_data_io.py**
+- these hold most of the ~71 `identify()` call sites. A run was in flight when
+the session ended; **re-run `uv run pytest` and check.** Budget ~1-2 h:
+`identify()` is ~88 s/curve (was 348 s before the tube.py work, ~2 s before the
+reptation swap). Two earlier full runs were killed as stale (one predated the
+tie-rule revert, one predated the tube.py fix).
 
 **Two open directions. ASK THE USER - do not assume:**
 1. **Polymer blends** - the original request that started this whole thread

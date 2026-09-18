@@ -133,10 +133,18 @@ comparable - and it recovers **Z = 28.9/16.0/9.6 against true 29.5/15.5/7.9**.
 The old `model_reptation` is retained in the file but no longer shipped.
 Never caught earlier because **the 6/6 real-data benchmark contains no
 monodisperse linear melt** - the same blind spot that let the comb check pass
-with no star curve in its real-data set. Two consequences: `identify()` costs
-~160 s/curve (was ~2 s), and because `synth.py` imports the same registry the
+with no star curve in its real-data set. Two consequences: `identify()` got
+much slower (was ~2 s), and because `synth.py` imports the same registry the
 GENERATOR swapped too, so **the neural checkpoint is stale and every accuracy
 figure in this file predates it**.
+**Cost UPDATE 2026-09-17: `identify()` is ~88 s/curve, not the ~160 s first
+measured** - `tube.py`'s two brute-force inner loops were replaced by closed
+forms (a Gamma-function early term and a polygamma tail on eq 19's 3rd sum).
+Both are strictly MORE accurate than what they replaced; the second fixed a
+real convergence bug worth 3.9e-3 decades of G". Real-data results are
+unchanged except that **PS105 now returns `reptation`** (dAICc 7.2 over
+branched, was branched by 12.1), so the BSW fault below is 2/3, not 3/3.
+Details and the measured numbers are in `.claude-notes/next-actions.md`.
 
 **Batch 3 — polymer solutions**: two-layer architecture — spectral shape
 layer (Zimm/Rouse/reptation) plus concentration-scaling layer with exponents
@@ -186,7 +194,14 @@ monodisperse polystyrenes, `branched` beats the VERBATIM Likhtman-McLeish tube
 model on ALL THREE - rms 0.0250/0.0261/0.0207 against 0.0314/0.0300/0.0222, at
 dAICc 50.7/28.9/12.1 - and on the two longer chains that margin is **2.9x and
 2.1x the curves' own digitization scatter**, i.e. real resolvable structure and
-not noise. The AICc arithmetic was verified by hand and k=5 is correctly paid
+not noise.
+**>>> REQUALIFIED 2026-09-17: it is now 2/3, not 3/3. <<<** After `tube.py`'s
+convergence fix (see the reptation paragraph above) the shortest chain
+**PS105 returns `reptation`** - rms 0.0205 against branched's 0.0207, dAICc
+**7.2 the other way**, where it had been branched by 12.1. PS392 and PS206 are
+unmoved (dAICc 51.6 and 27.7 to `branched`), so the fault is REAL and still
+open on the two longer chains - but "on ALL THREE" is no longer true, and the
+smallest margin was partly an artifact of G" truncation error, not physics. The AICc arithmetic was verified by hand and k=5 is correctly paid
 for; BSW simply fits a real linear melt better than the correct physics does.
 This is the project's ACTIVE OPEN FAULT - see `.claude-notes/next-actions.md`,
 top section. Note the precedent it sits against: `comb` was VETOED for exactly
@@ -417,8 +432,17 @@ Katzarova's three linear melts - a monotone function of entanglement count, so
 a >= 1.0-decade threshold was a cutoff on MOLECULAR WEIGHT wearing a shape
 test's clothes, and it deleted the TRUE class from the ballot for the two
 shorter chains. It was never pinned by a test; it is now (the removal is).
-**Exactly ONE hard discard remains**, and it is sound-by-observation:
-`terminal_reached` removing the network classes.
+**TWO hard discards remain** (this said "exactly ONE" until 2026-09-17, which
+was simply wrong - the second had been there all along, pinned by no test):
+1. `terminal_reached` removes the network classes - flow was SEEN, and a
+   permanent network cannot flow at any temperature.
+2. `confident_entangled` removes `zimm` and `rouse_screened` - a plateau
+   >= 1 decade wide, with spectrum continuing above it AND terminal flow
+   below it, was SEEN, and an unentangled chain has no plateau at all.
+Both are sound by the project's own standard (a hard discard needs a POSITIVE
+observation). Both are now pinned by tests, and a third test asserts that
+every feature a discard rule names is actually exported into `feats` - the
+gap that made #2 unexplainable to users until 2026-09-17.
 
 ## Goals — ALL THREE COMPLETE as of 2026-09-01
 1. DONE. Restructured into the GitHub-ready `rheo-fp` package (rheofp/,
@@ -431,7 +455,9 @@ shorter chains. It was never pinned by a test; it is now (the removal is).
    regress) with a learned abstention head, on the frozen architecture.
 
 **Current state (2026-09-09, retrained) — these are 10-CLASS numbers.**
-**266 tests collected, 1 deselected as `slow`** (counted 2026-09-14). The
+**280 tests collected** (counted 2026-09-17, after the tie-rule tests, 3 new
+`tube.py` accuracy regressions and 2 new discard pins). The figure below was
+266 and had drifted; recount rather than trusting it. The
 previous figure here was 213, measured 2026-09-09 in 13:34 on the office PC
 (RTX A1000; the laptop is slower); the 33 tests of `tests/test_comb.py` were
 added 2026-09-14 and the rest is arithmetic — 194 after the step-4 tests, + 2

@@ -103,33 +103,54 @@ _DISCARD_RULES = {
         "an absence - if you believe your sample is a permanent network, the "
         "flow you measured needs explaining first.",
     ),
-    "has_plateau": (
-        frozenset({"reptation"}),
-        "no entanglement plateau at least a decade wide was found inside your "
-        "window",
-        "Reptation describes an ENTANGLED melt, whose defining signature is "
-        "that plateau. Widen the window - lower frequency to reach the "
-        "terminal end, higher to expose the plateau - if you believe this "
-        "melt is entangled. Be aware this discard reasons from an ABSENCE, "
-        "unlike the flow test above: a plateau can be missing because the "
-        "melt is unentangled, or simply because it lies outside the "
-        "frequencies you measured.",
+    # The `has_plateau -> discard reptation` entry that used to sit here was
+    # DELETED 2026-09-17. The rule it described was itself removed from
+    # identify() on 2026-09-16 (it was a cutoff on molecular weight wearing a
+    # shape test's clothes - `plateau_width` is a monotone function of Z, so it
+    # struck the TRUE class for short chains). Nothing discards `reptation` any
+    # more, so the entry could never fire; it survived only because the suite
+    # was not run after that commit, and four tests in test_report.py were
+    # still asserting the old behaviour.
+    "confident_entangled": (
+        frozenset({"zimm", "rouse_screened"}),
+        "an entanglement plateau {plateau_width:.2f} decades wide sits inside "
+        "your window with the spectrum continuing above it, AND terminal flow "
+        "is visible below it (G' slope {slope_Gp_lo:.2f}, G\" slope "
+        "{slope_Gpp_lo:.2f})",
+        "Zimm and Rouse describe UNENTANGLED chains, which have no "
+        "entanglement plateau at all - the modulus falls straight from the "
+        "glassy region to terminal flow. Seeing a plateau bounded by flow "
+        "below and more spectrum above is a positive observation of "
+        "entanglement, so these two are ruled out. If you believe your sample "
+        "is unentangled, the plateau you measured needs explaining first.",
     ),
 }
-# has_plateau fires the discard when FALSE, unlike terminal_reached which
-# fires when TRUE. (The rule itself keys off plateau width alone, while the
-# reported has_plateau feature also requires spectrum above the plateau, so
-# treat this as the reported approximation of the rule - hence the hedged
-# wording above rather than a claim about exactly which test tripped.)
-_INVERTED_RULES = frozenset({"has_plateau"})
+# Every surviving rule fires when its flag is TRUE, so this is empty. It is
+# kept because explain_discards() still consults it and because a future
+# absence-grounded rule would need it - see _ABSENCE_DISCARD_CLASSES below for
+# why that distinction is load-bearing rather than decorative.
+_INVERTED_RULES = frozenset()
 
-# Classes whose discard reasons from an ABSENCE (a plateau not seen) rather
+# Classes whose discard reasons from an ABSENCE (a feature not seen) rather
 # than from a positive observation (flow seen, which a permanent network
 # cannot do). Only these can be silently wrong in the direction that matters -
 # the feature might be missing because the material lacks it, or because the
 # window does not reach it - so only these are worth linking to an unopposed
 # winner. See the unopposed_after_discard item in challenge().
-_ABSENCE_DISCARD_CLASSES = frozenset({"reptation"})
+#
+# >>> EMPTY AS OF 2026-09-17, AND THAT IS THE CORRECT VALUE. <<<
+# It held {"reptation"} until the absence-grounded rule that struck reptation
+# was removed from identify() (2026-09-16). Both discards that survive -
+# terminal_reached and confident_entangled - rest on a POSITIVE observation,
+# so there is nothing left to link and `unopposed_after_discard` never fires.
+#
+# The machinery is deliberately KEPT rather than deleted. It encodes the
+# project's hardest-won reporting lesson (Santangelo L176: a struck class, a
+# 1.000-weight winner and an empty alternatives list each looked reassuring
+# alone and were an artefact together), and the moment any absence-grounded
+# discard is reintroduced this set is the one line that has to change. Deleting
+# it would mean rediscovering that lesson the same way.
+_ABSENCE_DISCARD_CLASSES = frozenset()
 
 # --- branched-vs-vitrimer-power-law-regime contradiction (2026-09-07) ------
 # Investigated in scripts/diagnose_sticky_models.py, next-actions 2b: on two

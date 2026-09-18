@@ -211,6 +211,12 @@ def signature_features(w, Gp, Gpp):
                        if lo_flat[:n_lo].sum() >= 2 else 0.0)
     median_tan_d = float(np.median(tan_d))
 
+    # Computed here rather than beside the pre-filter below, because it is
+    # exported as a feature and the discard and the report must read one value.
+    wide_plateau = plateau_width >= 1.0
+    confident_entangled = bool(wide_plateau and terminal_reached
+                               and spectrum_above)
+
     feats = {
         "slope_Gp_lo": slope_Gp_lo,
         "slope_Gpp_lo": slope_Gpp_lo,
@@ -221,14 +227,23 @@ def signature_features(w, Gp, Gpp):
         "tan_delta_spread": td_spread,
         "flat_decades_lo": float(flat_decades_lo),
         "median_tan_delta": median_tan_d,
+        # Exported because the SURVIVING zimm/rouse discard is built from
+        # these two, and report.explain_discards() can only name a rule whose
+        # inputs reach it. Without them that discard fell through to the
+        # useless "a pre-filter rule excluded them" catch-all - in the layer
+        # whose entire job is turning a silent deletion into an instruction.
+        "plateau_width": float(plateau_width),
+        "spectrum_above": bool(spectrum_above),
+        # The composite flag the zimm/rouse discard actually keys off. Exported
+        # as its own feature so report._DISCARD_RULES can name that rule
+        # directly, rather than re-deriving the threshold and risking the two
+        # drifting apart.
+        "confident_entangled": bool(confident_entangled),
     }
 
     # Permissive pre-filter: only hard-discard a model when a robust feature
     # strongly contraindicates it; otherwise keep it and let AICc rank.
     allowed = set(ALL_MODELS.keys())
-
-    wide_plateau = plateau_width >= 1.0
-    confident_entangled = wide_plateau and terminal_reached and spectrum_above
 
     if confident_entangled:
         allowed -= {"zimm", "rouse_screened"}

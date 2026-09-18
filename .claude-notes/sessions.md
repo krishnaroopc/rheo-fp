@@ -2231,3 +2231,105 @@ next session.
 **Not started: polymer blends** - the request that began this thread. The
 validation data is already in hand (`data/katzarova2018.npz` carries HM/HL/ML,
 three 50/50 blends, alongside the three monodisperse samples).
+
+
+## 2026-09-17 (second session) — project recheck, then tube.py made 4x faster AND more accurate
+
+**Asked for:** a full recheck of the project (bugs, errors, inconsistencies),
+then "do 1" — fix the reptation fit cost, the top item of that audit.
+
+### The audit (findings, all reproduced by running, not read off the notes)
+1. **`identify()` cost 348 s/curve, not the ~160 s the notes estimated** —
+   and 337.9 s of it was the single `reptation` candidate (97%; next-slowest
+   `star` at 9.1 s). The FORWARD was never the problem (21 ms); the fit was
+   7832 forward calls, ~75% of them L-BFGS-B finite-difference gradients.
+2. **Suite effectively unrunnable** — reached test 47/275 and stalled in an
+   `identify()` call. ~71 such call sites => 7+ hours.
+3. **Checkpoint silently stale.** `synth.py` imports the same registry, so the
+   GENERATOR swapped too. Regenerating stored curves under the new forward:
+   **25/25 reptation curves differ, median 0.69 decades, max 5.18.** The
+   checkpoint's class list still matches, so it LOADS FINE and reports its old
+   0.9229 — the dangerous kind of stale. Same for the three
+   `docs/agreement_measurement_*.txt` runs whose constants are hard-coded in
+   `neural_report.py` and printed to users.
+   **Good news: regeneration is only ~2.3 min** (forward is fast; only fitting
+   is slow), so the retrain path is not blocked.
+4. **The swap did not achieve its goal** — `branched` still beat `reptation`
+   on Katzarova, reproducing CLAUDE.md's numbers exactly (0.0250 vs 0.0314,
+   dAICc 50.7). Z recovered correctly (28.9 vs true 29.5) and STILL lost.
+5. **A second hard discard exists that CLAUDE.md denies** ("exactly ONE
+   remains"): `confident_entangled` drops zimm/rouse_screened at
+   `identify.py:233`, **pinned by no test** — the same blind spot that let
+   `wide_plateau` survive.
+6. **`report.py` misreports discards.** `_DISCARD_RULES` still carries a
+   `has_plateau -> reptation` rule for a discard DELETED 2026-09-16 (now dead
+   code), while the discard that CAN fire has no entry, because
+   `plateau_width`/`spectrum_above` are locals never exported into `feats`.
+   Measured end to end: zimm/rouse come back as "a pre-filter rule excluded
+   them" in the layer whose whole purpose is actionable explanations.
+7. Minor: 275 tests collected, CLAUDE.md says 266. Dead local `tau_e` at
+   `solutions.py:292`.
+   Verified healthy: all three class lists agree at 10; bank-coverage
+   invariant holds; `report.py` imports no torch; tie rule correctly disabled
+   at the call site but still tested; `identify_stack` fits only the coldest
+   curve so stacks do NOT multiply the cost.
+
+### What was then fixed (item 1 only — the rest is still open)
+Two brute-force inner loops in `tube.py` replaced by CLOSED FORMS. **Neither
+trades accuracy for speed; both are strictly MORE accurate.**
+
+- **`mu_of_t`'s early term**: 400-iteration loop of 4000-point trapezoids ->
+  `A t^0.25 Gamma(-1/4, es t)` (scale-free integral, exact). The old
+  quadrature carried ~1.3e-5 relative error and CONVERGES TO the closed form
+  as its grid refines (1.33e-5/8.3e-7/5.2e-8/3.2e-9 at n=4k/16k/64k/256k), so
+  the discrepancy was the trapezoid rule's. Also checked: the old finite
+  13-decade upper limit contributed exactly 0, so extending to infinity is
+  not a change.
+  **This does NOT contradict the 2026-09-16 "don't vectorize this loop" note**
+  — that note correctly named the eps GRID as the cost; this deletes the grid.
+- **`_Gstar_hf_rouse` was NOT CONVERGED — a real accuracy bug**, found while
+  chasing speed. Eq 19's 3rd sum has a 1/P remainder, so its
+  `p_max = sqrt(tau_R wmax/2e-4)` cutoff left **3.87e-3 decades in G"**, and
+  doubling p_max kept moving it (1.97e-3/9.81e-4/4.90e-4/2.45e-4). Now exact
+  partial sum + polygamma tail: **4.3e-5**, ~90x better.
+  **A plain cap was tried and REJECTED** (0.096 dec at 4000 modes, 0.014 at
+  20000) — the tail must be accounted for, not discarded. Note
+  `solutions.model_reptation`'s `REPT_MODE_COUNT_CAP = 4000` IS such a cap and
+  carries that error; no longer shipped.
+
+**A regression I introduced and fixed, worth remembering:** a FIXED split
+point applies the tail where its small parameter is not small (Z=2,
+tau_d=1e5 leaves w*tau_p ~ 2 at p=2000) — the alternating series diverges and
+**G' goes NEGATIVE**. Silent: no warning, just wrong output at 3 of 45 corners.
+P is now raised until w*tau_P <= 0.05 (max 12910 over the whole fitting box).
+Found by sweeping REP_BNDS; now pinned by that sweep as a test.
+
+### Results
+- **`identify()` 348 s -> ~88 s (4x).** Per-fit on real curves 130 s -> ~50 s.
+- **Katzarova Z = 28.9/16.1/9.4** against true 29.5/15.5/7.9 — unchanged.
+- **ONE SCIENCE RESULT MOVED: PS105 now returns `reptation`** (rms 0.0205 vs
+  branched 0.0207, dAICc **7.2 the other way**, was branched by 12.1). PS392
+  and PS206 unmoved (dAICc 51.6, 27.7). **So the BSW fault is 2/3, not 3/3** —
+  still real on the two longer chains, but its smallest margin was partly G"
+  truncation error rather than physics. CLAUDE.md corrected; the old "on ALL
+  THREE" claim would now be false.
+- 3 new tests in `test_tube.py` (both closed forms vs brute force + the bounds
+  sweep). **8/8 pass.**
+- **`test_tube + test_solutions + test_maxwell + test_synth`: 64 passed,
+  2 skipped in 1:02:41** against the final code.
+
+### Measured but deliberately NOT acted on
+On real curves the reptation fit **converges by restart 2** — restarts 3-12
+cost 40-60 s and change rms/Z not at all (PS392 identical from restart 1,
+PS105 from restart 2). Dropping `N_RESTARTS` from 12 would roughly halve
+`identify()` again, but it is BANK-WIDE and would perturb every other class:
+a science call on n=2 curves, not a speed fix. Left for the user.
+
+### State at session end
+- **Uncommitted**: `rheofp/models/tube.py`, `tests/test_tube.py`, `CLAUDE.md`,
+  `.claude-notes/next-actions.md`, `.claude-notes/sessions.md`.
+- **Test suite only half verified** — the physics/generator files pass; the
+  `identify()`-heavy files (report, network, stack, neural_report, star, comb,
+  ml, data_io) were still running when the session ended. **Re-run
+  `uv run pytest`.**
+- **Audit items 3-7 are all still open** and none were touched.

@@ -96,12 +96,21 @@ def test_out_of_scope_material_is_flagged_as_a_least_bad_winner():
 
 
 def test_contest_fits_a_class_the_prefilter_struck_off():
-    """A discard is a claim, and it owes the user its numbers on request."""
-    s = load_npz("data/pivo2006.npz")["E"]
-    out = identify(s["omega"], s["Gp"], s["Gpp"])
-    assert "reptation" not in out["allowed"]      # struck off, never fitted
+    """A discard is a claim, and it owes the user its numbers on request.
 
-    c = contest(s["omega"], s["Gp"], s["Gpp"], "reptation", result=out)
+    Retargeted 2026-09-17: this used Pivokonsky E and `reptation`, but the
+    rule that struck `reptation` (a plateau narrower than a decade) was
+    REMOVED from identify() on 2026-09-16 - it was a cutoff on molecular
+    weight wearing a shape test's clothes. Nothing discards `reptation` now.
+    The capability under test is unchanged, so it is exercised against the
+    discard that DOES still fire: Katzarova PS392 is a real entangled
+    polystyrene whose plateau + flow strike the unentangled classes.
+    """
+    s = load_npz("data/katzarova2018.npz")["PS392"]
+    out = identify(s["omega"], s["Gp"], s["Gpp"])
+    assert "zimm" not in out["allowed"]           # struck off, never fitted
+
+    c = contest(s["omega"], s["Gp"], s["Gpp"], "zimm", result=out)
     assert not c["was_on_ballot"]
     assert np.isfinite(c["delta_aicc"]) and c["delta_aicc"] > 0
     assert np.isfinite(c["rms_log"])
@@ -110,15 +119,31 @@ def test_contest_fits_a_class_the_prefilter_struck_off():
 
 
 def test_discards_are_reported_with_a_way_to_lift_them():
-    s = load_npz("data/pivo2006.npz")["E"]
-    rep = explain(identify(s["omega"], s["Gp"], s["Gpp"]))
+    """Every discard that can fire must name itself, for BOTH surviving rules.
+
+    The fallback string is the real assertion here. It is what
+    explain_discards() emits for a rule it does not recognise, and for a while
+    that is exactly what a zimm/rouse discard produced: `confident_entangled`
+    is built from `plateau_width` and `spectrum_above`, which were locals in
+    signature_features() and never reached the report. A silent deletion
+    explained as "a pre-filter rule excluded them" is the failure this whole
+    layer exists to prevent.
+    """
+    s = load_npz("data/katzarova2018.npz")["PS392"]
+    out = identify(s["omega"], s["Gp"], s["Gpp"])
+    rep = explain(out)
     assert rep["discards"]
-    d = rep["discards"][0]
-    assert "reptation" in d["classes"]
-    assert d["because"] and d["reasoning"]
-    # Never a bare "a pre-filter rule excluded them" - that is the fallback
-    # for an unrecognised rule and means this table has drifted.
-    assert "a pre-filter rule excluded them" not in d["because"]
+
+    named = {c: d for d in rep["discards"] for c in d["classes"]}
+    # both rules fire on this curve: flow strikes the networks, plateau+flow
+    # strikes the unentangled pair
+    assert {"zimm", "rouse_screened", "cured_elastomer", "critical_gel"} <= set(named)
+    for cls in ("zimm", "cured_elastomer"):
+        d = named[cls]
+        assert d["because"] and d["reasoning"]
+        assert "a pre-filter rule excluded them" not in d["because"]
+    # and the zimm/rouse reason quotes the measurement it rests on
+    assert "decades wide" in named["zimm"]["because"]
 
 
 def test_vitrimer_absence_is_reported_as_a_fitted_result_not_a_deletion():
@@ -517,28 +542,36 @@ def test_the_comb_false_positive_rate_is_recorded_not_tuned_away():
 def test_an_unopposed_winner_after_an_absence_discard_is_linked_to_it():
     """The two facts have to be JOINED, not merely both printed.
 
-    Real case, Pivokonsky LDPE E: `reptation` is struck for want of a
-    decade-wide plateau, and `branched` then wins with nothing surviving
-    inside delta AICc 10 - so the alternatives section is empty and every
-    individual paragraph reads reassuringly. The margin the reader sees is a
-    margin over the candidates that were LEFT, and the report has to say so,
-    because a comparison that was never run cannot come out close.
+    The case that forced it, Santangelo L176: `reptation` was struck for want
+    of a decade-wide plateau, `star` then won at weight 1.000 with nothing
+    inside delta AICc 10, and all three facts read reassuringly alone.
+
+    >>> THIS LINK IS INERT AS OF 2026-09-17, AND THAT IS CORRECT. <<<
+    It fires only on an ABSENCE-grounded discard, and there are none left: the
+    plateau rule that struck `reptation` was removed 2026-09-16, so both
+    surviving discards rest on a positive observation. This test now pins the
+    WIRING - that the trigger set is empty and the link stays silent rather
+    than firing on a positive-observation discard - so that reintroducing an
+    absence-grounded rule without re-arming the link is a test failure rather
+    than a silent regression.
     """
-    s = load_npz("data/pivo2006.npz")["E"]
+    from rheofp.report import _ABSENCE_DISCARD_CLASSES
+
+    assert _ABSENCE_DISCARD_CLASSES == frozenset(), (
+        "an absence-grounded discard exists again - re-arm this test to check "
+        "the link actually fires, rather than that it stays quiet")
+
+    # A curve with a discard AND an unopposed winner: the link's other two
+    # preconditions are met, so only the absence test is holding it back.
+    s = load_npz("data/katzarova2018.npz")["PS392"]
     w, gp, gpp = s["omega"], s["Gp"], s["Gpp"]
     out = identify(w, gp, gpp)
     rep = explain(out, w=w, Gp=gp, Gpp=gpp)
 
-    # the preconditions the link reasons about, asserted rather than assumed
-    assert "reptation" not in out["allowed"]
-    assert all(r["delta"] > 10 for r in out["ranking"][1:])
-
-    linked = [c for c in rep["challenge"]
-              if c["kind"] == "unopposed_after_discard"]
-    assert len(linked) == 1
-    text = linked[0]["text"]
-    assert "reptation" in text and rep["winner"] in text
-    assert "contest(" in text          # names the way to actually check it
+    assert set(ALL_MODELS) - set(out["allowed"])        # something was struck
+    assert all(r["delta"] > 10 for r in out["ranking"][1:])   # and unopposed
+    assert not [c for c in rep["challenge"]
+                if c["kind"] == "unopposed_after_discard"]
 
 
 def test_the_link_does_not_fire_when_a_live_alternative_survived():
@@ -561,8 +594,13 @@ def test_the_link_ignores_discards_that_rest_on_a_positive_observation():
 
     MM1998 Ma36k reaches terminal flow, which strikes both network classes -
     and a permanent network cannot flow at any temperature, so that comparison
-    is not "missing", it is settled. Only the absence-grounded `reptation`
-    discard may be named here.
+    is not "missing", it is settled.
+
+    Rewritten 2026-09-17: this used to assert the link fired for `reptation`
+    and merely omitted the network classes. `reptation` is no longer
+    discardable, so the surviving claim is the one that always mattered - a
+    positive-observation discard must NEVER produce this alarm, whatever else
+    is true of the ranking.
     """
     s = load_npz("data/mm1998.npz")["PI4_Ma36k"]
     w, gp, gpp = s["omega"], s["Gp"], s["Gpp"]
@@ -572,9 +610,10 @@ def test_the_link_ignores_discards_that_rest_on_a_positive_observation():
     assert out["features"]["terminal_reached"]
     assert not {"cured_elastomer", "critical_gel"} & set(out["allowed"])
 
+    # the network classes were struck by an OBSERVATION, so no alarm - and in
+    # particular the report must not name them as a missing comparison
     linked = [c for c in rep["challenge"]
               if c["kind"] == "unopposed_after_discard"]
-    assert len(linked) == 1
-    text = linked[0]["text"]
-    assert "reptation" in text
-    assert "cured_elastomer" not in text and "critical_gel" not in text
+    assert not linked
+    joined = " ".join(c["text"] for c in rep["challenge"])
+    assert "never reached the fitting stage" not in joined

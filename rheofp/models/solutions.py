@@ -289,7 +289,9 @@ def model_sticky_reptation(w, theta):
     tau_rep = tau_st / p**2
     g_s = np.array([0.5 * Ge])
     tau_s_m = np.array([tau_s])
-    tau_e = tau_s / Z**2
+    # (a `tau_e = tau_s / Z**2` line sat here and was dead - never read. The
+    # Rouse ladder below is built on tau_s directly. Removed 2026-09-17; the
+    # forward output is unchanged.)
     q = np.arange(1, int(round(Z)) + 1)
     g_rouse = np.full_like(q, Ge / Z, dtype=float)
     tau_rouse = tau_s / q**2
