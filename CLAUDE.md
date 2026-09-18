@@ -142,8 +142,10 @@ measured** - `tube.py`'s two brute-force inner loops were replaced by closed
 forms (a Gamma-function early term and a polygamma tail on eq 19's 3rd sum).
 Both are strictly MORE accurate than what they replaced; the second fixed a
 real convergence bug worth 3.9e-3 decades of G". Real-data results are
-unchanged except that **PS105 now returns `reptation`** (dAICc 7.2 over
-branched, was branched by 12.1), so the BSW fault below is 2/3, not 3/3.
+unchanged except that **PS105 returns `reptation`** (dAICc 7.2 over branched,
+was branched by 12.1) - **but that flip is an artifact of `LM_RNG_SEED = 0`
+and was WITHDRAWN on 2026-09-18; the BSW fault is 3/3, not 2/3.** See the
+seed-sensitivity block below.
 Details and the measured numbers are in `.claude-notes/next-actions.md`.
 
 **Batch 3 — polymer solutions**: two-layer architecture — spectral shape
@@ -195,13 +197,26 @@ model on ALL THREE - rms 0.0250/0.0261/0.0207 against 0.0314/0.0300/0.0222, at
 dAICc 50.7/28.9/12.1 - and on the two longer chains that margin is **2.9x and
 2.1x the curves' own digitization scatter**, i.e. real resolvable structure and
 not noise.
-**>>> REQUALIFIED 2026-09-17: it is now 2/3, not 3/3. <<<** After `tube.py`'s
-convergence fix (see the reptation paragraph above) the shortest chain
-**PS105 returns `reptation`** - rms 0.0205 against branched's 0.0207, dAICc
-**7.2 the other way**, where it had been branched by 12.1. PS392 and PS206 are
-unmoved (dAICc 51.6 and 27.7 to `branched`), so the fault is REAL and still
-open on the two longer chains - but "on ALL THREE" is no longer true, and the
-smallest margin was partly an artifact of G" truncation error, not physics. The AICc arithmetic was verified by hand and k=5 is correctly paid
+**>>> The 2026-09-17 requalification to "2/3" is WITHDRAWN (2026-09-18).
+It is 3/3 again. <<<** After `tube.py`'s convergence fix the shortest chain
+**PS105 returned `reptation`** - rms 0.0205 vs branched's 0.0207, dAICc 7.2
+the other way - and that was read as the fault shrinking to 2/3. **It is not
+physics: it is the tube model's RNG draw.** `tube.R_of_t` estimates constraint
+release by SAMPLING `LM_NCHAINS = 20` chains at a fixed `LM_RNG_SEED = 0`.
+Re-running PS105 at seeds 0-4 gives **`reptation` on seed 0 ONLY**, and
+`branched` on 1/2/3/4 (dAICc +29.9/+1.7/+15.4/+58.1). reptation's rms swings
+**0.02045-0.02685** across those draws while `branched` is identical to five
+decimals on every one (BSW does no sampling). So the ~2e-4 rms margin that
+decided PS105 is **an order of magnitude below the forward model's own
+sampling noise** (~1.3e-2 decades at nchains=20, measured against an
+nchains=480 reference). PS392 and PS206 are STABLE - `branched` on 5/5 seeds
+at dAICc +51.6..+68.9 and +27.7..+44.8 - so **the BSW fault itself is
+untouched and is back to ALL THREE.** Script
+`scripts/check_tube_seed_sensitivity.py`; output
+`docs/tube_seed_sensitivity_2026-09-18.txt`.
+**General rule this establishes: any `reptation` margin smaller than ~1e-2
+decades of rms is a property of the seed, not of the material.** The AICc
+arithmetic was verified by hand and k=5 is correctly paid
 for; BSW simply fits a real linear melt better than the correct physics does.
 This is the project's ACTIVE OPEN FAULT - see `.claude-notes/next-actions.md`,
 top section. Note the precedent it sits against: `comb` was VETOED for exactly

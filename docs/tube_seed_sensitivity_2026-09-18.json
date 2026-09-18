@@ -1,0 +1,113 @@
+{
+  "PS392": [
+    {
+      "seed": 0,
+      "winner": "branched",
+      "rms_reptation": 0.031549021665821506,
+      "rms_branched": 0.024994023726942243,
+      "daicc_rept_minus_branch": 51.5779809535768
+    },
+    {
+      "seed": 1,
+      "winner": "branched",
+      "rms_reptation": 0.03370626266437906,
+      "rms_branched": 0.024994023726942243,
+      "daicc_rept_minus_branch": 67.45183927326991
+    },
+    {
+      "seed": 2,
+      "winner": "branched",
+      "rms_reptation": 0.03277540378412182,
+      "rms_branched": 0.024994023726942243,
+      "daicc_rept_minus_branch": 60.730565743102375
+    },
+    {
+      "seed": 3,
+      "winner": "branched",
+      "rms_reptation": 0.033909130910170907,
+      "rms_branched": 0.024994023726942243,
+      "daicc_rept_minus_branch": 68.89200023407443
+    },
+    {
+      "seed": 4,
+      "winner": "branched",
+      "rms_reptation": 0.03163423906669471,
+      "rms_branched": 0.024994023726942243,
+      "daicc_rept_minus_branch": 52.22537358174668
+    }
+  ],
+  "PS206": [
+    {
+      "seed": 0,
+      "winner": "branched",
+      "rms_reptation": 0.029837452213959385,
+      "rms_branched": 0.02611229261678154,
+      "daicc_rept_minus_branch": 27.686550006184348
+    },
+    {
+      "seed": 1,
+      "winner": "branched",
+      "rms_reptation": 0.030778251382888377,
+      "rms_branched": 0.02611229261678154,
+      "daicc_rept_minus_branch": 35.13709236709292
+    },
+    {
+      "seed": 2,
+      "winner": "branched",
+      "rms_reptation": 0.032046977548627606,
+      "rms_branched": 0.02611229261678154,
+      "daicc_rept_minus_branch": 44.83178629677877
+    },
+    {
+      "seed": 3,
+      "winner": "branched",
+      "rms_reptation": 0.03097068259599024,
+      "rms_branched": 0.02611229261678154,
+      "daicc_rept_minus_branch": 36.632944608583216
+    },
+    {
+      "seed": 4,
+      "winner": "branched",
+      "rms_reptation": 0.03103016193675299,
+      "rms_branched": 0.02611229261678154,
+      "daicc_rept_minus_branch": 37.09342369624176
+    }
+  ],
+  "PS105": [
+    {
+      "seed": 0,
+      "winner": "reptation",
+      "rms_reptation": 0.020451728519955813,
+      "rms_branched": 0.020699604844152297,
+      "daicc_rept_minus_branch": -7.210748993247535
+    },
+    {
+      "seed": 1,
+      "winner": "branched",
+      "rms_reptation": 0.023868340196032557,
+      "rms_branched": 0.020699604844152297,
+      "daicc_rept_minus_branch": 29.865770926506116
+    },
+    {
+      "seed": 2,
+      "winner": "branched",
+      "rms_reptation": 0.021223441118471846,
+      "rms_branched": 0.020699604844152297,
+      "daicc_rept_minus_branch": 1.6785824090351298
+    },
+    {
+      "seed": 3,
+      "winner": "branched",
+      "rms_reptation": 0.02247539347342939,
+      "rms_branched": 0.020699604844152297,
+      "daicc_rept_minus_branch": 15.434135225492241
+    },
+    {
+      "seed": 4,
+      "winner": "branched",
+      "rms_reptation": 0.02684714448561105,
+      "rms_branched": 0.020699604844152297,
+      "daicc_rept_minus_branch": 58.09134577879411
+    }
+  ]
+}

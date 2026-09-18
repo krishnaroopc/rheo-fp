@@ -5,59 +5,91 @@ kept in git so it syncs between the user's home and office PCs. When the user
 says something like "let's continue" / "do the next thing" / "pick up where we
 left off", this is where to look. Update + commit this file as items complete.
 
-Last updated: **2026-09-17 (end of session).**
+Last updated: **2026-09-18 (end of session).**
 
-# >>> RESUME HERE (after the 2026-09-17/18 reboot). DO THIS FIRST. <<<
+# >>> RESUME HERE (2026-09-18). DO THIS FIRST. <<<
 
-**THE NEXT STEP, decided by the user before the reboot: measure whether
-`N_RESTARTS` can come down from 12.** Everything below in this file is
-context; this is the task.
+**Last updated: 2026-09-18.** The 2026-09-17 plan below (measure whether
+`N_RESTARTS` can come down from 12) was investigated and is **SUPERSEDED**.
+Read this block before acting on anything further down.
 
-**Why.** On real Katzarova curves the `reptation` fit CONVERGES BY RESTART 2 -
-restarts 3-12 cost 40-60 s each and change nothing at all (PS392 identical
-from restart 1; PS105 from restart 2; rms and Z identical to 4 dp at 2, 4, 8
-and 12). `N_RESTARTS` is roughly half of every `identify()` call, and
-`identify()` is ~88 s/curve, which is why the test suite now takes hours
-(test_report.py alone ran 104 min before being stopped; the full
-identify()-heavy group was 2h45m).
+## What the 2026-09-18 session measured, and why the plan changed
 
-**Why it was NOT just done.** `N_RESTARTS = 12` in `rheofp/fitting/identify.py`
-is BANK-WIDE. The measurement above is n=2 curves of ONE model. The 5-parameter
-models (`branched`, `comb`) have a harder search than reptation's k=3 and are
-the ones most likely to actually need the restarts. Lowering it blind could
-change which class is reported - a science change wearing a speed change's
-clothes, and exactly the failure mode this project keeps catching.
+**1. `N_RESTARTS` was never the regression.** `git log -L` on that line shows
+it has been **12 since the first commit** (`54539be`) and has never changed.
+It cost nothing for the project's whole life. What changed was `9a05d61`
+(2026-09-17), which shipped the real Likhtman-McLeish tube model as
+`reptation` and took `identify()` from ~2 s/curve to ~348 s (now ~88 s after
+`b9ee434`). The constant is innocent; one model got ~170x more expensive.
 
-**How to do it - the repo's standard before/after protocol** (same shape as
-`scripts/check_star_cannibalisation.py` / `check_comb_cannibalisation.py`):
-1. Pre-register the criterion BEFORE running - e.g. "adopt the lower value
-   only if EVERY class's winner is unchanged on n=30 planted curves/class AND
-   real data holds 6/6". Commit that doc first. **Gate the change on the
-   check, not the other way round** - the tie-rule sequencing mistake of
-   2026-09-17 is recorded below.
-2. Score identical planted curves (same seeds) at `n_restarts` = 12 vs the
-   candidate (try 4, and 3 or 2), for ALL TEN classes, not just reptation.
-   `identify()` already takes `n_restarts=`, so no code change is needed to
-   measure - pass it.
-3. Score the real-data benchmark both ways as well.
-4. Only then change the constant, if the criterion passed.
+**2. The cost is ONE model, so a bank-wide change is the wrong lever.**
+Profiled on a real curve (pivo2006/E, 90 pts, 58.5 s total):
 
-**Cheap and worth doing in the same run:** the star fits are the second-biggest
-cost (~9-12 s each), so record star's numbers too.
+    reptation          52.40 s   89.5%
+    star                4.36 s    7.4%
+    branched            1.03 s    1.8%
+    the other seven     0.76 s    1.3%
 
----
+Cutting `N_RESTARTS` bank-wide would risk all ten searches - including the
+k=5 models the old plan worried about - to save **under a second** on eight
+of them. `identify()` has no measurable overhead outside the fits themselves.
 
-**BEFORE ANY OF THAT, one loose end:** the working tree has TEN modified files
-and **nothing is committed**, and the full suite has NOT been run since
-`identify.py` was edited. Verified so far: 64 physics/generator tests pass;
-the 4 rewritten `test_report.py` tests + 1 control pass; the 2 new discard pins
-pass; Katzarova real data reproduces exactly. NOT verified: the rest of
-`test_report.py` (stopped at 104 min by user request), `test_stack`,
-`test_neural_report`, `test_star`, `test_comb`.
-**A full `uv run pytest` is the thing that would clear this - and it is
-precisely what the restart measurement above would make affordable.** One
-sensible order: do the restart check first (it needs no commit), and if it
-passes, the full suite afterwards costs half as much.
+**3. Inside `reptation` there is no single slow function.** `tube.Gstar` is
+98.9% of the fit but each call is only ~7-12 ms; the optimiser makes **4,284
+of them** for 12 restarts. Within a call: `R_of_t`/`_prony_modes` ~70%,
+`_Gstar_hf_rouse` ~28%. The functions optimised on 2026-09-17 (`mu_of_t`,
+`_early_term`) are now genuinely free - that work landed.
+
+**4. >>> THE ACTUAL FINDING: the tube model's precision is below the margins
+the bank adjudicates. <<<** `R_of_t` SAMPLES `LM_NCHAINS = 20` chains at a
+fixed `LM_RNG_SEED = 0`. Convergence of `Gstar` vs an nchains=480 reference:
+
+    nchains    dG'(dec)   dG''(dec)
+        20     1.5e-02    1.3e-02     <- SHIPPED
+        60     3.3e-03    6.9e-03
+       240     3.9e-03    3.6e-03
+
+Error falls as ~1/sqrt(n) and is non-monotonic - there is no knee to exploit,
+and 60->20 saves only ~30% of a call while tripling the error. **So `nchains`
+is not a speed lever either, and if anything it is set too LOW.**
+
+**Consequence, measured (`scripts/check_tube_seed_sensitivity.py`, output in
+`docs/tube_seed_sensitivity_2026-09-18.txt`): PS105's class call flips on the
+seed.**
+
+    PS392   branched 5/5 seeds   dAICc +51.6..+68.9   STABLE
+    PS206   branched 5/5 seeds   dAICc +27.7..+44.8   STABLE
+    PS105   reptation on seed 0 ONLY; branched on 1,2,3,4   *** FLIPS ***
+
+reptation's rms swings 0.02045-0.02685 across draws; `branched` is identical
+to 5 dp on every seed (BSW does no sampling). **The 2026-09-17 claim that the
+BSW fault was "2/3, not 3/3" is WITHDRAWN - it is 3/3.** PS392/PS206 are far
+above the noise, so **the BSW fault itself stands untouched**; only PS105's
+requalification is gone. `CLAUDE.md` is corrected in both places.
+
+**Rule this establishes: any `reptation` margin below ~1e-2 decades of rms is
+a property of `LM_RNG_SEED`, not of the material.**
+
+## What is actually next - ASK THE USER, do not assume
+
+- **(a) Blends** - the original request that started this thread, still not
+  started. Katzarova's three 50/50 blends are already digitized and committed.
+  Unaffected by any of the above.
+- **(b) Decide what to do about the reptation noise floor.** Options: raise
+  `LM_NCHAINS` (more trustworthy, SLOWER - the opposite of the speed goal);
+  or leave it and have `report.py` refuse to call a `reptation`-vs-`branched`
+  margin below the noise floor. The second is cheap and in keeping with the
+  project's "report the ambiguity" precedent for vitrimers. **Not decided.**
+- **(c) Speed.** No safe large win was found. `reptation` restarts 1/2/12 gave
+  an IDENTICAL rms on the profiled curve, so a reptation-only restart cut is
+  the best remaining candidate (~5x on that model) - but it is now a lower
+  priority than (b), because a cheaper wrong-precision fit is not progress.
+- **(d) The full test suite has still not been run since `b9ee434`.**
+
+**Nothing was changed in the code. `N_RESTARTS` is still 12, `LM_NCHAINS`
+still 20.** The 2026-09-17 pre-registered check in
+`scripts/check_restart_count.py` is untouched and still valid if (c) is ever
+resumed - but note its criterion is bank-wide and now looks mis-aimed.
 
 ---
 

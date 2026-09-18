@@ -1,0 +1,32 @@
+shipped LM_NCHAINS=20, LM_RNG_SEED=0
+
+PS392:
+  seed winner              rms_win   rms_rept rms_branch
+     0 branched            0.02499    0.03155    0.02499   dAICc(rept-branch)=  +51.58
+     1 branched            0.02499    0.03371    0.02499   dAICc(rept-branch)=  +67.45
+     2 branched            0.02499    0.03278    0.02499   dAICc(rept-branch)=  +60.73
+     3 branched            0.02499    0.03391    0.02499   dAICc(rept-branch)=  +68.89
+     4 branched            0.02499    0.03163    0.02499   dAICc(rept-branch)=  +52.23
+  -> STABLE across seeds: ['branched']
+
+PS206:
+  seed winner              rms_win   rms_rept rms_branch
+     0 branched            0.02611    0.02984    0.02611   dAICc(rept-branch)=  +27.69
+     1 branched            0.02611    0.03078    0.02611   dAICc(rept-branch)=  +35.14
+     2 branched            0.02611    0.03205    0.02611   dAICc(rept-branch)=  +44.83
+     3 branched            0.02611    0.03097    0.02611   dAICc(rept-branch)=  +36.63
+     4 branched            0.02611    0.03103    0.02611   dAICc(rept-branch)=  +37.09
+  -> STABLE across seeds: ['branched']
+
+PS105:
+  seed winner              rms_win   rms_rept rms_branch
+     0 reptation           0.02045    0.02045    0.02070   dAICc(rept-branch)=   -7.21
+     1 branched            0.02070    0.02387    0.02070   dAICc(rept-branch)=  +29.87
+     2 branched            0.02070    0.02122    0.02070   dAICc(rept-branch)=   +1.68
+     3 branched            0.02070    0.02248    0.02070   dAICc(rept-branch)=  +15.43
+     4 branched            0.02070    0.02685    0.02070   dAICc(rept-branch)=  +58.09
+  -> *** FLIPS *** across seeds: ['branched', 'reptation']
+
+wrote C:/Users/krish/AppData/Local/Temp/claude/c--Users-krish-rheo-fp/6ee6b98c-1f5f-47b5-80a3-801987ec4a7b/scratchpad/seed_sens.json
+
+[exited with code 0]

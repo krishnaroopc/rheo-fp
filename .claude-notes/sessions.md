@@ -2333,3 +2333,31 @@ a science call on n=2 curves, not a speed fix. Left for the user.
   ml, data_io) were still running when the session ended. **Re-run
   `uv run pytest`.**
 - **Audit items 3-7 are all still open** and none were touched.
+
+## 2026-09-18 — the reptation noise floor (measurement only, no code change)
+
+Picked up `next-actions.md`'s stated next step (measure whether `N_RESTARTS`
+can drop from 12). **The step was investigated and superseded**; nothing in
+the code changed.
+
+- **`N_RESTARTS` has been 12 since the first commit** (`git log -L`, one
+  entry, `54539be`). It never caused the slowdown. `9a05d61` did, by shipping
+  the real tube model as `reptation`.
+- **Profiled where the ~88 s/curve goes**: `reptation` 89.5%, `star` 7.4%,
+  everything else <3%. A bank-wide restart cut would risk all ten searches to
+  save ~0.76 s on eight of them - the wrong lever. No overhead outside fits.
+- **Inside reptation**: no single slow function. `Gstar` is ~7-12 ms; the
+  optimiser calls it 4,284 times for 12 restarts.
+- **The real finding**: `R_of_t` samples `LM_NCHAINS = 20` chains at fixed
+  `LM_RNG_SEED = 0`, carrying ~1.3e-2 decades of error, while the bank
+  adjudicates margins of ~2e-4. **PS105's class flips on the seed** -
+  `reptation` on seed 0 only, `branched` on 1-4. The 2026-09-17 "BSW fault is
+  2/3" requalification is **withdrawn; it is 3/3**. PS392/PS206 stable on 5/5
+  seeds, so the fault itself is untouched.
+- Corrected both PS105 passages in `CLAUDE.md` and rewrote the resume block.
+- Added `scripts/check_tube_seed_sensitivity.py` +
+  `docs/tube_seed_sensitivity_2026-09-18.{txt,json}`.
+
+Open for the user: (a) blends, (b) what to do about the noise floor (raise
+`LM_NCHAINS`, or have `report.py` refuse sub-noise margins), (c) speed, now
+lower priority, (d) full suite still unrun since `b9ee434`.
