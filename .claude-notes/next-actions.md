@@ -5,9 +5,82 @@ kept in git so it syncs between the user's home and office PCs. When the user
 says something like "let's continue" / "do the next thing" / "pick up where we
 left off", this is where to look. Update + commit this file as items complete.
 
-Last updated: **2026-09-18 (end of session).**
+Last updated: **2026-09-18 (TDD session).**
 
-# >>> RESUME HERE (2026-09-18). DO THIS FIRST. <<<
+# >>> RESUME HERE (2026-09-18, TDD session). DO THIS FIRST. <<<
+
+## TDD-DR was built, validated, and REJECTED. `tube.py` still ships.
+
+User asked whether the three new PDFs in `originals/` offered a faster
+`reptation`. They are van Ruymbeke & Keunings 2002 (`ma011271c.pdf`),
+Chaudhuri & Lele 2020 (`1_1_online.pdf`), and Liu et al. 2006
+(`1-s2.0-S0032386106005684-main.pdf`).
+
+**Chaudhuri is the wrong target for speed** - its model is TDD-DR for
+POLYDISPERSE/bimodal blends (eq 7 is a double integral over two MWDs plus a
+5-parameter GEX inversion), which is MORE work, not less. It solves the blend
+problem, i.e. open item (a), not this one. **van Ruymbeke** is the paper that
+answers the question: its Table 1 compares three kernels and section V picks
+des Cloizeaux TDD + double reptation, which is closed-form.
+
+**Built it: `rheofp/models/tdd.py`, 26 tests in `tests/test_tdd.py`, all
+passing.** Pre-registered in `docs/tdd_preregistration.md` (committed
+`c98ce33` BEFORE any fit); outcome recorded in the same file and in
+`docs/tdd_vs_tube_2026-09-18.json`; head-to-head script is
+`scripts/check_tdd_vs_tube.py`.
+
+**Result: P1 PASS, P2 PASS decisively, P3 FAIL 2/3, P4 outcome (c) = veto.**
+
+    sample   TDD rms   tube rms    diff      TDD-BSW   tube-BSW
+    PS392     0.0471    0.0315   +0.0155      +147.7      +51.6
+    PS206     0.0383    0.0298   +0.0085       +87.6      +27.7
+    PS105     0.0209    0.0205   +0.0005        -1.7       -7.2
+
+TDD is materially WORSE than the incumbent on the two longer chains (bar was
++0.005 dec) and makes the standing BSW fault ~3x worse. Not a fitting
+artifact - 10/30/60 restarts agree to 4 dp.
+
+**METHOD LESSON (cost me a wrong first run): score through `identify()`'s own
+`fit_model`, never a hand-rolled multi-restart loop.** The first version of
+`check_tdd_vs_tube.py` used one and made EVERY model look worse - `reptation`
+0.0446/0.0422, `branched` 0.0353/0.0369 - and did not reproduce the project's
+recorded numbers. The table above goes through `fit_model` and DOES reproduce
+them (tube-BSW +51.6/+27.7 against the recorded 50.7/28.9). Verdict was the
+same either way; only these numbers are quotable.
+
+**>>> THE TRAP, worth remembering. <<<** The binding constraint is `M*/Me`
+fixed at the paper's PS value of 8.7. Freeing it (k=4) gives rms
+0.0316/0.0335/0.0285 and **beats BSW 3/3** (dAICc -28.7/-25.6/-8.9) - exactly
+the result this project has wanted since 2026-09-17. **It was refused**:
+`M*/Me` pins to its bound at 60, and Z error blows out from +4.6%/+6.5% to
+**+50.2%/+60.4%**. That is winning by flexibility while destroying the one
+physical parameter the class exists to report - the `comb` veto exactly, and
+the same shape as the BSW fault itself. Do not revisit this without reading
+`docs/tdd_preregistration.md`; a test pins the decision.
+
+**What was gained even though the swap failed:**
+- **Independent confirmation of the cost diagnosis**: profiling every bank
+  candidate gives `reptation` **94.2%** of `identify()`'s runtime (4940 calls
+  x 10.67 ms of 56.0 s). Matches the 89.5% measured earlier by a different
+  route. Any speed work must target that one model.
+- `tdd.py` is a validated, fully deterministic, published-model implementation
+  **available for the BLEND class**, which is TDD-DR's real strength and is
+  open item (a). Chaudhuri & Lele is the recipe for that.
+- **A reusable referee**: quadrature of the exact definition
+  `G'(w) = w int G(t) sin(wt) dt`. It caught a Prony-ladder bug that passed
+  every shape test - the finite-difference ladder was 0.12-0.30 decades wrong
+  and did not converge. Use it whenever a model goes G(t) -> G*(w).
+- The bare TDD kernel has **no Rouse rise and no G'' minimum**; van Ruymbeke
+  add Rouse by a separate linear mixing rule (Table 2 eq 8). Same gap that
+  `star.py` had.
+
+**Still open, unchanged by this session:** (a) blends, (b) what to do about the
+reptation noise floor, (c) reptation-only restart cut as the remaining speed
+lever, (d) full suite run.
+
+---
+
+# >>> Earlier 2026-09-18 block (restart-count investigation) <<<
 
 **Last updated: 2026-09-18.** The 2026-09-17 plan below (measure whether
 `N_RESTARTS` can come down from 12) was investigated and is **SUPERSEDED**.

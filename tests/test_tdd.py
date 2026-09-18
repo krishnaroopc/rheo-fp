@@ -291,3 +291,57 @@ def test_is_far_cheaper_than_the_tube_model():
     t_tube = (time.perf_counter() - t0) / 5
 
     assert t_tdd < t_tube / 4, f"tdd {t_tdd*1e3:.3f} ms vs tube {t_tube*1e3:.3f} ms"
+
+
+# --- why this module is NOT in the bank ------------------------------------
+
+def test_tdd_is_deliberately_not_in_the_identifier_bank():
+    """PINS A DECISION, not a behaviour. See docs/tdd_preregistration.md.
+
+    TDD-DR was built to replace `tube.py` as the shipped `reptation` because
+    identify() spends 94.2% of its runtime in that one candidate. It was
+    REJECTED on its own pre-registered criteria:
+
+      P3 FAILED 2/3 - rms 0.0471/0.0383 against tube's 0.0315/0.0298 on
+         Katzarova's two longer monodisperse polystyrenes (bar: +0.005 dec).
+      P4 outcome (c) - it made the standing BSW fault WORSE, dAICc +147.7 and
+         +87.6 against tube's +51.6 and +27.7.
+
+    Freeing the fixed M*/Me (k=4) does beat BSW 3/3, and that is a TRAP: M*/Me
+    pins to its bound at 60 (the paper's PS value is 8.7) and Z error blows out
+    to +50%/+60% from +5%. Winning by flexibility while destroying the physical
+    parameter is the `comb` veto exactly.
+
+    If a future change wires `tdd` in, this test should fail and the
+    pre-registration must be re-read first.
+    """
+    from rheofp.fitting import identify as ident
+
+    assert "tdd" not in ident.ALL_MODELS
+    forward = ident.ALL_MODELS["reptation"][0]
+    assert forward.__name__ == "model_reptation_lm", (
+        "the shipped `reptation` must remain the Likhtman-McLeish tube model")
+
+
+def test_free_mstar_would_pin_to_its_bound():
+    """The measured reason the k=4 escape hatch was refused: with M*/Me free,
+    the optimum runs AWAY from the paper's PS value of 8.7 into the bound at
+    60, which means the data does not identify it - it is absorbing misfit.
+
+    That full finding needs the real Katzarova curves and lives in
+    `scripts/check_tdd_vs_tube.py`. What is pinned HERE is its precondition:
+    that M*/Me materially moves the curve. If it did not, freeing it could not
+    have bought the rms it did, and the recorded diagnosis would be wrong.
+    """
+    w = np.logspace(-3, 3, 60)
+    base = tdd.Gstar(w, 20.0, 1.0, 1e6)
+    old = tdd.MSTAR_OVER_ME
+    try:
+        tdd.MSTAR_OVER_ME = 60.0
+        alt = tdd.Gstar(w, 20.0, 1.0, 1e6)
+    finally:
+        tdd.MSTAR_OVER_ME = old
+    shift = np.abs(np.log10(alt[0] / base[0])).max()
+    assert shift > 0.1, (
+        f"M*/Me barely moves the curve ({shift:.4f} dec) - if that were true, "
+        "freeing it could not have bought the rms it did")

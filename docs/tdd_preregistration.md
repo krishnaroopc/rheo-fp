@@ -106,6 +106,112 @@ it is the reference the TDD implementation is checked against, and it remains
 the honest answer to "which model?" if TDD is rejected. `model_reptation` (the
 old hand-rolled approximation) also stays as-is.
 
+---
+
+# OUTCOME (recorded 2026-09-18, after the runs)
+
+**VERDICT: the swap is REJECTED. `tube.py` stays as the shipped `reptation`.**
+`rheofp/models/tdd.py` is retained as a validated forward model, not wired
+into the bank. Measured by `scripts/check_tdd_vs_tube.py`; numbers in
+`docs/tdd_vs_tube_2026-09-18.json`.
+
+## P1 — PASS
+
+24 tests in `tests/test_tdd.py`. Terminal slopes 2.00/1.00 to <0.02, plateau
+monotone in Z, a single G'' minimum, exact `Ge`/`tau_rep` scaling contracts.
+Two real bugs were caught by validation rather than by inspection:
+
+1. **The finite-difference Prony ladder was wrong.** `g_i = -diff(G)` conserves
+   mass but misplaces it and does NOT converge (N=96 -> 1536 moved G' by 0.09
+   decades and kept drifting). Against a referee of direct oscillatory
+   quadrature of the exact definition, it was off by 0.12-0.30 decades. NNLS
+   matches to <1e-4. Geometric-midpoint placement did not help. The referee is
+   now a permanent test.
+2. **The bare TDD kernel has no Rouse rise** - G'' decays as w^-0.23 where
+   `tube.py` turns up, and has NO G'' minimum at any Z. van Ruymbeke add Rouse
+   separately by an explicit linear mixing rule (p.2692, Table 2 eq 8); without
+   it a fitter distorts Z to cover the gap, the failure already diagnosed in
+   `star.py`.
+
+## P2 — PASS, decisively
+
+Planted-parameter recovery: **exact** noiseless (|Z err| 0.0% at Z = 8..40),
+and **max 2.1%, median 0.6%** under 2% multiplicative noise. Better than
+`tube.py`, which reaches +22% on its shortest chain.
+
+## P3 — **FAIL on 2 of 3.** This is a veto condition.
+
+| sample | TDD rms | tube rms | diff | bar |
+|---|---|---|---|---|
+| PS392 | 0.0471 | 0.0315 | **+0.0155** | FAIL |
+| PS206 | 0.0383 | 0.0298 | **+0.0085** | FAIL |
+| PS105 | 0.0209 | 0.0205 | +0.0005 | OK |
+
+The bar was +0.005 decades. TDD is materially worse than the incumbent on the
+two longer chains. Checked and NOT a fitting artifact: 10/30/60 restarts give
+identical answers to 4 decimals.
+
+**METHOD CORRECTION, recorded because the first run of this comparison was
+wrong.** The first version of `check_tdd_vs_tube.py` used a hand-rolled
+multi-restart loop instead of `identify()`'s own `fit_model`. That made EVERY
+model look worse - `reptation` 0.0446/0.0422 and `branched` 0.0353/0.0369,
+against 0.0315/0.0298 and 0.0250/0.0261 through the shipped fitter - and did
+not reproduce the project's recorded numbers. The table above is through
+`fit_model` and DOES reproduce them (tube 0.0315/0.0298 vs the recorded
+0.0314/0.0300; tube-BSW +51.6/+27.7 vs the recorded 50.7/28.9). **The verdict
+was the same either way**, but the numbers are only quotable from this run.
+General rule: score through the shipped fitter, never a local reimplementation.
+
+## P4 — outcome **(c)**, the vetoing one
+
+dAICc = TDD - BSW, positive means BSW still wins (lower AICc wins):
+
+| sample | TDD - BSW | tube - BSW |
+|---|---|---|
+| PS392 | **+147.7** | +51.6 |
+| PS206 | **+87.6** | +27.7 |
+| PS105 | -1.7 | -7.2 |
+
+TDD does not close the BSW fault; it makes the margin **~3x worse** on the two
+longer chains. Pre-registered outcome (c) - "TDD is worse physics here despite
+being faster" - and (c) was registered in advance as a veto.
+
+(PS105's -1.7 is inside the ~1e-2-decade noise band the standing rule says to
+distrust for `reptation` margins, and is not claimed as a win.)
+
+## The near-miss that makes this worth writing down
+
+`M*/Me` fixed at the paper's PS value of 8.7 is what binds. Freeing it (k=4)
+gives rms 0.0316 / 0.0335 / 0.0285 and **beats BSW 3/3** at dAICc -28.7 /
+-25.6 / -8.9. That looks like the result the project has been chasing since
+2026-09-17, and it must NOT be taken:
+
+- `M*/Me` **pins to its upper bound at 60.0** on both long chains. The paper's
+  value for PS is 8.7; 47 is PE's, for a polymer with Me = 1500 rather than
+  18500. A parameter that runs to its bound is not identified by the data, it
+  is absorbing misfit.
+- **Z error blows up from +4.6%/+6.5% to +50.2%/+60.4%.** The fit buys its rms
+  by destroying the one physical quantity the class exists to report.
+
+That is winning by flexibility while wrecking the physical parameter - the
+exact failure for which `comb` was vetoed (it fit the LINEAR control c6bb-PS
+better than any real comb), and the exact shape of the BSW fault itself. Taking
+it would be adopting the disease as the cure. **Not done.**
+
+## What was gained anyway
+
+- **The speed diagnosis stands and is the durable finding**: `identify()`
+  spends **94.2%** of its runtime in `reptation` alone (4940 calls x 10.67 ms).
+  Any future speedup must target that one candidate; nothing else matters.
+- The honest speed number for TDD is **~8x**, not the ~210x first probed - that
+  probe used the ladder that turned out to be wrong.
+- `tdd.py` + 24 tests are a validated, deterministic, published-model
+  implementation available if a POLYDISPERSE or BLEND class is ever built,
+  which is TDD-DR's actual strength (Chaudhuri & Lele's whole paper) and is
+  the standing open question Katzarova's three blends represent.
+- A reusable referee: quadrature of the exact definition catches ladder bugs
+  that every shape test passes.
+
 ## Consequence if adopted
 
 `synth.py` imports the same registry, so the GENERATOR changes too and the

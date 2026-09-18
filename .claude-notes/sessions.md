@@ -2361,3 +2361,54 @@ the code changed.
 Open for the user: (a) blends, (b) what to do about the noise floor (raise
 `LM_NCHAINS`, or have `report.py` refuse sub-noise margins), (c) speed, now
 lower priority, (d) full suite still unrun since `b9ee434`.
+
+## 2026-09-18 — TDD-DR built, validated, and rejected (`tube.py` still ships)
+
+User asked whether the three new `originals/` PDFs offered a faster
+`reptation`, "especially Chaudhuri et al."
+
+- **Chaudhuri & Lele 2020 is the wrong target for speed.** Its TDD-DR is for
+  POLYDISPERSE/bimodal blends — eq 7 is a double integral over two MWDs plus a
+  5-parameter GEX/MWD inversion by Nelder–Mead. More work, not less. It is the
+  recipe for the BLEND class (open item (a)), not for this.
+- **van Ruymbeke & Keunings 2002 is the one that answers it.** Table 1 compares
+  three kernels; section V picks des Cloizeaux TDD + double reptation, which is
+  closed-form. Liu 2006 is about plateau-modulus methods, not speed.
+- **Built `rheofp/models/tdd.py` + 26 tests.** Pre-registered in
+  `docs/tdd_preregistration.md`, committed (`c98ce33`) BEFORE any fit ran.
+- **P1 PASS** (24 forward tests). **P2 PASS decisively** — planted Z recovered
+  exactly noiseless, max 2.1% error under 2% noise, better than `tube.py`.
+- **P3 FAIL 2/3**: rms 0.0471/0.0383 vs tube's 0.0315/0.0298 on Katzarova's two
+  longer PS melts; bar was +0.005 dec. **P4 outcome (c)** — the BSW margin gets
+  ~3x WORSE (+147.7/+87.6 vs +51.6/+27.7). Outcome (c) was a pre-registered
+  veto. Not a fitting artifact: 10/30/60 restarts agree to 4 dp.
+- **Method lesson, from a wrong first run**: score through `identify()`'s own
+  `fit_model`, never a hand-rolled multi-restart loop. The first version of the
+  comparison used one and made EVERY model look worse (reptation 0.0446/0.0422,
+  branched 0.0353/0.0369), failing to reproduce the recorded figures. Verdict
+  unchanged; only the `fit_model` numbers are quotable, and those reproduce the
+  record exactly.
+- **The trap, refused**: freeing the fixed `M*/Me` (k=4) beats BSW 3/3 — the
+  result the project has wanted since 2026-09-17 — but `M*/Me` pins to its
+  bound at 60 (paper says 8.7 for PS) and Z error blows out to +50%/+60% from
+  +5%. Winning by flexibility while destroying the physical parameter is the
+  `comb` veto exactly. A test pins the decision.
+
+**Two bugs caught by validation that shape tests all passed:**
+1. The finite-difference Prony ladder (`g_i = -diff(G)`) is WRONG — conserves
+   mass, misplaces it, does not converge (N=96→1536 drifted 0.09 dec). Against
+   a referee of direct oscillatory quadrature of the exact definition it was
+   0.12–0.30 dec off; NNLS matches to <1e-4. **That referee is reusable and is
+   now a permanent test — use it for any G(t)→G*(w) route.**
+2. The bare TDD kernel has no Rouse rise and no G″ minimum (G″ decays as
+   w^-0.23). van Ruymbeke add Rouse separately (p.2692, Table 2 eq 8). Same gap
+   `star.py` had.
+
+**Kept:** `tdd.py` as a validated deterministic model for the future blend
+class. **Honest correction:** the speedup is ~8x, not the ~210x first probed —
+that probe used the wrong ladder. **Independent confirmation:** profiling every
+candidate gives `reptation` 94.2% of `identify()`'s runtime, matching the 89.5%
+found earlier by another route.
+
+Open, unchanged: (a) blends, (b) noise floor, (c) reptation-only restart cut,
+(d) full suite.

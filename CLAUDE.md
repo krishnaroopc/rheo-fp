@@ -226,6 +226,57 @@ Now IN `identify()`'s bank as `"branched"` (`BRANCHED_MODELS` in
 tube-model context + tests. G_N is a window-limited amplitude scale, not a
 measured plateau modulus. Refs: Baumgärtel & Winter (1990, 1992).
 
+**des Cloizeaux TDD-DR — BUILT AND VALIDATED, DELIBERATELY NOT IN THE BANK
+(2026-09-18).** `rheofp/models/tdd.py` implements van Ruymbeke & Keunings
+(2002, Macromolecules 35, 2689) Table 1 eq 4 + eqs 1/5, with Table 2 eq 8 Rouse
+added by the paper's own linear mixing rule. Three parameters
+`(G_N, tau_rep, Z)`, k=3, 26 tests, **fully deterministic — it samples
+nothing.** It was built to replace `tube.py` as the shipped `reptation`,
+because `identify()` spends **94.2%** of its runtime in that one candidate
+(4940 forward calls x 10.67 ms of 56.0 s; every other candidate is ~0.03
+ms/call). Pre-registered in `docs/tdd_preregistration.md`, committed before any
+fit; head-to-head in `scripts/check_tdd_vs_tube.py`.
+**REJECTED on its own criteria.** P1 PASS; P2 PASS decisively (planted Z exact
+noiseless, max 2.1% error under 2% noise — better than `tube.py`'s +22%); but
+**P3 FAILED 2/3** (rms 0.0471/0.0383 against tube's 0.0315/0.0298 on
+Katzarova's two longer monodisperse PS; bar was +0.005 dec) and **P4 returned
+the pre-registered vetoing outcome (c)** — the BSW margin gets ~3x WORSE
+(dAICc +147.7/+87.6 against tube's +51.6/+27.7). Not a fitting artifact:
+10/30/60 restarts agree to four decimals.
+**Method note worth carrying forward: score through `identify()`'s own
+`fit_model`, never a local multi-restart reimplementation.** The first run of
+this comparison used one and made EVERY model look worse (reptation
+0.0446/0.0422, branched 0.0353/0.0369), failing to reproduce the project's
+recorded figures. The verdict was unchanged, but only the `fit_model` numbers
+are quotable — and those reproduce the record exactly.
+**>>> THE NEAR-MISS, and why it was refused. <<<** The binding constraint is
+`M*/Me` fixed at the paper's PS value of 8.7. Freeing it (k=4) gives rms
+0.0316/0.0335/0.0285 and **beats BSW 3/3** at dAICc −28.7/−25.6/−8.9 — exactly
+the result this project has chased since 2026-09-17. It was NOT taken:
+`M*/Me` **pins to its upper bound at 60** (a parameter at its bound is not
+identified by the data, it is absorbing misfit) and **Z error blows out from
++4.6%/+6.5% to +50.2%/+60.4%**. That is winning by flexibility while destroying
+the one physical quantity the class exists to report — the `comb` veto exactly,
+and the same shape as the BSW fault itself. Pinned by
+`test_tdd_is_deliberately_not_in_the_identifier_bank`.
+**Two bugs caught by validation that every shape test passed.** (1) The obvious
+finite-difference Prony ladder (`g_i` = drop of G across each interval)
+conserves mass but MISPLACES it and does not converge — refining N=96→1536
+moved G′ by 0.09 decades and kept drifting. Against a referee of direct
+oscillatory quadrature of the exact definition `G'(w) = w ∫ G(t) sin(wt) dt` it
+was **0.12–0.30 decades wrong**; NNLS matches to <1e-4. Geometric-midpoint
+placement did not help. **That referee is reusable — use it for any G(t)→G\*(w)
+route**, and it is now a permanent test. Same aliasing hazard that forced
+`comb.py` onto ML1999. (2) The bare TDD kernel has **no Rouse rise and no G″
+minimum** (G″ decays as w^−0.23 where `tube.py` turns up); van Ruymbeke add
+Rouse separately and say so (p.2692). Same gap `star.py` had.
+**Honest cost correction: the speedup is ~8x, not the ~210x a first probe
+suggested** — that probe used the ladder that turned out to be wrong.
+**Chaudhuri & Lele (2020, J. Rheol. 64, 1) is NOT a speed paper**: its TDD-DR
+is for POLYDISPERSE/bimodal blends (eq 7 = a double integral over two MWDs plus
+a 5-parameter GEX inversion), which is more work, not less. It is the recipe
+for a future BLEND class, which is what `tdd.py` is retained for.
+
 **Star-polymer melts — Milner-McLeish (2026-09-09). A FINE CLASS, in
 `identify()`'s bank (10 candidates).** `rheofp/models/star.py`
 implements Milner & McLeish (1997, Macromolecules 30, 2159): arm
@@ -470,9 +521,9 @@ gap that made #2 unexplainable to users until 2026-09-17.
    regress) with a learned abstention head, on the frozen architecture.
 
 **Current state (2026-09-09, retrained) — these are 10-CLASS numbers.**
-**280 tests collected** (counted 2026-09-17, after the tie-rule tests, 3 new
-`tube.py` accuracy regressions and 2 new discard pins). The figure below was
-266 and had drifted; recount rather than trusting it. The
+**306 tests collected** (counted 2026-09-18, = 280 + the 26 of
+`tests/test_tdd.py`). The figure below was 266, then 280, and has drifted
+before; recount rather than trusting it. The
 previous figure here was 213, measured 2026-09-09 in 13:34 on the office PC
 (RTX A1000; the laptop is slower); the 33 tests of `tests/test_comb.py` were
 added 2026-09-14 and the rest is arithmetic — 194 after the step-4 tests, + 2
