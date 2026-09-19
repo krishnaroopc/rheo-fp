@@ -74,9 +74,32 @@ the same shape as the BSW fault itself. Do not revisit this without reading
   add Rouse by a separate linear mixing rule (Table 2 eq 8). Same gap that
   `star.py` had.
 
+## (d) FULL SUITE: RUN AND GREEN, 2026-09-18.
+
+    304 passed, 2 skipped in 13648.33s (3:47:28)
+
+First clean run since `b9ee434`, so item (d) is CLOSED. The 2 skips are
+deliberate and documented (`test_synth.py:41`, network classes are covered by
+`test_network.py`).
+
+**>>> The runtime is itself the headline: 3 hours 47 minutes. <<<** CLAUDE.md
+still records 13:34 for this suite, measured 2026-09-09 on this same office PC
+- so the suite is **~17x slower** than the last recorded figure. That is the
+`reptation` cost (94.2% of every `identify()` call) multiplied across every
+test that calls it. Measured costs on this run:
+- `test_solutions.py::test_identify_recovers_planted_regime` - 5 tests in
+  **8m32s** (~102 s each).
+- The `test_synth.py` vitrimer block - **~40 min**, where 12 `identify()`
+  calls at the ~56 s/curve average predicts ~11 min. So a STICKER-class curve
+  costs materially more per `identify()` than the `branched` curve the 56 s was
+  measured on. Worth knowing before anyone budgets on that average.
+
+This makes item (c) the practical priority, not a nicety: at ~4 h a run, the
+suite is close to unrunnable as a routine check.
+
 **Still open, unchanged by this session:** (a) blends, (b) what to do about the
 reptation noise floor, (c) reptation-only restart cut as the remaining speed
-lever, (d) full suite run.
+lever - now the most pressing, see the runtime above.
 
 ---
 

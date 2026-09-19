@@ -2410,5 +2410,16 @@ that probe used the wrong ladder. **Independent confirmation:** profiling every
 candidate gives `reptation` 94.2% of `identify()`'s runtime, matching the 89.5%
 found earlier by another route.
 
-Open, unchanged: (a) blends, (b) noise floor, (c) reptation-only restart cut,
-(d) full suite.
+**Full suite RUN AND GREEN: `304 passed, 2 skipped in 13648.33s (3:47:28)`** —
+first clean run since `b9ee434`, so that open item is closed. The 2 skips are
+deliberate (`test_synth.py:41`). **The runtime is the headline: CLAUDE.md still
+records 13:34 for this suite from 2026-09-09 on this same PC, so it is ~17x
+slower**, all of it the `reptation` cost. Two measured details: the five
+`test_identify_recovers_planted_regime` tests take 8m32s (~102 s each), and the
+vitrimer block took ~40 min where the ~56 s/curve average predicts ~11 — so a
+sticker-class curve costs much more per `identify()` than the `branched` curve
+that average came from.
+
+Open: (a) blends, (b) noise floor, (c) reptation-only restart cut — now the
+practical priority, since a ~4 h suite is close to unrunnable as a routine
+check.
