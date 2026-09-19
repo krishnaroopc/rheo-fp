@@ -5,7 +5,70 @@ kept in git so it syncs between the user's home and office PCs. When the user
 says something like "let's continue" / "do the next thing" / "pick up where we
 left off", this is where to look. Update + commit this file as items complete.
 
-Last updated: **2026-09-18 (TDD session).**
+Last updated: **2026-09-19 (plain-language / regime layer).**
+
+# >>> 2026-09-19: PLAIN-LANGUAGE + REGIME REPORTING LAYER BUILT. <<<
+
+`rheofp/plain_language.py` (new) + 10 tests in `tests/test_plain_language.py`.
+Wired into `report.py`'s `format_report` only. **Reporting-only: `identify()`'s
+contract is untouched, and the dependency runs `plain_language -> report`,
+never back** - `plain_language` imports nothing from `report` or `identify`,
+verified.
+
+**What prompted it.** The user asked why solutions are not ONE class split by
+dilute / semidilute / concentrated sub-regimes - which is how Rubinstein-Colby
+organises the subject and how a rheologist thinks.
+
+**The answer, and the thing to not re-litigate: CONCENTRATION IS NOT IN THE
+FORWARD MODELS AT ALL.** `grep -n conc rheofp/models/solutions.py` returns only
+`np.concatenate`. `model_zimm` and `model_rouse` take `(Gscale, tau1, N)` and
+differ ONLY in the spectral exponent (1.8 vs 2.0). Concentration scales a
+spectrum's amplitude and shifts its time axis - it MOVES a curve without
+changing its shape - and those shifts are degenerate with Mw, solvent viscosity
+and temperature. A dilute solution of long chains and a more concentrated
+solution of short chains can land on the same curve. **So a concentration
+regime is not recoverable from ONE curve, and the layer refuses to print one.**
+
+What IS readable off a single curve is the DYNAMIC regime, because that is a
+shape question: `unscreened` (zimm) / `screened` (rouse_screened,
+sticky_rouse) / `entangled` (reptation, sticky_reptation, wormlike_micelle,
+branched, star). The two network classes map to `None` and get no regime line
+and no stack hint - a cured elastomer is not on a concentration axis.
+
+**Three things deliberately built in, each guarding a specific misreading:**
+1. The regime note for `screened` and `entangled` NAMES BOTH the solution and
+   the melt possibility, because choosing between them is a claim about
+   whether solvent is present, which is not in the data. Pinned by a test.
+2. A `CONCENTRATION_CAVEAT` prints with every regime line. Without it a reader
+   turns "screened" into "semidilute" and walks away with a concentration the
+   measurement never contained.
+3. A `CONCENTRATION_STACK_HINT` says what WOULD make the axis identifiable -
+   3+ concentrations, same polymer/solvent, c recorded. The precedent is the
+   validated polyelectrolyte discriminator (tau falls with c when unentangled,
+   c-independent when entangled). Batch 3's scaling layer already exists.
+
+**A test caught a real wording ambiguity in the first draft** - worth keeping
+as a method note. A blunt substring ban on "semidilute" failed on
+`rouse_screened`'s gloss ("covers semidilute-unentangled solutions AND melts
+below Me"), which is the HONEST statement, not a violation. The test was
+rewritten to enforce the rule that actually matters: wherever a concentration
+word appears, the melt alternative must appear with it. The naive version
+would have forced the text to become LESS informative.
+
+**`IDENTIFIED:` still prints the internal label**, with `i.e. <plain name>`
+beneath it - scripts, tests and these notes all speak the internal label, so
+it is added to, never substituted.
+
+**Not done / still open:** this is a display layer over the existing ten
+classes. The c-stack capability it points at is NOT built, and the data for it
+does not exist (zero real curves for `zimm` and `rouse_screened`, no real
+concentration stack at all). Raju et al. 1981, Macromolecules 14, 1668
+(concentration AND Mw dependence, linear AND star) is the one shortlisted
+source that could test it - see `docs/corpus_paper_shortlist.md`.
+
+---
+
+Last updated before that: **2026-09-18 (TDD session).**
 
 # >>> RESUME HERE (2026-09-18, TDD session). DO THIS FIRST. <<<
 
@@ -97,9 +160,50 @@ test that calls it. Measured costs on this run:
 This makes item (c) the practical priority, not a nicety: at ~4 h a run, the
 suite is close to unrunnable as a routine check.
 
-**Still open, unchanged by this session:** (a) blends, (b) what to do about the
-reptation noise floor, (c) reptation-only restart cut as the remaining speed
-lever - now the most pressing, see the runtime above.
+## (c) RESTART CUT: MEASURED AND VETOED, 2026-09-19. Item (c) is CLOSED.
+
+Pre-registered at `f833426` (criteria committed before any number was read);
+outcome in `docs/per_model_restarts_preregistration.md`; instrument kept as
+`scripts/measure_restart_convergence.py`.
+
+A PER-MODEL budget was tried, not the bank-wide cut the old
+`check_restart_count.py` proposes. **Vetoed at 1.00x speedup**: `reptation` is
+96% of the cost (68.58 s of 71.42 s) and every model the formula could cut
+costs under 0.11 s. Even zeroing all nine others caps the saving at 1.04x.
+
+**>>> THE FINDING, which is a trap for all future speed work. <<<**
+A `reptation`-only cut briefly looked viable: on the three REAL Katzarova
+melts it converges at 1-2 restarts with EXACTLY zero rms penalty, and the
+"needs 12" from planted curves is an artifact of measuring convergence at
+rtol 1e-6, far tighter than `tube.py`'s own 1.3e-2 sampling noise.
+
+**It is not viable, and the reason matters more than the verdict.** Scoring
+the full `identify()` winner and margin at 4 vs 12 restarts:
+- **1 flipped winner in 8** planted reptation curves (`star` -> `branched`),
+- **dAICc margins moved by up to 32.6 units**, and a REAL curve (PS206) moved
+  1.02.
+
+So a ~1e-3-decade rms difference, well below the forward model's own noise,
+propagates into TENS of AICc units and can change the reported class. **The
+rms looks converged; the DECISION is not.** Any future check that validates an
+approximation on fit quality alone will certify a change that silently
+reclassifies material - score the winner and the margin, never the residual.
+Pinned by `test_a_sub_noise_rms_change_can_still_move_the_AICc_decision`.
+Note the flip's direction: a cheaper search made the standing BSW fault WORSE.
+
+**What is left for speed, and it is now one item.** Every remaining lever
+inside `reptation` is an approximation, and the result above shows this
+pipeline converts sub-noise approximation error into decision changes.
+**Caching in the TEST HARNESS is the only lever that cannot move a
+classification**, because it changes no arithmetic - the suite refits the same
+planted curves repeatedly and a fixture-level cache returns the identical
+result once instead of n times. Recommended next if suite time matters.
+
+**Still open:** (a) blends - the original request, still not started, and
+`rheofp/models/tdd.py` now exists for exactly it; (b) what to do about the
+reptation noise floor, which the (c) work has now made more pointed: the
+sampling noise is not merely bigger than the margins, it is big enough that
+CHEAPENING THE SEARCH BENEATH IT still moves answers.
 
 ---
 

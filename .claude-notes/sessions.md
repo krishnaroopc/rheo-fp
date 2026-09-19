@@ -2423,3 +2423,43 @@ that average came from.
 Open: (a) blends, (b) noise floor, (c) reptation-only restart cut — now the
 practical priority, since a ~4 h suite is close to unrunnable as a routine
 check.
+
+## 2026-09-19 — restart budget measured and VETOED; the sub-noise trap
+
+Picked up open item (c), the remaining speed lever. Pre-registered at
+`f833426` **before any number was read** — the budget formula
+`clip(2*conv, 4, 12)` was fixed in advance precisely so it could not be
+reverse-engineered toward a desired speedup.
+
+- Tried a **per-model** budget, not the bank-wide cut `check_restart_count.py`
+  proposes (next-actions already called that mis-aimed). **Vetoed at 1.00x**:
+  `reptation` is 96% of the cost (68.58 s of 71.42 s), and every model the
+  formula cuts costs under 0.11 s. Zeroing all nine others caps it at 1.04x.
+- **The "cheap" k=3 models are not easy searches** — `rouse_screened` needed
+  all 12 restarts on one curve, `zimm` 8, `sticky_reptation` 12, `branched` 12.
+  A bank-wide cut would have quietly damaged zimm/rouse_screened, already 58%
+  of all remaining error.
+- **>>> The finding worth keeping. <<<** A `reptation`-only cut briefly looked
+  viable: on the three REAL Katzarova melts it converges at 1–2 restarts with
+  exactly zero rms penalty, and "needs 12" was an artifact of judging
+  convergence at rtol 1e-6 — far tighter than tube.py's own 1.3e-2 sampling
+  noise. **But scoring the WINNER instead of the rms killed it: 1 flipped
+  winner in 8 (`star`→`branched`) and dAICc margins moving up to 32.6 units**,
+  with a real curve (PS206) moving 1.02. A ~1e-3-decade rms difference, below
+  the forward model's own noise, becomes tens of AICc units. The rms looks
+  converged; the decision is not. Pinned by
+  `test_a_sub_noise_rms_change_can_still_move_the_AICc_decision` (instant — it
+  pins the arithmetic, not the expensive measurement).
+- Direction of the flip is telling: a cheaper search made the standing BSW
+  fault **worse**.
+- **Only remaining safe lever: caching in the test harness.** It changes no
+  arithmetic, so it cannot move a classification; everything else inside
+  `reptation` is an approximation, and this session shows the pipeline turns
+  sub-noise approximation error into decision changes.
+
+Corrected myself mid-session: an earlier draft of the outcome asserted
+"`reptation` genuinely needs 12 restarts" as the reason for the veto. That was
+an instrument artifact, and the real reason is the winner/margin instability.
+
+Open: (a) blends — the original request, still not started; (b) the reptation
+noise floor, now more pointed.

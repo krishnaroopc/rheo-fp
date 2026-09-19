@@ -1,0 +1,26 @@
+=== planted curves: convergence restart per MODEL ===
+(each row: the model being FIT, on a curve planted as that class)
+  zimm               converged at restarts [1, 8, 1]  (None = never matched 12)
+  rouse_screened     converged at restarts [12, 1, 8]  (None = never matched 12)
+  reptation          converged at restarts [8, 12, 2]  (None = never matched 12)
+  sticky_rouse       converged at restarts [1, 6, 3]  (None = never matched 12)
+  sticky_reptation   converged at restarts [1, 3, 12]  (None = never matched 12)
+  cured_elastomer    converged at restarts [1, 1, 1]  (None = never matched 12)
+  critical_gel       converged at restarts [1, 1, 1]  (None = never matched 12)
+  wormlike_micelle   converged at restarts [1, 1, 2]  (None = never matched 12)
+  branched           converged at restarts [12, 4, 1]  (None = never matched 12)
+  star               converged at restarts [6, 2, 1]  (None = never matched 12)
+
+=== per-model cost of ONE fit at 12 restarts ===
+  zimm                   0.05 s
+  rouse_screened         0.04 s
+  reptation             68.58 s
+  sticky_rouse           0.20 s
+  sticky_reptation       0.45 s
+  cured_elastomer        0.05 s
+  critical_gel           0.03 s
+  branched               0.65 s
+  wormlike_micelle       0.11 s
+  star                   1.26 s
+
+wrote restart_convergence.json

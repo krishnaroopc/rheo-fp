@@ -1,0 +1,17 @@
+=== REAL Katzarova monodisperse melts: full identify() ===
+  PS392: @4 branched     d=  51.56   @12 branched     d=  51.58   SAME  |ddelta|=0.01
+  PS206: @4 branched     d=  26.67   @12 branched     d=  27.69   SAME  |ddelta|=1.02
+  PS105: @4 reptation    d=   7.21   @12 reptation    d=   7.21   SAME  |ddelta|=0.00
+
+=== planted reptation curves: full identify() ===
+  curve 0: @4 reptation      d=  25.89   @12 reptation      d=   6.79   SAME  |ddelta|=19.10
+  curve 1: @4 reptation      d=   6.45   @12 reptation      d=  15.14   SAME  |ddelta|=8.70
+  curve 2: @4 reptation      d=   0.01   @12 reptation      d=   0.00   SAME  |ddelta|=0.00
+  curve 3: @4 reptation      d=  61.67   @12 reptation      d=  29.06   SAME  |ddelta|=32.61
+  curve 4: @4 reptation      d=  10.42   @12 reptation      d=   6.59   SAME  |ddelta|=3.83
+  curve 5: @4 reptation      d=  23.99   @12 reptation      d=  23.94   SAME  |ddelta|=0.06
+  curve 6: @4 branched       d=  17.26   @12 star           d=   1.74   >>> FLIPPED <<<  |ddelta|=15.52
+  curve 7: @4 reptation      d= 102.76   @12 reptation      d= 118.12   SAME  |ddelta|=15.36
+
+  flipped winners: 1/8   max |d(dAICc)|: 32.61
+  P1 needs 0 flips; P3 needs max |d(dAICc)| <= 1.0
