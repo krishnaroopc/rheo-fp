@@ -521,9 +521,10 @@ gap that made #2 unexplainable to users until 2026-09-17.
    regress) with a learned abstention head, on the frozen architecture.
 
 **Current state (2026-09-09, retrained) — these are 10-CLASS numbers.**
-**306 tests collected** (counted 2026-09-18, = 280 + the 26 of
-`tests/test_tdd.py`). The figure below was 266, then 280, and has drifted
-before; recount rather than trusting it. The
+**334 tests collected** (counted 2026-09-21, = 306 + the 20 of the new
+`tests/test_plausibility.py` + 8 others added since). The figure has been
+266, then 280, then 306, and has drifted every time; **recount rather than
+trusting it.** The
 previous figure here was 213, measured 2026-09-09 in 13:34 on the office PC
 (RTX A1000; the laptop is slower); the 33 tests of `tests/test_comb.py` were
 added 2026-09-14 and the rest is arithmetic — 194 after the step-4 tests, + 2
@@ -617,6 +618,38 @@ alternatives by delta AICc (not the misleading Akaike weight), and prints an
 UNCONDITIONAL "don't think it's X? this may be why" section on every result —
 including confident, correct ones — because most of this classifier's errors
 are GOOD fits of the WRONG class, which no confidence score flags.
+
+**Are the winner's fitted NUMBERS usable? (`rheofp/plausibility.py`,
+2026-09-21, Plan A step 1.)** Nothing used to ask this: the two-brain check
+compares LABELS and `FLOOR_CHI2` checks fit QUALITY, but a parameter stopped
+by its bound can sit inside a good fit while reporting the wall's position
+instead of the sample's. `at_bound_warning()` flags it for the winning class
+on every call, report-only (`identify()` untouched; dependency runs
+`plausibility -> report`). This automates what had twice been caught by a
+human reading one number, and both times it changed a verdict: `tdd`'s
+`M*/Me` pinned at 60, and `comb`'s `s_b` pinned on 8/9 real combs.
+**Calibrated both ways** (`docs/at_bound_calibration_2026-09-21.md`): fires on
+8/9 real Kapnistos combs, quiet on 4/6 of the real benchmark. Three bounds are
+marked SOFT because they are physics rather than numerical walls (`star`'s Z
+floor of 4, `critical_gel`'s `u`, `cured_elastomer`'s `m`) and report without
+the distrust language.
+**Read its limit honestly: it catches bad FITS, not bad WINS.** The one
+Kapnistos curve with NOTHING pinned is `c6bb-PS`, the linear control that
+`comb` wrongly wins — `comb` reaches that answer from a comfortably interior
+vector via its star limit, so no bound is involved. This is not an
+out-of-distribution or wrong-class detector, and must not be described as one.
+**It immediately found a real defect**: on BOTH Pivokonsky LDPE melts —
+correct `branched` calls at rms 0.062/0.056 — BSW's terminal-wedge exponent
+`n_e` sits ON its 0.90 ceiling, and widening the ceiling shows it chases every
+limit given, rms improving monotonically out to **n_e = 2.0** against
+`bsw_spectrum`'s own stated ~0.2-0.7. The shipped bound is the only thing
+keeping that parameter inside BSW's physics on real data — a **third**
+independent form of the BSW over-flexibility fault. Nothing was changed:
+that is a pre-registered, cannibalisation-checked change, and note the
+direction — a larger `n_e` makes BSW MORE flexible, the opposite of what the
+fault needs. See next-actions for the open item, including the correction that
+`synth.py`'s quoted `n_e ~ 0.55-0.68` describes a WORSE local optimum that
+`fit_bsw` finds, not the model's best fit.
 
 **The two brains' AGREEMENT is the confidence signal neither one can give
 alone (`rheofp/neural_report.py`, 2026-09-09).** The AICc bank and the network

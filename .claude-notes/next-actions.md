@@ -257,17 +257,74 @@ choice; it is no longer an open question.
   reopening `comb` requires (curves need digitizing), and its **Appendix A
   multimode Kramers** treatment is a genuine improvement on `comb.py`'s
   single-mode potential.
-- **Plan A (after C):** start with the at-bound check (cheapest, no new
-  research needed, bounds already exist for all 10 classes) before the range
-  table. The range table now has `fetters1994_plateau_modulus_table.pdf` for
-  values and `liu2006_plateau_modulus_methods.pdf` for how wide "plausible"
-  has to be (5-10% monodisperse, ~15% polydisperse method spread) - so it no
-  longer needs assembling from six separate papers.
-  Note the standing caveat above: do not over-invest in `branched`-specific
-  range-table work while C is live, since a molecularly-constrained model
-  would make some of it moot.
+- **Plan A — STEP 1 (at-bound check) IS BUILT, 2026-09-21.**
+  `rheofp/plausibility.py` + 20 tests in `tests/test_plausibility.py`, wired
+  into `report.py`'s challenge section only. Reporting-only; `identify()`
+  untouched; no torch import; dependency runs `plausibility -> report`.
+  Calibration and results: **`docs/at_bound_calibration_2026-09-21.md`**.
+  - Fires on **8/9 real Kapnistos combs** (`s_b` at its ceiling) —
+    mechanically reproducing the `comb` diagnosis and the `tdd` rejection
+    shape, both of which had needed a human reading parameter vectors.
+  - **Stated limit, not papered over:** the one curve with NOTHING pinned is
+    `c6bb-PS`, the linear control that `comb` wrongly WINS. So this catches
+    bad FITS, not bad WINS. Do not describe it as a wrong-class detector.
+  - Three bounds are marked SOFT (`star`'s Z floor, `critical_gel`'s u,
+    `cured_elastomer`'s m) because they are physics, not numerical walls;
+    they report without the distrust language.
+  - **>>> IT FOUND A REAL `branched` DEFECT — see the new open item below. <<<**
+  **Plan A step 2, the literature range table, is NOT started.**
+  `fetters1994_plateau_modulus_table.pdf` (values) and
+  `liu2006_plateau_modulus_methods.pdf` (method spread: 5-10% monodisperse,
+  ~15% polydisperse, i.e. how wide "plausible" must be) are both in
+  `originals/` for it. The `n_e` finding is an argument FOR building it: a
+  range table would have flagged n_e = 0.9 as outside BSW's stated 0.2-0.7
+  without the bound needing to be hit at all.
 - **Plan B (last):** start with Mw + flow-observed as report-only additions.
   Needs no papers.
+
+## >>> NEW OPEN ITEM 2026-09-21: BSW's `n_e` is held inside physics ONLY by its bound <<<
+
+Found by Plan A's at-bound check on the 6/6 real-curve benchmark, and
+**verified to be a real defect rather than a false alarm** before anything was
+loosened. Full numbers in `docs/at_bound_calibration_2026-09-21.md`.
+
+On **both** Pivokonsky LDPE melts - the project's flagship real branched data,
+correct `branched` calls at rms 0.062/0.056 - the BSW terminal-wedge exponent
+`n_e` sits ON its ceiling of 0.90. Refitting with the ceiling widened
+(40 restarts, seed 0, all else fixed) shows **`n_e` chases every ceiling it is
+given, with rms improving monotonically all the way to 2.0**:
+
+| ceiling | 0.90 | 0.95 | 0.99 | 1.20 | 2.00 |
+|---|---|---|---|---|---|
+| E: n_e / rms | 0.900 / .0619 | 0.950 / .0605 | 0.990 / .0608 | 1.200 / .0563 | 2.000 / .0457 |
+| B: n_e / rms | 0.900 / .0557 | 0.950 / .0557 | 0.945 / .0551 | 1.200 / .0528 | 2.000 / .0420 |
+
+`bsw_spectrum`'s own docstring says the terminal wedge exponent is ~0.2-0.7
+and `synth.py` plants it in (0.15, 0.75). So the shipped bound is the only
+thing keeping this parameter inside BSW's stated physics on real data.
+**This is the BSW over-flexibility fault in a THIRD independent form**, next
+to beating verbatim Likhtman-McLeish on Katzarova's monodisperse linear melts
+and absorbing 25/30 planted stars before `star` existed.
+
+**A correction to `synth.py`'s comment fell out of this.** It states that
+`fit_bsw` on Pivokonsky lands at `n_e ~ 0.55-0.68`, and `BRANCHED_N_E` was
+chosen to bracket that. Measured: `fit_bsw` does give 0.547/0.680, but
+`identify()`'s bank fit gives 0.900 (pinned) on the same curves at BETTER rms,
+and evaluating the bank's objective at both vectors confirms the pinned one
+wins (E 0.06395 vs 0.06795; B 0.05567 vs 0.05920). **`fit_bsw` is finding a
+worse local optimum** - it differs in restart budget (48 vs N_RESTARTS=12) and
+in window-scaled vs absolute tau bounds, though no tau bound is active in
+either and the recovered times agree closely. log vs log10 is only a constant
+factor and cannot move an optimum.
+
+**NOTHING WAS CHANGED.** Widening `BRANCHED_N_E`, re-tuning `fit_bsw`, or
+touching the bound alters the training distribution and the `branched` class's
+behaviour - a pre-registered, cannibalisation-checked change under this
+project's own rules, not a drive-by edit inside a reporting task. Note the
+likely direction before anyone "fixes" it: **letting `n_e` reach 2.0 makes BSW
+MORE flexible, which is the opposite of what the active BSW fault needs.** The
+honest reading may be that BSW's terminal wedge is the wrong shape for real
+LDPE rather than that its bound is too tight.
 
 Note Plan C and Plan A are not mutually exclusive but ARE sequenced by risk:
 Plan A (report-only flag) is low-risk and immediately useful regardless of

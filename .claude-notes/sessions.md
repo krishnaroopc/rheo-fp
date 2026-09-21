@@ -6,6 +6,79 @@ the end of each working session (what was discussed, decided, and changed).
 
 ---
 
+## 2026-09-21 (fourth session) — Plan A step 1 built; it immediately found a real BSW defect
+
+**`rheofp/plausibility.py`** (new) + **20 tests** in
+`tests/test_plausibility.py`, wired into `report.py`'s challenge section only.
+Reporting-only: `identify()`'s contract untouched, no torch import, dependency
+runs `plausibility -> report` and never back — same rule `plain_language`
+follows. Calibration written up in
+`docs/at_bound_calibration_2026-09-21.md`.
+
+**What it does.** For the WINNING class, compares each fitted parameter to its
+bound and flags anything pressed against a wall. Verified first that this is
+even valid: all ten banks' bounds are static tuples handed straight to
+L-BFGS-B by `fit_model` -> `multi_restart_fit`, so the registry tuple IS what
+constrained the fit. (Noted in the docstring: if a class ever gets
+data-dependent bounds computed inside its own `fit_*`, as `fit_comb` and
+`fit_star` do for tau_e, this comparison goes stale for that class.)
+
+**Calibration, both directions:**
+- **Known-bad: fires on 8/9 real Kapnistos combs** (`s_b` at its ceiling of
+  120), mechanically reproducing the `comb` diagnosis and the `tdd` rejection
+  shape — both of which had previously needed a human reading parameter
+  vectors on curves someone happened to look at.
+- **Its limit, stated rather than hidden:** the ONE curve with nothing pinned
+  is `c6bb-PS`, the linear control that `comb` wrongly WINS. It catches bad
+  FITS, not bad WINS — `comb` wins the linear chain from a comfortably
+  interior vector via its star limit, so nothing needs to be at a bound. Must
+  not be described as a wrong-class detector.
+- **Known-good: 4/6 benchmark curves quiet; 2/6 fired.** Both fires were
+  investigated BEFORE loosening anything, which is the part that mattered.
+
+**>>> The two "false alarms" were real, and are a new finding. <<<** On both
+Pivokonsky LDPE melts (correct `branched`, rms 0.062/0.056) the BSW
+terminal-wedge exponent `n_e` sits on its 0.90 ceiling — and **widening the
+ceiling shows it chases every limit given, rms improving monotonically out to
+n_e = 2.0**, against `bsw_spectrum`'s own stated physical range of ~0.2-0.7
+and `synth.py`'s planted (0.15, 0.75). So the shipped bound is the only thing
+holding that parameter inside BSW's physics on real data. **A third
+independent form of the BSW over-flexibility fault**, alongside beating
+verbatim Likhtman-McLeish on Katzarova's linear melts and absorbing 25/30
+planted stars.
+
+**A correction to `synth.py`'s comment fell out of it.** That comment says
+`fit_bsw` on Pivokonsky gives `n_e ~ 0.55-0.68` and `BRANCHED_N_E` brackets
+it. True for `fit_bsw` — but the bank fit gives 0.900 (pinned) on the same
+curves at BETTER rms, and evaluating the bank's objective at both vectors
+confirms the pinned one wins (E .06395 vs .06795; B .05567 vs .05920).
+**`fit_bsw` is finding a worse local optimum.** Differences are restart budget
+(48 vs 12) and window-scaled vs absolute tau bounds; no tau bound is active in
+either and recovered times agree closely, and log-vs-log10 is a constant
+factor that cannot move an optimum.
+
+**Nothing was changed in response.** Widening the bound or re-tuning `fit_bsw`
+moves the training distribution and the `branched` class — a pre-registered,
+cannibalisation-checked change, not a drive-by edit inside a reporting task.
+Recorded as an open item with the direction flagged: **letting n_e reach 2.0
+makes BSW MORE flexible, the opposite of what the active BSW fault needs**, so
+the honest reading may be that BSW's terminal wedge is simply the wrong shape
+for real LDPE.
+
+**Three bounds marked SOFT** (`star`'s Z floor of 4, `critical_gel`'s u,
+`cured_elastomer`'s m) — these are physics, not numerical walls, so they
+report without the distrust language. `n_e` is deliberately NOT soft, pinned
+by a test.
+
+One formatting note worth keeping: `report.py`'s `_wrap` splits on whitespace
+and collapses newlines, so warning text must be flowing prose — an embedded
+bullet list renders as "permitted: - terminal wedge exponent ...".
+
+**Plan A step 2 (the literature range table) is NOT started.** Fetters 1994
+(values) and Liu 2006 (method spread, 5-10% / ~15%) are in `originals/` for
+it, and the `n_e` finding argues for it: a range table would have caught
+n_e = 0.9 without the bound needing to be hit.
+
 ## 2026-09-21 (third session) — BoB rejected on reading; the `comb` failure diagnosed
 
 **Plan C started, and its target model changed before a line was written.**

@@ -51,6 +51,8 @@ from rheofp.fitting.identify import (
 from rheofp.plain_language import (
     plain_name, plain_gloss, regime_note, stack_hint, CONCENTRATION_CAVEAT,
 )
+# Same one-way rule again: plausibility imports nothing from here.
+from rheofp.plausibility import at_bound_warning
 
 # Burnham & Anderson's conventional reading of delta AICc. These are rules of
 # thumb for model selection, not probabilities - printed so the reader can
@@ -494,6 +496,21 @@ def challenge(result, max_named=3, w=None, Gp=None, Gpp=None):
     contradiction = branched_vitrimer_contradiction(winner["name"], w, Gp, Gpp)
     if contradiction:
         items.append({"kind": "vitrimer_powerlaw", "text": contradiction["text"]})
+
+    # 2c. Are the WINNER'S FITTED NUMBERS physically usable, or did the fit
+    # end pressed against a limit? Nothing else in the pipeline asks this:
+    # the two-brain check compares LABELS and FLOOR_CHI2 checks fit QUALITY,
+    # but a parameter stopped by its bound can sit inside a good fit while
+    # reporting the wall's position instead of the sample's. That exact shape
+    # decided the `tdd` rejection and the `comb` diagnosis, both caught by
+    # hand. See rheofp/plausibility.py.
+    entry = ALL_MODELS.get(winner["name"])
+    if entry is not None:
+        bound_warn = at_bound_warning(winner["name"], winner.get("params"),
+                                      entry[2])
+        if bound_warn:
+            items.append({"kind": "at_bound", "text": bound_warn["text"],
+                          "n_hard": bound_warn["n_hard"]})
 
     # 3. Classes that were never fitted at all.
     discards = explain_discards(result)
