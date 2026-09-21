@@ -5,15 +5,22 @@ kept in git so it syncs between the user's home and office PCs. When the user
 says something like "let's continue" / "do the next thing" / "pick up where we
 left off", this is where to look. Update + commit this file as items complete.
 
-Last updated: **2026-09-21 (planning session, nothing built yet).**
+Last updated: **2026-09-21 (planning session + one doc fix; see Plan C below).**
 
-# >>> 2026-09-21: TWO PLANS DRAFTED IN CONVERSATION. NOTHING BUILT. RESUME HERE. <<<
+# >>> 2026-09-21: THREE PLANS ON THE TABLE. ONLY A DOCSTRING WAS FIXED. RESUME HERE. <<<
 
 User opened this session concerned the project has become messy/overcomplicated
-and asked a series of plain-language questions before deciding what to do. Nothing
-in the repo was touched. Two concrete plans came out of it; both need the user's
-go-ahead before any code is written. **Do not start either without confirming
-which one the user wants to resume.**
+and asked a series of plain-language questions before deciding what to do. Three
+concrete plans came out of it (A, B below from earlier in the session; C added
+after a follow-up question). **None are started. Do not start any without
+confirming which one the user wants to resume.**
+
+**The one actual code change this session: `rheofp/models/maxwell.py`'s
+docstring was corrected** (commit `06a3e46`) - it still claimed BSW's broad
+spectrum "cannot fake a sharp reptation terminal, so AICc still separates it
+from the linear-melt class," a claim that was falsified 2026-09-17 and
+corrected in CLAUDE.md at the time but never fixed in the code comment itself.
+Pure doc fix, no behavior change.
 
 ## Plan A — physics plausibility check on the WINNING class (report-only, first)
 
@@ -116,13 +123,89 @@ actual trained network inputs (via the presence-flag + feature-dropout
 pattern) would be a separate, later, bigger retraining experiment - only
 worth it if the report-time version proves useful first.
 
+## Plan C — replace/supplement BSW with a molecular (not empirical) branched-melt model
+
+**The question that prompted this:** user asked whether the BSW-vs-reptation
+fault (Plan A's motivating example) reflects real physical similarity between
+classes, or just BSW being too flexible. Answer: the latter. BSW's 5 parameters
+describe a CURVE SHAPE (two power-law wedges), with no constraint tying them to
+a physically realizable branched molecule - so it can bend into a shape that
+merely resembles a linear melt or a vitrimer well enough to win an AICc contest,
+without that shape corresponding to any real branched architecture. This is
+distinct from Plan A: Plan A flags a bad fit after the fact; this would remove
+the model's ability to produce the bad fit's shape at all.
+
+**Ruled out already, on its own documented terms: pom-pom / XPP
+(`rheofp/models/pompom.py`).** It's already in the repo, already validated
+against real LDPE (Pivokonsky 2006), but its own docstring says it "reduces
+exactly to multimode Maxwell" in LVE and "is indistinguishable from a generic
+multimode Maxwell fit in that regime" - i.e. in SAOS-only data (this project's
+whole input scope) it has no more discriminating power than an ordinary
+flexible Maxwell fit. It would not fix BSW's problem, just rename it.
+
+**Real candidates found by a web search this session (2026-09-21), all from
+the same Das/Read/McLeish/Larson lineage already cited in
+`docs/references.md` via McLeish & Larson 1998:**
+
+1. **Branch-on-Branch (BoB) / Hierarchical Model (HM)** - arms relax first by
+   retraction (same physics `star.py` already has, validated), then act as
+   diluting "solvent" for what's left, worked outward hierarchically (same
+   idea `comb.py` already uses for a simpler topology). Parameters are
+   MOLECULAR (branch count, arm lengths, backbone length), not curve-shape
+   knobs - which is exactly why it couldn't cheat into a linear-melt or
+   vitrimer shape the way BSW does: there is no branched topology that
+   produces those shapes from this model. Closest fit to how this repo
+   already builds models (reuses `star.py` + `tube.py` machinery directly).
+2. **General Branching Theory (GBT)** - Das, Read, McLeish, Kelmanson (2006),
+   J. Rheol. 50(2), 207-234, DOI covers arbitrary branched topologies, not just
+   simple stars/combs/H-shapes. More general than needed for a first attempt.
+3. **Hierarchical Multi-Mode Molecular Stress Function (HMMSF)** - newer, built
+   for real polydisperse commercial melts (which real LDPE actually is), one
+   real free physical parameter beyond the linear fit. Worth a look if BoB/HM's
+   monodisperse assumption turns out to be part of the problem (note Plan A's
+   related open question: is the BSW fault about `branched` being too flexible,
+   or about the tube model missing real polydispersity effects on Katzarova's
+   samples - see the "Three routes, none attempted" paragraph further down
+   this file under the BSW fault's own section).
+
+**Scope if pursued - this is NOT a small change, comparable to or larger than
+the `star` build (three working sessions there; BoB/HM are more general than
+`star.py`'s single architecture):** new forward model, planted-recovery
+validation, real-data validation against the same Katzarova/Pivokonsky data
+already committed, and a full cannibalisation check before it could replace or
+sit alongside BSW in `ALL_MODELS`. Same methodology section already written
+down in `docs/proposal_new_classes.md` (get the paper into `originals/` first,
+forward physics -> planted round-trip, document transcription traps,
+pre-register predictions before real data, cannibalisation n=30/class,
+close the generator gap same session, retrain) applies directly here.
+
+**Not started. No paper is in `originals/` yet for BoB/HM/GBT/HMMSF.** If this
+is the one chosen, the first real step is getting the primary paper (Das,
+Read, McLeish, Kelmanson 2006, J. Rheol. 50(2), 207 is the most cited /
+most directly usable candidate) into `originals/` - per the project's own
+rule, the user supplies the PDF, no transcription from memory or search
+summaries.
+
 ## What to do when resuming
 
-Ask the user which of Plan A / Plan B (or neither, if something else has come
-up) they want to start on. Do not assume - this was an open planning session,
-not a decision. If Plan A: start with the at-bound check (cheapest, no new
-research needed, bounds already exist for all 10 classes) before the range
-table. If Plan B: start with Mw + flow-observed as report-only additions.
+Ask the user which of Plan A / Plan B / Plan C (or neither, if something else
+has come up) they want to start on. Do not assume - this was an open planning
+session, not a decision.
+- **Plan A:** start with the at-bound check (cheapest, no new research needed,
+  bounds already exist for all 10 classes) before the range table.
+- **Plan B:** start with Mw + flow-observed as report-only additions.
+- **Plan C:** the biggest of the three - start by getting the GBT/BoB/HM
+  source paper into `originals/`, then follow the methodology in
+  `docs/proposal_new_classes.md`.
+
+Note Plan C and Plan A are not mutually exclusive but ARE sequenced by risk:
+Plan A (report-only flag) is low-risk and immediately useful regardless of
+whether Plan C ever happens; Plan C is a multi-session physics/validation
+project that would eventually make some of Plan A's `branched`-specific range
+table moot if it succeeds (a molecularly-constrained model wouldn't need an
+external plausibility check the way BSW does) - but that is a reason to not
+over-invest in `branched`-specific range-table work if Plan C looks likely to
+be picked up soon, not a reason to block Plan A on Plan C.
 
 ---
 
