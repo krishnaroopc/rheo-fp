@@ -71,10 +71,19 @@ Refitting the two LDPE curves with the `n_e` ceiling widened
 
 rms improves monotonically out to `n_e` = 2.0 — **more than double BSW's own
 stated physical range.** `bsw_spectrum`'s docstring says the terminal wedge
-exponent is "~0.2-0.7"; `synth.py` plants it in (0.15, 0.75). So on the
-project's flagship real branched data the shipped bound is the only thing
-keeping `n_e` inside physics, and the fit would leave that range entirely if
-allowed.
+exponent is "~0.2-0.7"; `synth.py` plants it in (0.15, 0.75). So on **these
+two curves** the shipped bound is the only thing keeping `n_e` inside physics,
+and the fit would leave that range entirely if allowed.
+
+**>>> QUALIFIED 2026-09-21 by a second, independent LDPE — do not read this as
+"real LDPE always violates the range". <<<** On BASF Lupolen 1810H (Verbeeten
+2001 Table III, an exact 6-mode Prony spectrum, no digitizing) `n_e` fits to
+**0.63 — comfortably inside both the bound and the literature range**, and the
+check stays quiet. So the pinning is a property of the Pivokonsky curves, not
+of branched melts generally. The over-flexibility itself still reproduces
+there (`n_e` rises to 1.08 then 2.00 as the ceiling lifts, rms improving), but
+the shipped bound does not catch it. Full measurement:
+`docs/second_ldpe_lupolen_2026-09-21.md`.
 
 **This is the BSW over-flexibility fault showing up in a third, independent
 way** — alongside beating verbatim Likhtman-McLeish on Katzarova's three

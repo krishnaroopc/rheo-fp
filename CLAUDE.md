@@ -643,9 +643,19 @@ out-of-distribution or wrong-class detector, and must not be described as one.
 correct `branched` calls at rms 0.062/0.056 — BSW's terminal-wedge exponent
 `n_e` sits ON its 0.90 ceiling, and widening the ceiling shows it chases every
 limit given, rms improving monotonically out to **n_e = 2.0** against
-`bsw_spectrum`'s own stated ~0.2-0.7. The shipped bound is the only thing
-keeping that parameter inside BSW's physics on real data — a **third**
-independent form of the BSW over-flexibility fault. Nothing was changed:
+`bsw_spectrum`'s own stated ~0.2-0.7. On those two curves the shipped bound is
+the only thing keeping that parameter inside BSW's physics — a **third**
+independent form of the BSW over-flexibility fault.
+**>>> QUALIFIED 2026-09-21: this is NOT "real LDPE always violates the
+range". <<<** A second, independent LDPE (BASF Lupolen 1810H, from Verbeeten
+2001 Table III — an exact 6-mode Prony spectrum, so no digitizing) fits
+`n_e` = **0.63, comfortably inside** the bound and the literature range, and
+the check stays quiet. The pinning is a property of the Pivokonsky curves, not
+of branched melts. The over-flexibility does still reproduce there (`n_e`
+climbs to 1.08 then 2.00 as the ceiling lifts, rms improving 0.108 → 0.102),
+but the bound does not catch it, and BSW fits that canonical LDPE noticeably
+worse (rms 0.108 vs 0.062/0.056). See
+`docs/second_ldpe_lupolen_2026-09-21.md`. Nothing was changed:
 that is a pre-registered, cannibalisation-checked change, and note the
 direction — a larger `n_e` makes BSW MORE flexible, the opposite of what the
 fault needs. See next-actions for the open item, including the correction that
