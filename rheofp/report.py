@@ -46,6 +46,11 @@ from rheofp.fitting.identify import (
     ALL_MODELS, NETWORK_CLASSES, FLOOR_CHI2, identify, signature_features,
     fit_model,
 )
+# Display-only translation of the class labels. One-way dependency, matching
+# the neural_report -> report rule: plain_language imports nothing from here.
+from rheofp.plain_language import (
+    plain_name, plain_gloss, regime_note, stack_hint, CONCENTRATION_CAVEAT,
+)
 
 # Burnham & Anderson's conventional reading of delta AICc. These are rules of
 # thumb for model selection, not probabilities - printed so the reader can
@@ -683,7 +688,18 @@ def format_report(rep, width=76):
     rule = "=" * width
     L.append(rule)
     L.append(f"IDENTIFIED: {rep['winner']}")
+    # The internal label is kept on the line above - scripts, tests and the
+    # notes all speak it - with the rheologist's phrasing underneath. Printing
+    # only the plain name would break every existing reference; printing only
+    # the label is what this layer exists to fix.
+    _plain = plain_name(rep["winner"])
+    if _plain != rep["winner"]:
+        L.append(f"  i.e. {_plain}")
     L.append(rule)
+    _gloss = plain_gloss(rep["winner"])
+    if _gloss:
+        L.extend(_wrap("  " + _gloss, width))
+        L.append("")
     L.append(f"  Fit quality : {rep['winner_rms_log']:.4f} decades RMS "
              f"({rep['winner_fit_verdict']})")
     L.append(f"  Parameters  : {rep['winner_k']}")
@@ -733,6 +749,23 @@ def format_report(rep, width=76):
     for e in rep["evidence"]:
         for i, chunk in enumerate(_wrap(e, width - 4)):
             L.append(("  - " if i == 0 else "    ") + chunk)
+
+    # Dynamic regime, and the concentration axis this project deliberately
+    # does NOT report from one curve. Printed together on purpose: the caveat
+    # is what stops a reader turning "screened" into "semidilute".
+    _rnote = regime_note(rep["winner"])
+    if _rnote:
+        L.append("")
+        L.append("REGIME")
+        L.append("-" * width)
+        for i, chunk in enumerate(_wrap(_rnote, width - 4)):
+            L.append(("  - " if i == 0 else "    ") + chunk)
+        for i, chunk in enumerate(_wrap(CONCENTRATION_CAVEAT, width - 4)):
+            L.append(("  - " if i == 0 else "    ") + chunk)
+        _hint = stack_hint(rep["winner"])
+        if _hint:
+            for i, chunk in enumerate(_wrap(_hint, width - 4)):
+                L.append(("  - " if i == 0 else "    ") + chunk)
 
     if rep["discards"]:
         L.append("")
