@@ -66,12 +66,18 @@ while being a **correct** `branched` call on real LDPE. Ranging it produced a
 permanent false alarm on the project's own branched benchmark. Removed, pinned
 by `test_branched_G_N_is_deliberately_unranged`.
 
-**Confirmed empirically, not just by argument.** A full 24-curve sweep was run
-against the earlier table that still ranged `G_N`, and it fired on
-**Pivokonsky E at `G_N` = 657.7 Pa — a correct `branched` call on real LDPE**,
-exactly the false alarm predicted. That run is superseded; the shipped table
-differs from it only by this removal plus the three unreachable entries (which
-never fired), so every `n_e` row in the sweep below is what ships.
+**Confirmed empirically, not just by argument, and confirmed BOTH ways.** The
+full 24-curve sweep was run twice:
+
+* against the earlier table that still ranged `G_N`, it fired on **Pivokonsky
+  E at `G_N` = 657.7 Pa — a correct `branched` call on real LDPE**, exactly
+  the predicted false alarm;
+* against the **shipped** table, that row is `n_e`-only and the total drops to
+  8/24 with every other row byte-identical.
+
+So the removal eliminated exactly one false alarm and cost nothing. The
+committed evidence file `docs/ranges_calibration_2026-09-21.txt` is the
+SHIPPED-table run.
 
 **2. Three candidate entries were dead code.** Where a parameter's BOUNDS are
 already stricter than any honest literature band, a range entry implies a

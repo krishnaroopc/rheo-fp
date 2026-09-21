@@ -1,14 +1,27 @@
-# Range-check calibration sweep, all 24 committed real curves, 2026-09-21.
-# NOTE: run against the table that still ranged branched G_N -- see the E row,
-# which is the false alarm on a CORRECT branched call that caused its removal.
-# The shipped table differs only by that removal plus three unreachable
-# entries that never fired, so every n_e row here is what ships.
+# Range-check calibration sweep: ALL 24 committed real curves, 2026-09-21.
+#
+# Run against the SHIPPED table (rheofp/ranges.py as committed) -- six live
+# checks, branched G_N deliberately unranged, three unreachable entries
+# removed. Reproduce with the identify() + out_of_range_parameters() loop
+# described in docs/ranges_and_user_fields_2026-09-21.md.
+#
+# "dif" = identify() returned a class the source paper contradicts (a WRONG
+# call); "OK" = the expected class.
+#
+# RESULT: 6 of 10 WRONG calls flagged; 2 of 14 correct calls flagged, and both
+# of those are the documented Pivokonsky n_e = 0.90 defect (see
+# docs/at_bound_calibration_2026-09-21.md), not noise.
+#
+# An EARLIER sweep against a table that still ranged branched G_N additionally
+# fired on Pivokonsky E at G_N = 657.7 Pa -- a CORRECT branched call. That
+# false alarm is exactly why G_N was removed, and its absence below is the
+# empirical confirmation.
 
 OK  SY184_10-1       -> cured_elastomer  rms=0.0114  quiet
 OK  Solaris_1-1      -> cured_elastomer  rms=0.0196  quiet
 OK  EF0030_1-1       -> cured_elastomer  rms=0.0173  quiet
 OK  Tixier2004_gel   -> critical_gel     rms=0.0108  quiet
-OK  E                -> branched         rms=0.0624  FIRES BSW amplitude G_N=657.7 below [1e+03,1e+07]; terminal wedge exponent n_e=0.9 above [0.1,0.8]
+OK  E                -> branched         rms=0.0624  FIRES terminal wedge exponent n_e=0.9 above [0.1,0.8]
 OK  B                -> branched         rms=0.0557  FIRES terminal wedge exponent n_e=0.9 above [0.1,0.8]
 dif PS392            -> branched         rms=0.0250  quiet
 dif PS206            -> branched         rms=0.0261  FIRES terminal wedge exponent n_e=0.0597 below [0.1,0.8]
@@ -30,5 +43,3 @@ dif S217             -> branched         rms=0.0206  FIRES terminal wedge expone
 OK  L176             -> star             rms=0.0427  quiet
 
 fired on 8/24 real curves
-
-[exited with code 0]
