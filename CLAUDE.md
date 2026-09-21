@@ -1,7 +1,7 @@
 # >>>>>> PAUSED 2026-09-21 - SUCCESSOR IS `rheolyzer` <<<<<<
 
 **This project is PAUSED, not abandoned.** Work continues in
-**https://github.com/krishnaroopc/rheolyzer** (local: `C:\Users\krisheposheolyzer`).
+**https://github.com/krishnaroopc/rheolyzer** (local: `C:\Users\krish\repos\rheolyzer`).
 
 `rheo-fp` classifies into 10 named models. Those classes mix five independent
 physical axes into one flat label and omit polydispersity entirely, so they

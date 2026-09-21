@@ -4,7 +4,7 @@
 direction in a new repository:
 
   **`rheolyzer`** - https://github.com/krishnaroopc/rheolyzer
-  local clone: `C:\Users\krisheposheolyzer`
+  local clone: `C:\Users\krish\repos\rheolyzer`
 
 **Why.** This project classifies into 10 named models. Those classes are model
 NAMES that mix five independent physical axes into one flat label, and they

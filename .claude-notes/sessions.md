@@ -10,7 +10,7 @@ the end of each working session (what was discussed, decided, and changed).
 
 **`rheo-fp` is paused, not abandoned.** Everything is committed, documented
 and green. Successor: **https://github.com/krishnaroopc/rheolyzer**, cloned to
-`C:\Users\krisheposheolyzer`.
+`C:\Users\krish\repos\rheolyzer`.
 
 ### Why the direction changed
 
