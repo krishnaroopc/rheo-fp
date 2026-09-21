@@ -2493,3 +2493,27 @@ this machine. Verify before trusting the layer or building on it.
 
 Open, unchanged by this session: (a) blends, still not started; (b) the
 `reptation` noise floor; (c) the standing BSW fault, 3/3.
+
+## 2026-09-21 — planning-only session, no code touched
+
+User opened concerned the project has gotten messy/overcomplicated and asked a
+series of plain-language questions (class count, why no "linear melt" class
+name, which classes conflict, whether fitted numbers get sanity-checked
+against physics). Answered each from the actual code/checkpoint, not from
+notes, correcting a couple of things along the way (`cured_elastomer` vs
+`critical_gel` is declared as an ambiguous pair but currently contributes zero
+real errors; `branched` absorbing other classes is the real dominant conflict
+and is *not* in the declared `AMBIGUOUS_PAIRS` list).
+
+Landed on two draft plans, written up in full in `next-actions.md`'s new top
+block — **(A)** a physics-plausibility check on the winning class's fitted
+parameters (at-bound check + a literature-grounded range table, report-only
+first, explicitly not touching `identify()`'s ranking without the usual
+pre-registration discipline), and **(B)** optional user-supplied fields
+(Mw, flow-observed, solvent-present, known-chemistry) with a design sketch for
+how to keep them optional in both a report-time cross-check and a future
+network-input sense (presence-flags + feature dropout; known-chemistry
+deliberately kept report-only, never fed into classification).
+
+**Nothing built. Next session: ask the user which plan (if either) to start
+on** — see next-actions.md's top block for the full detail on both.

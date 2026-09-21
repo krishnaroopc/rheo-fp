@@ -5,7 +5,128 @@ kept in git so it syncs between the user's home and office PCs. When the user
 says something like "let's continue" / "do the next thing" / "pick up where we
 left off", this is where to look. Update + commit this file as items complete.
 
-Last updated: **2026-09-19 (plain-language / regime layer).**
+Last updated: **2026-09-21 (planning session, nothing built yet).**
+
+# >>> 2026-09-21: TWO PLANS DRAFTED IN CONVERSATION. NOTHING BUILT. RESUME HERE. <<<
+
+User opened this session concerned the project has become messy/overcomplicated
+and asked a series of plain-language questions before deciding what to do. Nothing
+in the repo was touched. Two concrete plans came out of it; both need the user's
+go-ahead before any code is written. **Do not start either without confirming
+which one the user wants to resume.**
+
+## Plan A — physics plausibility check on the WINNING class (report-only, first)
+
+**The gap this closes:** `identify()`/`report.py` currently only cross-check the
+two brains' *labels* against each other (agree/disagree). Nobody checks whether
+the winning class's *fitted numbers* are physically reasonable. The one existing
+precedent, `branched_vitrimer_contradiction()`, is a single hand-built rule for
+one specific known trap (vitrimer hiding behind `branched`/`comb`) - it does not
+generalize, and it never looks at the fitted parameter values at all, only the
+raw curve shape.
+
+**Two checks to build, both report-only (do NOT touch identify()'s ranking):**
+
+1. **At-bound check.** Every model in `ALL_MODELS` already carries a bounds
+   tuple (`bnds`, see `ALL_MODELS[name] -> (forward, p0, bnds, k)` in
+   `identify.py`). `fit_model()` already returns `params`. Cheap, mechanical:
+   for the winning class, compare each fitted value to its bound and flag
+   anything sitting at or near a wall. This directly generalizes the exact
+   failure that got `tdd` rejected (`M*/Me` pinned to its upper bound of 60
+   while Z error blew out to +50-60%) - that was caught by a human eyeballing
+   one number; this makes it automatic and applies it to every class, every
+   call, going forward.
+2. **Real-world range table**, built from literature + the real datasets
+   already in `data/*.npz` (NOT from `synth.py`'s own sampling ranges - user
+   explicitly chose literature/physical-reasoning grounding over reusing the
+   generator's ranges, to keep this an independent check rather than a
+   circular one). **Scope: start with the 5 classes that already have a
+   documented real failure** - `branched`, `star`, `reptation`,
+   `cured_elastomer`, `critical_gel` - not all 10 up front. Each class's range
+   needs sourcing (the papers already in CLAUDE.md's Key References list, e.g.
+   Baumgartel-Winter for branched, Milner-McLeish/MM1998/Pryke2002 for star,
+   Likhtman-McLeish/Katzarova2018 for reptation) and should be validated
+   against the real curves already committed in `data/` before being trusted.
+
+**Where it plugs in:** `report.py`, same pattern/location as
+`branched_vitrimer_contradiction()` - a new warning section, printed
+unconditionally alongside the existing ones. `identify()`'s contract and
+ranking stay untouched, matching the project's own rule that report.py never
+feeds back into identify().
+
+**Explicitly deferred, not forgotten:** folding this into the AICc ranking
+itself (so an implausible fit is penalized rather than just flagged) was
+raised and set aside on purpose. Every past change to the ranking math
+(tie rule, `tdd`, the restart-budget cut) was pre-registered and measured
+before shipping, and two of those three were REJECTED after looking fine on
+paper - the tie rule broke on the training distribution for a subtle
+noise-scale reason invisible before running it. Do not skip that discipline
+for this change. **Only revisit ranking enforcement after the report-only
+version has run against real data and demonstrably fires on the known bad
+cases (real linear melts -> branched, real vitrimers -> branched) while
+staying quiet on the known good ones (the 6/6 real-curve benchmark).**
+
+## Plan B — optional user-supplied fields (Mw, flow-observed, solvent-present, etc.)
+
+Mandatory inputs stay frequency + moduli + temperature. Candidate optional
+fields, ranked by whether they hit a real decision point already in the code
+(not just "seems useful"):
+
+1. **Whether the sample flows / has solvent** - directly the axis behind the
+   single biggest error source (zimm<->rouse_screened, 58% of all remaining
+   classifier error per CLAUDE.md). Currently guessed blind from curve shape.
+2. **Molecular weight (Mw)** - `tube.py` ALREADY has the conversion machinery
+   (`Me_from_Ge`, `Z_of_sample`) to turn a fitted plateau modulus + user-supplied
+   Mw into an expected entanglement count, to compare against the fit's own
+   Z. That machinery exists today but is only used one direction (forcing Mw
+   into validation curves) - it is not wired into `identify()`/`report.py` as
+   a user-facing cross-check at all yet.
+3. **Direct observation that the sample flows** ("yes it's a liquid, I could
+   pour it") - backs up `terminal_reached`, which is one of only two hard
+   discards the project trusts, and which is ALREADY DOCUMENTED to miss real
+   flowing samples that fall just short of its numeric threshold (Pryke Ma38k:
+   measured 1.39 against a 1.4 cutoff while visibly flowing, G''/G' = 33 at
+   the lowest point - see the `terminal_reached` sections further down this
+   file). A user's plain statement is strictly better evidence than a slope
+   estimate that can miss by a rounding error.
+4. **Known chemistry/architecture ("I think this is branched/a star/etc")** -
+   deliberately kept OUT of the model/network entirely, report-layer only. A
+   user's claimed answer is a hint to show alongside the model's independent
+   answer (same shortlist-not-average principle as the two-brain disagreement
+   display), never a feature fed into classification - blending it in risks
+   the model learning to defer to a claim that may itself be wrong or partial.
+
+**Key implementation point - these are OPTIONAL and must work at zero:** most
+users will supply some, none, or all of these. Any actual implementation needs:
+- A presence-flag alongside every optional value (real value vs placeholder),
+  so the model can learn to use a field only when it was actually supplied.
+- If/when these become NETWORK inputs (not just report-time cross-checks):
+  train with fields randomly blanked out (feature dropout, same idea as
+  ordinary neural-net dropout but applied to input fields) so the network
+  doesn't learn to lean on a field that's usually absent in real use.
+- Ablation testing before shipping: accuracy with zero optional fields MUST
+  reproduce today's baseline (0.923) unchanged - that's the case most real
+  uploads will actually be in.
+
+**Recommended starting slice (lowest risk, no retraining):** Mw-cross-check
+and flow-observed, as REPORT-TIME ONLY additions first - pure arithmetic using
+functions/thresholds that already exist (`Z_of_sample`, `terminal_reached`),
+no network changes, no retraining. Promoting flow-observed/solvent-present into
+actual trained network inputs (via the presence-flag + feature-dropout
+pattern) would be a separate, later, bigger retraining experiment - only
+worth it if the report-time version proves useful first.
+
+## What to do when resuming
+
+Ask the user which of Plan A / Plan B (or neither, if something else has come
+up) they want to start on. Do not assume - this was an open planning session,
+not a decision. If Plan A: start with the at-bound check (cheapest, no new
+research needed, bounds already exist for all 10 classes) before the range
+table. If Plan B: start with Mw + flow-observed as report-only additions.
+
+---
+
+Last updated before that: **2026-09-19 (plain-language / regime layer).**
 
 # >>> 2026-09-19: PLAIN-LANGUAGE + REGIME REPORTING LAYER BUILT. <<<
 
