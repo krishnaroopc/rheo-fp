@@ -51,8 +51,10 @@ from rheofp.fitting.identify import (
 from rheofp.plain_language import (
     plain_name, plain_gloss, regime_note, stack_hint, CONCENTRATION_CAVEAT,
 )
-# Same one-way rule again: plausibility imports nothing from here.
+# Same one-way rule again: neither imports anything from here.
 from rheofp.plausibility import at_bound_warning
+from rheofp.ranges import out_of_range_warning
+from rheofp.user_fields import user_note
 
 # Burnham & Anderson's conventional reading of delta AICc. These are rules of
 # thumb for model selection, not probabilities - printed so the reader can
@@ -433,7 +435,7 @@ def contest(w, Gp, Gpp, candidate, result=None, **kw):
     }
 
 
-def challenge(result, max_named=3, w=None, Gp=None, Gpp=None):
+def challenge(result, max_named=3, w=None, Gp=None, Gpp=None, user=None):
     """"Don't think it's X? Here's why it might not be." Always produced.
 
     Deliberately unconditional - it is printed for a confident correct answer
@@ -511,6 +513,27 @@ def challenge(result, max_named=3, w=None, Gp=None, Gpp=None):
         if bound_warn:
             items.append({"kind": "at_bound", "text": bound_warn["text"],
                           "n_hard": bound_warn["n_hard"]})
+
+    # 2d. And are those numbers what REAL materials of this kind show? This
+    # is the question 2c cannot reach: a parameter can sit comfortably inside
+    # its bounds and still describe no real material, because the bounds were
+    # chosen permissive enough to fit the synthetic population. Literature-
+    # grounded, deliberately NOT taken from synth.py's sampling ranges, so it
+    # is an independent check rather than a circular one. See rheofp/ranges.py.
+    range_warn = out_of_range_warning(winner["name"], winner.get("params"))
+    if range_warn:
+        items.append({"kind": "out_of_range", "text": range_warn["text"]})
+
+    # 2e. Anything the USER told us about their sample, as an independent
+    # cross-check. All fields optional; `user=None` (the normal case for a
+    # bare upload) produces nothing and changes no behaviour. A claimed
+    # architecture is shown BESIDE the answer, never fed into the fit - see
+    # rheofp/user_fields.py for why that separation is the whole point.
+    if user:
+        note = user_note(winner["name"], winner.get("params"),
+                         feats=result.get("features"), **user)
+        if note:
+            items.append({"kind": "user_fields", "text": note["text"]})
 
     # 3. Classes that were never fitted at all.
     discards = explain_discards(result)
@@ -626,7 +649,8 @@ def challenge(result, max_named=3, w=None, Gp=None, Gpp=None):
     return items
 
 
-def explain(result, w=None, Gp=None, Gpp=None, max_alternatives=4):
+def explain(result, w=None, Gp=None, Gpp=None, max_alternatives=4,
+            user=None):
     """Build the full structured explanation of an identify() result.
 
     Returns a dict; render it with format_report(). Kept structured so the
@@ -690,7 +714,7 @@ def explain(result, w=None, Gp=None, Gpp=None, max_alternatives=4):
         "n_considered": len(ranking),
         "n_total": len(ALL_MODELS),
         "field_all_poor": field_poor,
-        "challenge": challenge(result, w=w, Gp=Gp, Gpp=Gpp),
+        "challenge": challenge(result, w=w, Gp=Gp, Gpp=Gpp, user=user),
         "low_confidence": bool(result["low_confidence"]),
         "abstain": bool(result.get("abstain")),
         "abstain_reason": result.get("abstain_reason"),

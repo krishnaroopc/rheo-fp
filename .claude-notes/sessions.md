@@ -6,6 +6,102 @@ the end of each working session (what was discussed, decided, and changed).
 
 ---
 
+## 2026-09-21 (fifth session) — Plan A step 2 + Plan B built, both report-only
+
+Write-up: `docs/ranges_and_user_fields_2026-09-21.md`. Two new modules, both
+reporting-only, no torch, dependency one-way into `report.py`:
+`rheofp/ranges.py` (21 tests) and `rheofp/user_fields.py` (22 tests).
+**380 tests collected** (recounted; was 334).
+
+### Plan A step 2 — literature ranges
+
+Answers what step 1 cannot: the at-bound check is blind BY CONSTRUCTION to a
+value that is interior and still absurd, because the bounds were chosen
+permissive enough to fit the synthetic population. `n_e` proves it - caught in
+step 1 only because BSW's bound sits at 0.90; at a bound of 2.0, n_e = 1.4
+would have passed silently. This checks the VALUE.
+
+**Sourced from the papers, read directly this session**, per the user's
+instruction to ground it in literature rather than `synth.py` (a test asserts
+it is not a copy - otherwise the check could only confirm "looks like training
+data"):
+- **Fetters et al. (1994) Tables 1 and 2** - measured G_N^0 from 0.015 MPa
+  (PAPHM) to 2.6 MPa (PE); 1,4-PBd 1.15, 1,4-PI 0.35, PIB 0.32, PDMS 0.20,
+  PS 0.20 MPa. Independently corroborated by the project's own recoveries
+  (`star` gives 366-436 kPa on PI, true ~400).
+- **Liu et al. (2006) §6/§5.3** for how wide "plausible" must be: methods
+  agree to **5-10%** monodisperse (Mw/Mn < 1.1, Z > 20-30), **15%**
+  polydisperse, but their Table 9 shows published G_N for bisphenol-A
+  polycarbonate spanning **1.2-4.1 MPa - a factor of 3.4 for ONE polymer.**
+  So bands are deliberately generous; firing means something is genuinely odd.
+
+**Two corrections my own tests forced, both worth keeping:**
+1. **BSW's `G_N` must NOT be ranged.** CLAUDE.md says it is a window-limited
+   amplitude, not a plateau modulus. The real Pivokonsky melts fit **635 Pa
+   and 1108 Pa** - the softer one sits BELOW a 1 kPa plateau floor while being
+   a CORRECT `branched` call. Ranging it produced a permanent false alarm on
+   the project's own branched benchmark.
+2. **Three candidate entries were dead code.** Where a parameter's BOUNDS are
+   already stricter than the literature band, the entry can never fire and
+   implies a check that is not happening: `branched` n_g (0.2-1.0 inside
+   ~0.15-1.0), `reptation` Z (2-200 inside 2-500), `star` Z (4-60 inside
+   1-100). Removed; `test_every_shipped_range_is_actually_reachable` stops
+   them coming back. Six live checks ship.
+
+**Calibration on real data: quiet on all four correct network/gel curves**
+(Darby x3, Tixier), fires on both Pivokonsky melts.
+**>>> And it catches something step 1 could NOT: a wrong-class WIN. <<<**
+Katzarova's PS206 - a monodisperse LINEAR melt misidentified as `branched`,
+the standing BSW fault - fires with **n_e = 0.0597, BELOW the range**. Step 1
+was silent there (no bound hit). So the two checks are genuinely
+complementary, and this is the first automatic flag the project has on the BSW
+fault itself. (PS392 stays quiet - BSW's G_N is unranged and its n_e is
+interior, so the fault is not always visible this way.)
+
+### Plan B — optional user-supplied fields (report-time slice)
+
+Four optional fields threaded through a new `user=` kwarg on
+`explain()`/`challenge()`. **The zero case is byte-identical**, verified
+end-to-end - load-bearing, because 0.923 is measured on bare curves.
+
+The strongest piece is the **Mw cross-check**. `tube.Z_of_sample(Mw, Ge)` has
+existed all along but only ran in the other direction (forcing Mw into
+validation curves). **Validated on Katzarova's three monodisperse PS**, the one
+dataset where Z is independently known AND `tube.py`'s polystyrene defaults are
+the right chemistry:
+
+| sample | true Z | fitted Z | Mw-implied Z | ratio |
+|---|---|---|---|---|
+| PS105 | 7.9 | 9.40 | 9.28 | 1.01 |
+| PS206 | 15.5 | 16.07 | 14.49 | 1.11 |
+| PS392 | 29.5 | 28.94 | 26.64 | 1.09 |
+
+Both independent routes agree to 1-11% and land near the truth. Tolerance is a
+factor of 2 because Z goes as 1/Ge (inheriting the full plateau-modulus method
+spread) and `tube.py`'s defaults are POLYSTYRENE at 180 C - the note says so
+explicitly whenever defaults are used, since applying them silently to another
+chemistry would be a quiet error.
+
+`flows` uses the documented Pryke Ma38k case (1.39 against a 1.4 cutoff while
+pouring); a flowing sample REFUTES a network winner, which is the project's own
+grounding for that hard discard. `solvent_present` targets the zimm<->rouse
+pair (58% of remaining error). `suspected_class` is shown BESIDE the answer as
+a two-item shortlist and **never fed into classification** - blending it in
+would teach the model to defer to a claim that may be wrong, destroying the
+independence that makes the comparison worth printing. Same principle as
+`pair_note()` refusing to average a two-brain disagreement.
+
+**NOT built:** promoting these to trained network inputs (needs presence-flags,
+feature dropout, and an ablation reproducing 0.923 at zero fields).
+
+### One mechanical trap worth recording
+
+A `python` heredoc `str.replace` silently no-opped when inserting into
+`report.py` - the signature/import/call-site edits landed but the block body
+did not, and the only symptom was a missing report section. `Edit` worked.
+**Check that an inserted block is actually present rather than trusting the
+"ok" from a replace script**, especially on files with mixed line endings.
+
 ## 2026-09-21 (fourth session) — Plan A step 1 built; it immediately found a real BSW defect
 
 **`rheofp/plausibility.py`** (new) + **20 tests** in

@@ -272,13 +272,41 @@ choice; it is no longer an open question.
     `cured_elastomer`'s m) because they are physics, not numerical walls;
     they report without the distrust language.
   - **>>> IT FOUND A REAL `branched` DEFECT — see the new open item below. <<<**
-  **Plan A step 2, the literature range table, is NOT started.**
-  `fetters1994_plateau_modulus_table.pdf` (values) and
-  `liu2006_plateau_modulus_methods.pdf` (method spread: 5-10% monodisperse,
-  ~15% polydisperse, i.e. how wide "plausible" must be) are both in
-  `originals/` for it. The `n_e` finding is an argument FOR building it: a
-  range table would have flagged n_e = 0.9 as outside BSW's stated 0.2-0.7
-  without the bound needing to be hit at all.
+- **Plan A — STEP 2 (literature range table) IS BUILT, 2026-09-21.**
+  `rheofp/ranges.py` + 21 tests, wired into `report.py` only. Write-up:
+  **`docs/ranges_and_user_fields_2026-09-21.md`**.
+  Grounded in Fetters et al. (1994) Tables 1/2 for plateau moduli and Liu et
+  al. (2006) for band WIDTH (method spread 5-10% monodisperse, 15%
+  polydisperse, and a factor of 3.4 across published values for ONE polymer -
+  so bands are deliberately generous). **Deliberately NOT derived from
+  `synth.py`'s ranges**, per the user's instruction, so it is an independent
+  check rather than a circular one; a test asserts it is not a copy.
+  **Six live checks** over the five classes with a documented real failure.
+  Catches the `n_e` defect on the VALUE, so widening a bound can no longer
+  hide it.
+  Two corrections its own tests forced: **BSW's `G_N` must NOT be ranged**
+  (window-limited amplitude, not a plateau modulus - real LDPE fits 635 and
+  1108 Pa, so a plateau floor false-alarms on the project's own benchmark),
+  and **three candidate entries were dead code** because the bounds were
+  already stricter than the literature band (`branched` n_g, `reptation` Z,
+  `star` Z). A test now asserts every shipped range is reachable.
+
+- **Plan B — BUILT (report-time slice), 2026-09-21.** `rheofp/user_fields.py`
+  + 22 tests, wired into `report.py` via a new optional `user=` kwarg on
+  `explain()`/`challenge()`. Same write-up as above.
+  **The zero case is byte-identical**, verified end-to-end - load-bearing,
+  since 0.923 is measured on bare curves.
+  The strongest piece is the **Mw cross-check**, validated on Katzarova's
+  three monodisperse PS: fitted vs Mw-implied Z agree to **1-11%**
+  (9.40/9.28, 16.07/14.49, 28.94/26.64) against true 7.9/15.5/29.5, and the
+  fit never saw the Mw. Tolerance is a factor of 2 (Z goes as 1/Ge, and
+  `tube.py`'s rho/T defaults are POLYSTYRENE at 180 C - the note says so
+  whenever defaults are used).
+  **NOT built, deliberately:** promoting `flows`/`solvent_present` into
+  trained NETWORK inputs. That needs a presence-flag per field, training with
+  fields randomly blanked (feature dropout), and an ablation showing accuracy
+  at zero fields reproduces 0.923 unchanged. Only worth doing if the
+  report-time version proves useful first.
 - **Plan B (last):** start with Mw + flow-observed as report-only additions.
   Needs no papers.
 

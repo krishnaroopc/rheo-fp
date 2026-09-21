@@ -521,8 +521,9 @@ gap that made #2 unexplainable to users until 2026-09-17.
    regress) with a learned abstention head, on the frozen architecture.
 
 **Current state (2026-09-09, retrained) — these are 10-CLASS numbers.**
-**334 tests collected** (counted 2026-09-21, = 306 + the 20 of the new
-`tests/test_plausibility.py` + 8 others added since). The figure has been
+**380 tests collected** (counted 2026-09-21, = 334 + the 21 of
+`tests/test_ranges.py` + the 22 of `tests/test_user_fields.py` + 3 others).
+The figure has been
 266, then 280, then 306, and has drifted every time; **recount rather than
 trusting it.** The
 previous figure here was 213, measured 2026-09-09 in 13:34 on the office PC
@@ -650,6 +651,50 @@ direction — a larger `n_e` makes BSW MORE flexible, the opposite of what the
 fault needs. See next-actions for the open item, including the correction that
 `synth.py`'s quoted `n_e ~ 0.55-0.68` describes a WORSE local optimum that
 `fit_bsw` finds, not the model's best fit.
+
+**Are those numbers what REAL materials show? (`rheofp/ranges.py`, 2026-09-21,
+Plan A step 2.)** The at-bound check is blind BY CONSTRUCTION to a value that
+is comfortably interior and still absurd, because the bounds it compares
+against were chosen permissive enough to fit the synthetic population. `n_e` is
+the proof: it was caught only because BSW's bound sits at 0.90, and at a bound
+of 2.0 an `n_e` of 1.4 would have passed silently. This checks the VALUE, so
+widening a bound cannot hide it. **Grounded in literature, deliberately NOT in
+`synth.py`'s sampling ranges** (user's instruction), so it is independent
+rather than circular - plateau moduli from Fetters et al. (1994) Tables 1/2,
+and band WIDTH from Liu et al. (2006), who measure method spread at 5-10%
+(monodisperse) to 15% (polydisperse) and record published G_N for one polymer
+spanning a factor of 3.4. Bands are therefore generous; firing means something
+is genuinely odd. **Six live checks across the five classes with a documented
+real failure.** Quiet on all four correct network/gel benchmark curves; fires
+on both Pivokonsky melts.
+Two things its own tests caught: **BSW's `G_N` must NOT be ranged** (it is a
+window-limited amplitude, not a plateau modulus - the real LDPE melts fit 635
+and 1108 Pa, so a plateau floor would permanently false-alarm on the project's
+own branched benchmark), and **three candidate entries were dead code** because
+the bounds were already stricter than the literature band (`branched` n_g,
+`reptation` Z, `star` Z). A test now asserts every shipped range is reachable.
+
+**Optional user-supplied fields (`rheofp/user_fields.py`, 2026-09-21, Plan B).**
+Mandatory input is unchanged (frequency, moduli, temperature); four optional
+fields are used at REPORT TIME ONLY. **The zero case is the normal case** - a
+bare call produces a byte-identical report, verified end-to-end, because the
+0.923 figure is measured on bare curves. (1) **Mw** feeds
+`tube.Z_of_sample(Mw, Ge)`, machinery that existed all along but only ran in
+the other direction; **validated on Katzarova's three monodisperse PS, where
+fitted and Mw-implied Z agree to 1-11%** (9.40/9.28, 16.07/14.49, 28.94/26.64)
+against true 7.9/15.5/29.5 - a real consistency check, since the fit never saw
+the Mw. Tolerance is a factor of 2 because Z goes as 1/Ge and `tube.py`'s
+rho/T defaults are polystyrene-specific; the note says so whenever defaults are
+used. (2) **flows** - a direct observation, better evidence than
+`terminal_reached`, which is documented missing Pryke's Ma38k at 1.39 against a
+1.4 cutoff while pouring; a flowing sample REFUTES a network winner.
+(3) **solvent_present** - aimed at the zimm<->rouse pair that is 58% of
+remaining error. (4) **suspected_class** - shown BESIDE the independent answer
+as a two-item shortlist, **never fed into classification**, for the same reason
+`pair_note()` refuses to average a two-brain disagreement.
+NOT built: promoting these to trained network inputs, which needs
+presence-flags, feature dropout and an ablation reproducing 0.923 at zero
+fields.
 
 **The two brains' AGREEMENT is the confidence signal neither one can give
 alone (`rheofp/neural_report.py`, 2026-09-09).** The AICc bank and the network
