@@ -5,9 +5,15 @@ kept in git so it syncs between the user's home and office PCs. When the user
 says something like "let's continue" / "do the next thing" / "pick up where we
 left off", this is where to look. Update + commit this file as items complete.
 
-Last updated: **2026-09-21 (planning session + one doc fix; see Plan C below).**
+Last updated: **2026-09-21 (plan order DECIDED: C then A then B; Plan C's papers
+supplied and `originals/` PDFs renamed + indexed. No Plan C code yet).**
 
-# >>> 2026-09-21: THREE PLANS ON THE TABLE. ONLY A DOCSTRING WAS FIXED. RESUME HERE. <<<
+# >>> 2026-09-21: PLAN C IS NEXT (then A, then B). PAPERS IN, NO CODE YET. RESUME HERE. <<<
+
+Three plans were drafted in a planning session; **the user then chose C, then
+A, then B**, and supplied Plan C's source papers the same day. Plan C is
+unblocked and unstarted - see "What to do when resuming" at the end of this
+section. The plan descriptions below are unchanged from when they were drafted.
 
 User opened this session concerned the project has become messy/overcomplicated
 and asked a series of plain-language questions before deciding what to do. Three
@@ -179,24 +185,54 @@ forward physics -> planted round-trip, document transcription traps,
 pre-register predictions before real data, cannibalisation n=30/class,
 close the generator gap same session, retrain) applies directly here.
 
-**Not started. No paper is in `originals/` yet for BoB/HM/GBT/HMMSF.** If this
-is the one chosen, the first real step is getting the primary paper (Das,
-Read, McLeish, Kelmanson 2006, J. Rheol. 50(2), 207 is the most cited /
-most directly usable candidate) into `originals/` - per the project's own
-rule, the user supplies the PDF, no transcription from memory or search
-summaries.
+**>>> CHOSEN 2026-09-21: the user picked C, then A, then B. PAPERS ARE IN. <<<**
+Not started - no code written for it yet - but it is **no longer blocked on a
+paper.** The user supplied all three requested PDFs on 2026-09-21:
+- `originals/das2006_branch_on_branch_bob.pdf` - **Das, Inkson, Read,
+  Kelmanson & McLeish (2006), J. Rheol. 50(2), 207-234,
+  doi:10.1122/1.2167487.** The primary source. Note the author list: it is
+  Das/**Inkson**/Read/Kelmanson/McLeish, not the "Das, Read, McLeish,
+  Kelmanson" this file previously guessed.
+- `originals/larson2001_hierarchical_model.pdf` - **Larson (2001),
+  Macromolecules 34, 4556-4571**, the original Hierarchical Model
+  (seniority/priority ordering). Bonus: it covers monodisperse linear, star,
+  mixed linear+star, pom-pom AND comb PBD melts, so it is also an independent
+  cross-check on the existing `star.py` and `comb.py`.
+- `originals/fetters1994_plateau_modulus_table.pdf` - **Fetters, Lohse,
+  Richter, Witten & Zirkel (1994), Macromolecules 27, 4639** - for **Plan A**,
+  not C: the standard G_N0 / M_e / rho table.
+
+**First real step is now reading Das 2006 and following
+`docs/proposal_new_classes.md`'s methodology** (forward physics -> planted
+round-trip -> document transcription traps -> pre-register predictions before
+touching real data -> cannibalisation n=30/class -> close the generator gap
+same session -> retrain). Expect transcription traps: `star.py` had three and
+`comb.py` was nearly built on the wrong paper.
+
+HMMSF is the fallback branch only, and no paper has been fetched for it on
+purpose - do not request one unless BoB's monodisperse assumption proves to be
+the problem.
 
 ## What to do when resuming
 
-Ask the user which of Plan A / Plan B / Plan C (or neither, if something else
-has come up) they want to start on. Do not assume - this was an open planning
-session, not a decision.
-- **Plan A:** start with the at-bound check (cheapest, no new research needed,
-  bounds already exist for all 10 classes) before the range table.
-- **Plan B:** start with Mw + flow-observed as report-only additions.
-- **Plan C:** the biggest of the three - start by getting the GBT/BoB/HM
-  source paper into `originals/`, then follow the methodology in
-  `docs/proposal_new_classes.md`.
+**DECIDED 2026-09-21: order is C, then A, then B.** This is the user's explicit
+choice; it is no longer an open question.
+
+- **Plan C (NEXT, unblocked):** read `originals/das2006_branch_on_branch_bob.pdf`
+  (with `larson2001_hierarchical_model.pdf` as the companion for
+  seniority/priority), then follow `docs/proposal_new_classes.md`. No code has
+  been written yet.
+- **Plan A (after C):** start with the at-bound check (cheapest, no new
+  research needed, bounds already exist for all 10 classes) before the range
+  table. The range table now has `fetters1994_plateau_modulus_table.pdf` for
+  values and `liu2006_plateau_modulus_methods.pdf` for how wide "plausible"
+  has to be (5-10% monodisperse, ~15% polydisperse method spread) - so it no
+  longer needs assembling from six separate papers.
+  Note the standing caveat above: do not over-invest in `branched`-specific
+  range-table work while C is live, since a molecularly-constrained model
+  would make some of it moot.
+- **Plan B (last):** start with Mw + flow-observed as report-only additions.
+  Needs no papers.
 
 Note Plan C and Plan A are not mutually exclusive but ARE sequenced by risk:
 Plan A (report-only flag) is low-risk and immediately useful regardless of
@@ -279,9 +315,9 @@ Last updated before that: **2026-09-18 (TDD session).**
 ## TDD-DR was built, validated, and REJECTED. `tube.py` still ships.
 
 User asked whether the three new PDFs in `originals/` offered a faster
-`reptation`. They are van Ruymbeke & Keunings 2002 (`ma011271c.pdf`),
-Chaudhuri & Lele 2020 (`1_1_online.pdf`), and Liu et al. 2006
-(`1-s2.0-S0032386106005684-main.pdf`).
+`reptation`. They are van Ruymbeke & Keunings 2002 (`vanruymbeke_keunings2002_reptation_tdd.pdf`),
+Chaudhuri & Lele 2020 (`chaudhuri_lele2020_uhmwpe_hdpe_blends.pdf`), and Liu et al. 2006
+(`liu2006_plateau_modulus_methods.pdf`).
 
 **Chaudhuri is the wrong target for speed** - its model is TDD-DR for
 POLYDISPERSE/bimodal blends (eq 7 is a double integral over two MWDs plus a
@@ -758,7 +794,7 @@ n=9. Do not build a rule on it without more chemistries.
 
 **What would justify reopening:** (a) a reparameterised `comb` that cannot
 outfit a linear chain — the c6bb-PS control is the test, and it is cheap;
-(b) real comb data from a second source (ML1999 Fig 6, `originals/ma990323j.pdf`,
+(b) real comb data from a second source (ML1999 Fig 6, `originals/mcleish1999_h_polymers.pdf`,
 figure-only so it needs digitizing); (c) a physical restriction that survives
 the c6bb-PS control. Items 6 (generator gap, `synth.py`) and 7 (retrain) from
 the old list remain the prerequisites IF it is ever wired, and are unchanged.
@@ -987,7 +1023,7 @@ dataset.
 ### The original brief, kept as the record
 
 **Status was: BLOCKED ON DIGITIZING. The paper is in hand; the data is not.**
-`originals/ma010350l.pdf` — Pryke, Blackwell, McLeish & Young, *Macromolecules*
+`originals/pryke2002_pbd_stars.pdf` — Pryke, Blackwell, McLeish & Young, *Macromolecules*
 **35**, 467-472 (2002), DOI `10.1021/ma010350l`. Checked page by page
 2026-09-10: it is the right paper and it is worth the effort.
 

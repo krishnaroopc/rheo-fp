@@ -15,7 +15,7 @@ a separate "OUTCOME" section underneath, and let the diff show what was wrong.
 
 ## The dataset
 
-`originals/ma010350l.pdf` — Pryke, Blackwell, McLeish & Young,
+`originals/pryke2002_pbd_stars.pdf` — Pryke, Blackwell, McLeish & Young,
 *Macromolecules* **35**, 467-472 (2002), doi:10.1021/ma010350l.
 Four symmetric **three-arm 1,2-polybutadiene** star melts, plus their
 hydrogenated poly(1-butene) analogues. Master curves at **333 K**, Figures 2

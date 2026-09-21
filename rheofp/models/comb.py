@@ -4,7 +4,7 @@ Reference: T. C. B. McLeish, J. Allgaier, D. K. Bick, G. Bishko, P. Biswas,
 R. Blackwell, B. Blottiere, N. Clarke, B. Gibbs, D. J. Groves, A. Hakiki,
 R. K. Heenan, J. M. Johnson, R. Kant, D. J. Read & R. N. Young, "Dynamics of
 Entangled H-Polymers: Theory, Rheology, and Neutron-Scattering",
-Macromolecules 1999, 32, 6734-6758. Source PDF: originals/ma990323j.pdf.
+Macromolecules 1999, 32, 6734-6758. Source PDF: originals/mcleish1999_h_polymers.pdf.
 Equation numbers below are that paper's (section 2.1 and Appendix A).
 
 >>> WHY THIS IS NOT McLEISH & LARSON 1998, WHICH IS THE OBVIOUS CHOICE <<<
@@ -70,7 +70,8 @@ TWO CONSTANTS THAT THE LITERATURE DOES NOT AGREE ON. Both are module-level and
 both are deliberately NOT fitted; see the notes on each:
   * R, the dilution exponent. ML1999 Appendix A eq 26 states R = 4/3
     (Colby-Rubinstein, as star.py uses). Kapnistos et al. 2005
-    (originals/ma050644x.pdf, Macromolecules 38, 7852) chose R = 1 after
+    (originals/kapnistos2005_comb_linear_backbone.pdf, Macromolecules 38,
+    7852) chose R = 1 after
     testing and say outright "the dilution is not a fully resolved issue".
     4/3 is the default here because this module follows ML1999.
   * p^2, the branch-point diffusion constant (eq 32). ML1999 finds p^2 = 1/6

@@ -455,7 +455,7 @@ missing class rather than being fooled), **2/9 wrong at good fit quality with no
 warning** (c652-PS at rms 0.030 → `branched`), 1/9 a tie. Never right.
 Reopening would need a reparameterised `comb` that cannot outfit a linear chain
 (the c6bb-PS control is the cheap test), or real comb data from a second source
-(ML1999 Fig 6, `originals/ma990323j.pdf`, figure-only so it needs digitizing).
+(ML1999 Fig 6, `originals/mcleish1999_h_polymers.pdf`, figure-only so it needs digitizing).
 Do not lower `test_star.py`'s `runner_up["delta"] > 50` assertion — it is
 correctly reporting a regression, not miscalibrated, confirmed twice now.
 

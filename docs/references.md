@@ -4,6 +4,12 @@ Literature underlying the models implemented in `rheofp/`. Source PDFs are
 kept locally in `originals/` (gitignored) and are not distributed with this
 repository - citations only, below.
 
+**Filename -> paper lookup lives in `originals/INDEX.md`** (per-machine, since
+`originals/` is gitignored; regenerate by inspection if a PC lacks it). PDFs
+were renamed from publisher slugs to `firstauthor<year>_topic` on 2026-09-21;
+bare DOIs in this file and elsewhere are citations, NOT filenames, and were
+deliberately left unchanged.
+
 - Likhtman, A. E., & McLeish, T. C. B. (2002). Quantitative theory for linear
   dynamics of linear entangled polymers. *Macromolecules*, 35(16), 6332-6343.
   — `rheofp/models/tube.py`
@@ -134,5 +140,5 @@ repository - citations only, below.
   flat-cost-in-Z analysis.
   **NOT YET USABLE:** G'/G'' appear only as log-log master curves (Figures 2
   and 3, ~9 decades at 333 K); there are no numeric tables, so the figures
-  must be digitized first. `originals/ma010350l.pdf`; see the active task at
+  must be digitized first. `originals/pryke2002_pbd_stars.pdf`; see the active task at
   the top of `.claude-notes/next-actions.md`.

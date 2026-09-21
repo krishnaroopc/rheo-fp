@@ -19,7 +19,7 @@ a separate "OUTCOME" section underneath, and let the diff show what was wrong.
 
 ## The dataset
 
-`originals/ma050644x.pdf` — Kapnistos, Vlassopoulos, Roovers & Leal,
+`originals/kapnistos2005_comb_linear_backbone.pdf` — Kapnistos, Vlassopoulos, Roovers & Leal,
 *Macromolecules* **38**, 7852–7862 (2005), doi:10.1021/ma050644x.
 Model comb homopolymers: a linear backbone with ~17–31 grafted linear
 branches. Two chemistries, two figures, nine digitized curves

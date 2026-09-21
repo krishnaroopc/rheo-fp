@@ -345,7 +345,8 @@ def _tau_activated(s, Z, tau_e, alpha=ALPHA_CR):
     # follow-up paper: Milner & McLeish (1998), Macromolecules 31, 7479,
     # Appendix, under its eq 10 - "This is eq 29 of ref 1 with an additional
     # factor of 1/2, which was mistakenly omitted in the earlier paper."
-    # originals/ma980060d.pdf. Without it the activated branch is 2x too slow
+    # originals/milner_mcleish1998_star_armlength.pdf. Without it the
+    # activated branch is 2x too slow
     # at any given Z, the spectrum is correspondingly too wide, and fitting
     # real data recovers Z high by ~1.4-2.2x (measured on the seven MM1998
     # four-arm PI stars, 2026-09-09 - see scripts/validate_star_real.py).

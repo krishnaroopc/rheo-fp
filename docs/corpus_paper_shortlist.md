@@ -128,7 +128,7 @@ Verified via Crossref. Monodisperse PS 290k/750k/2540k at 180 C.
 Janeschitz-Kriegl, **Rheol. Acta 24, 228-231**, doi:10.1007/bf01332601
 (note the author order rotates). Grab both while you have the volume open.
 
-**Note:** `originals/1-s2.0-S0032386106005684-main.pdf` (Liu et al. 2006,
+**Note:** `originals/liu2006_plateau_modulus_methods.pdf` (Liu et al. 2006,
 Polymer 47, 4461) is **already in the repo** and is the index to all of the
 above — its Tables 1-3 give Mw, PDI, T and the source reference for every
 sample. Read it first.
@@ -398,7 +398,7 @@ depends only on ARM length and not arm number (the Pearson-Helfand result), and
 this project has never tested that against real multiarm data. It is the one
 star acquisition that would test a prediction rather than re-confirm the class.
 
-Note `originals/ma00154a046.pdf` is **Struglinski & Graessley 1985**,
+Note `originals/struglinski_graessley1985_polydispersity_blends.pdf` is **Struglinski & Graessley 1985**,
 *"Effects of polydispersity on the linear viscoelastic properties of entangled
 polymers. 1."*, **Macromolecules 18, 2630-2643** — DOI confirmed to match the
 file already present. 5 series x 7-10 compositions, flagged in

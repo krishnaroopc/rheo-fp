@@ -36,7 +36,8 @@ known, never fitted. That is the dataset's strength and its limit:
     composition sweep. Do not read a recovered w ~ 0.5 as evidence that w is
     identifiable - with every sample planted at 0.5, a fitter that always
     returned 0.5 would score perfectly. The sweep lives in Struglinski &
-    Graessley 1985 (originals/ma00154a046.pdf, 5 series x 7-10 compositions,
+    Graessley 1985 (originals/struglinski_graessley1985_polydispersity_blends.pdf,
+    5 series x 7-10 compositions,
     phi_L 0.025-0.90), which is the SECOND test and is deliberately not
     digitized yet.
 

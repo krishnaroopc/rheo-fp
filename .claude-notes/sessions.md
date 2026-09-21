@@ -6,6 +6,57 @@ the end of each working session (what was discussed, decided, and changed).
 
 ---
 
+## 2026-09-21 (second session) — Plan order decided (C→A→B); `originals/` renamed + indexed
+
+**Decision, not a discussion: the user chose Plan C, then A, then B**, and
+asked which PDFs were needed. The previous session had left the three plans
+open with an explicit "ask, do not assume" note; that is now resolved and
+`next-actions.md`'s banner and resume section were rewritten to say so.
+
+**Papers requested and delivered the same session** (all three, into
+`originals/`):
+- **Das, Inkson, Read, Kelmanson & McLeish (2006), J. Rheol. 50(2), 207-234**,
+  doi:10.1122/1.2167487 — Plan C's blocking primary source. Worth noting the
+  author list differs from what `next-actions.md` had guessed: **Inkson** is in
+  it, and it is not "Das, Read, McLeish, Kelmanson".
+- **Larson (2001), Macromolecules 34, 4556** — the original Hierarchical
+  Model. Unplanned bonus: it covers linear, star, mixed linear+star, pom-pom
+  **and comb** PBD melts, so it is an independent cross-check on the existing
+  `star.py`/`comb.py`, not just a BoB companion.
+- **Fetters, Lohse, Richter, Witten & Zirkel (1994), Macromolecules 27, 4639**
+  — for **Plan A**, not C: the standard G_N0/M_e/rho table. With
+  `liu2006_plateau_modulus_methods.pdf` (already present) giving the
+  method-dependent spread (5-10% monodisperse, ~15% polydisperse), Plan A's
+  range table no longer needs assembling from six separate papers.
+
+**`originals/` PDFs renamed and indexed** (the user's request, so sessions stop
+re-scanning PDFs to learn what they are). 15 publisher slugs
+(`ma010350l.pdf`, `1_1_online.pdf`, `823_1_online.pdf`, …) →
+`firstauthor<year>_topic`. Every PDF was opened and identified first; four had
+been sitting unidentified in `originals/` with no reference anywhere
+(`nielsen2006_elongational_ps_melts` — extensional, out of scope;
+`roovers_graessley1981_comb_polystyrenes` — a possible second comb source if
+`comb` is ever reopened; `struglinski_graessley1985_polydispersity_blends`;
+`schausberger1985_molten_standard_ps`).
+
+**New `originals/INDEX.md`** — filename→paper→what-uses-it→derived-`.npz`, for
+`originals/` and `originals/archive/`. It is **per-machine**, because
+`originals/` is gitignored, so a pointer to it was added at the top of the
+tracked `docs/references.md`; regenerate by inspection on a PC that lacks it.
+Cross-checked both directions: no PDF on disk missing from the index, no index
+entry missing from disk.
+
+**One trap worth recording: many repo hits on those slugs were DOIs, not
+filenames** (`doi:10.1021/ma010350l`). The rewrite was scoped to occurrences
+ending in `.pdf` only, and the DOIs were verified intact afterwards. A blind
+find-replace would have silently corrupted the citations in
+`docs/references.md`, both preregistrations, and five `prep_*.py` headers.
+
+11 files had path references updated (`CLAUDE.md`, both `.claude-notes/`,
+4 `docs/`, `rheofp/models/{comb,star}.py`, `scripts/prep_katzarova2018.py`,
+`tests/test_comb.py`). Verified: imports fine, `tests/test_comb.py` 33/33.
+Comment-only changes — no behavior touched, and **no Plan C code was written.**
+
 ## 2026-09-16 — Real comb data settles it: `comb` stays out, on all three criteria
 
 **The pre-registration worked, and it is the reason this session's answer is
@@ -81,7 +132,7 @@ bracket, so G*(w) needs a numerical Fourier transform, and that transform
 ALIASES: identical machinery reproduces an analytic Maxwell mode to 4 decimals
 on a narrow grid and fails by **114x** on the 16-decade grid the model needs,
 improving only to 16x at 80000 points and not monotonically. Not fixable by
-adding points. **McLeish et al. 1999 (`originals/ma990323j.pdf`) section 2.1
+adding points. **McLeish et al. 1999 (`originals/mcleish1999_h_polymers.pdf`) section 2.1
 supersedes it** — eqs 22-24 are a SUM of two weighted integrals, a mode ladder
 through the validated `maxwell_spectrum`, exactly like `star.py`'s eq 26. The
 problem did not need solving; it needed not creating.
@@ -250,16 +301,16 @@ star block copolymer paper, of no use to the comb class.
 
 **2. `originals/` gained three genuinely useful papers** (user-supplied, all
 verified by reading page 1 rather than by recall):
-- `ma990323j.pdf` — **McLeish et al. 1999**, "Dynamics of Entangled
+- `mcleish1999_h_polymers.pdf` — **McLeish et al. 1999**, "Dynamics of Entangled
   H-Polymers: Theory, Rheology, and Neutron-Scattering", Macromolecules 32,
   6734-6758. **The step-4 dataset and the correct theory source.**
-- `ma050644x.pdf` — Kapnistos, Vlassopoulos, Roovers & Leal 2005, comb
+- `kapnistos2005_comb_linear_backbone.pdf` — Kapnistos, Vlassopoulos, Roovers & Leal 2005, comb
   polymers with linear backbones, Macromolecules 38, 7852.
-- `ma50004a057.pdf` — Roovers & Graessley **1981**, "Melt Rheology of Some
+- `roovers_graessley1981_comb_polystyrenes.pdf` — Roovers & Graessley **1981**, "Melt Rheology of Some
   Model Comb Polystyrenes", Macromolecules 14, 766. (NOT the 1984 H-shaped
   polystyrene paper McLeish & Larson cite — I conflated the two earlier.)
 
-Also **un-archived** `archive/81_1_online.pdf` → `originals/mcleish_larson1998_
+Also **un-archived** `archive/8chaudhuri_lele2020_uhmwpe_hdpe_blends.pdf` → `originals/mcleish_larson1998_
 pompom.pdf`. It had been filed under the 2026-07-04 XPP scope decision, which
 was right about the paper's nonlinear half and wrong about the rest.
 `archive/README.md` records the move. (All of `originals/` is gitignored, so
@@ -521,7 +572,7 @@ first one).
 
 **Landed on Pryke, Blackwell, McLeish & Young, *Macromolecules* 35, 467-472
 (2002), DOI 10.1021/ma010350l.** User supplied it as
-`originals/ma010350l.pdf`; I read it page by page and confirmed it is the
+`originals/pryke2002_pbd_stars.pdf`; I read it page by page and confirmed it is the
 right paper. Four three-arm 1,2-polybutadiene stars, arm M_w 11.3K-78.6K, plus
 their hydrogenated analogues; M_e / G_0 / tau_e given in Table 2 so **Z is
 known independently rather than fitted** (Z = 3.2 / 6.8 / 11.0 / 22.1). It is
@@ -909,7 +960,7 @@ self-confidence can provide. Needs a checkpoint, which does not travel in git.
 ## 2026-09-09 (office PC, part 2) — star REAL-DATA validation: two bugs found and fixed
 
 Continued the same session. User supplied two papers into `originals/`
-(`ma9815556.pdf` Santangelo-Roland-Puskas 1999; `ma980060d.pdf` Milner-McLeish
+(`santangelo1999_star_pib.pdf` Santangelo-Roland-Puskas 1999; `milner_mcleish1998_star_armlength.pdf` Milner-McLeish
 1998) and then hand-digitized both into xlsx. **This is step 4, the real-data
 validation of `star` that had been blocked since the class was built.**
 

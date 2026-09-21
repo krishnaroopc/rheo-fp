@@ -5,9 +5,11 @@ against defects that were actually hit while writing it - the arm/cross-bar
 ladder inversion and the tau_e bounds artefact both shipped in working code and
 were caught by measurement, so these are regression tests in the strict sense.
 
-Reference: Macromolecules 1999, 32, 6734 (originals/ma990323j.pdf), with
+Reference: Macromolecules 1999, 32, 6734
+(originals/mcleish1999_h_polymers.pdf), with
 McLeish & Larson 1998 (mcleish_larson1998_pompom.pdf) as the superseded
-precursor and Kapnistos et al. 2005 (ma050644x.pdf) as the comb-side
+precursor and Kapnistos et al. 2005
+(kapnistos2005_comb_linear_backbone.pdf) as the comb-side
 cross-check on the two disputed constants.
 """
 import numpy as np
