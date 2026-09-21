@@ -6,6 +6,105 @@ the end of each working session (what was discussed, decided, and changed).
 
 ---
 
+## 2026-09-21 (sixth session) — PROJECT PAUSED; successor repo `rheolyze` created
+
+**`rheo-fp` is paused, not abandoned.** Everything is committed, documented
+and green. Successor: **https://github.com/krishnaroopc/rheolyze**, cloned to
+`C:\Users\krish\rheolyze`.
+
+### Why the direction changed
+
+The user asked whether all 10 classes are relevant and whether a more useful
+classification exists, stating the real goal plainly:
+
+> "i am trying to build a tool that lets the user characterize a material
+> using rheometry only - without needing other characterization techniques
+> like xray, light scattering, NMR etc. identifying linear vs branched is
+> important. so is polydispersity, MW etc."
+
+**The diagnosis:** the 10 classes are model NAMES that mix five independent
+physical axes into one flat label, and omit polydispersity entirely. Two
+consequences, both of which this project measured the hard way:
+1. Continuous physics forced into binary labels - `zimm` vs `rouse_screened`
+   differ ONLY in a spectral exponent (1.8 vs 2.0) and became **58% of all
+   remaining error (107 errors)**, while every other class sat at 0.91-1.00.
+   That error is a taxonomy artifact, not a physics or data problem.
+2. `branched` had to carry BOTH the breadth signal and the architecture
+   signal, which is why it won whenever a spectrum was broad regardless of
+   cause.
+
+**The user's constraint, and it is important: `branched` is NOT to be
+dropped.** An earlier suggestion of relegating it to a vague regime label was
+explicitly rejected. The fix is SEPARATION of axes, not deletion.
+
+`rheolyze` reports **six independent axes** (solution/melt, entangled,
+linear/branched, narrow/broad, flowing/network, permanent/dynamic), each
+abstaining independently, plus the **quantities** that are the actual product
+(M_w, PDI, M_e, plateau modulus, crosslink density) with uncertainties and
+stated routes. Documentation only so far - no code, no environment.
+
+### The last measurement in this repo: the eliminating loop, REJECTED
+
+The user proposed: fit all 10, check the winner with the new safety checks,
+eliminate the class if its numbers are impossible, re-rank, repeat until
+everything is green. Measured read-only over all 21 real curves with a known
+truth (`scripts/check_plausible_runner_up.py`,
+`docs/elimination_loop_verdict_2026-09-21.md`):
+
+**7 currently wrong -> fixes 4. 14 currently right -> breaks 2. Net +2.**
+
+- **Fixes 4**, all the same failure: PS206, Ma95k, Ma105k, S217 - `branched`
+  absorbing another architecture, flagged by `n_e` at its floor, with the TRUE
+  class immediately behind it.
+- **Breaks 2**, and this is decisive: **both real Pivokonsky LDPE melts**,
+  where `branched` is CORRECT but flagged anyway (the documented `n_e = 0.90`
+  ceiling defect). The next plausible candidate is **`zimm`** - an
+  unentangled dilute-solution model for a branched polyethylene melt. Not a
+  near-miss; an absurd fallback.
+- **Cannot help 3**: PS392 (the strongest single case of the fault, `n_e`
+  interior), S490, L176.
+
+**Verdict: do not ship it.** +2 net is not worth turning correct answers into
+absurd ones; it violates the positive-observation rule (a range violation is
+the FITTER failing, and Pivokonsky proves the "right class, imperfect model"
+cause is real); and it always terminates with an answer, so OOD material
+eliminates down to a survivor that looks MORE trustworthy for having green
+lights. **The salvageable half** - report the best PLAUSIBLE alternative
+alongside the winner, rather than replacing it - is not built, and the
+`first-plausible` column of the measurement already supplies its content.
+
+**Implementation note worth carrying to `rheolyze`:** this is ONE PASS down
+the ranking, not an iterative loop. Each candidate's AICc depends only on its
+own fit, so elimination promotes the next survivor without reshuffling the
+rest. Same answer, ~10x less compute.
+
+### Also this session (before the pause)
+
+- **A second real LDPE corrected an overstatement of mine.** I had claimed
+  "correct `branched` also violates the `n_e` range" on the strength of ONE
+  dataset; the user objected. Verbeeten 2001 Table III (already in
+  `originals/archive/`, overlooked) gives an exact 6-mode Prony spectrum for
+  BASF Lupolen 1810H LDPE, and it fits `n_e` = 0.63 - comfortably inside.
+  Claim corrected in three places.
+- **An HDPE control failed its own confound check**, and I nearly shipped it
+  as a finding. `branched` wins Statoil 870H at weight 1.000, ΔAICc 216 - but
+  `reptation` fits badly in EVERY window tried, the spectrum spans 5.7
+  decades, and the authors call the resin "very elastic" with a spectrum
+  "difficult to identify" taken from creep. It is a polydisperse commercial
+  resin, so `branched` is arguably the HONEST answer. **Reusable lesson:
+  "linear chemistry" does not imply "monodisperse linear melt".**
+- Those two exact spectra are now `rheolyze`'s first planned dataset and its
+  cheapest decisive experiment: a design that works must return
+  (linear, broad) for the HDPE and (branched, broad) for the LDPE. This repo
+  returns `branched` for both.
+
+### Verification state at the pause
+
+All green. `test_report.py` + `test_plain_language.py` + `test_plausibility.py`
+**61/61** (1h33m, against the current `report.py` including the range-check and
+user-field wiring); `test_plausibility.py` 20/20, `test_ranges.py` 23/23,
+`test_user_fields.py` 22/22; 380 tests collected.
+
 ## 2026-09-21 (fifth session) — Plan A step 2 + Plan B built, both report-only
 
 Write-up: `docs/ranges_and_user_fields_2026-09-21.md`. Two new modules, both

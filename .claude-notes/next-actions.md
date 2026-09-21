@@ -1,3 +1,43 @@
+# >>>>>> PROJECT PAUSED 2026-09-21. READ THIS BEFORE ANYTHING ELSE. <<<<<<
+
+**`rheo-fp` is PAUSED, not abandoned.** The user has taken the work in a new
+direction in a new repository:
+
+  **`rheolyze`** - https://github.com/krishnaroopc/rheolyze
+  local clone: `C:\Users\krish\rheolyze`
+
+**Why.** This project classifies into 10 named models. Those classes are model
+NAMES that mix five independent physical axes into one flat label, and they
+omit polydispersity entirely. The user's actual goal is a tool that
+characterizes a material **using rheometry alone** - reporting the quantities
+you would otherwise need GPC, light scattering or NMR to get (M_w, PDI, M_e,
+branching, crosslink density). `rheolyze` reports six INDEPENDENT AXES plus
+those quantities, instead of one class label.
+
+**`rheolyze/docs/why_rheolyze.md` holds the full rationale**, with every
+measured number from this project that motivated the change.
+
+**Everything here is committed, documented and green.** Nothing is
+half-finished. This repo remains the source of a large body of VALIDATED
+forward physics (tube, star, network, solutions, sticky, tdd) and a dozen
+digitized real datasets - `rheolyze/docs/inherited_assets.md` inventories what
+transfers. **Read from this repo; do not delete or rewrite it.**
+
+**If work resumes here**, the live items are below as they stood. The most
+substantial three:
+- **BSW's `n_e` is held inside physics only by its bound** (it chases 2.0 when
+  freed) - but note that a larger `n_e` makes BSW MORE flexible, which is the
+  opposite of what the fault needs.
+- **The `comb.py` reparameterisation** (drop free `phi_b`, k=5 -> k=4) is
+  designed and diagnosed but NOT built; the next concrete step is a
+  pre-registration commit, not a model edit.
+- **The eliminating-loop idea was MEASURED AND REJECTED** - see
+  `docs/elimination_loop_verdict_2026-09-21.md`. +2 curves net, but it turns
+  two CORRECT real LDPE calls into `zimm`. The salvageable half (report the
+  best PLAUSIBLE alternative alongside the winner) is not built.
+
+---
+
 # Next actions (handoff across PCs)
 
 Claude: read this at the start of work. It is the live "what to do next" list,

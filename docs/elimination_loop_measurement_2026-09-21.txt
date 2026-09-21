@@ -1,0 +1,38 @@
+# Would ELIMINATING implausible classes and re-ranking give the right answer?
+# Read-only measurement, 2026-09-21, all 21 real curves with a known truth.
+# Script: scripts/check_plausible_runner_up.py
+#
+# The user proposed: fit all 10, check the winner, eliminate the class if its
+# numbers are impossible, re-rank, repeat until everything passes.
+#
+# NOTE the truth column: L176/HM/HL/ML are Santangelo LINEAR controls, so
+# their truth is reptation, not star. Three curves that identify() already
+# gets wrong are counted here.
+
+SY184_10-1     true=cured_elastomer  winner=cured_elastomer  clean   -> first-plausible=cured_elastomer  keeps
+Solaris_1-1    true=cured_elastomer  winner=cured_elastomer  clean   -> first-plausible=cured_elastomer  keeps
+EF0030_1-1     true=cured_elastomer  winner=cured_elastomer  clean   -> first-plausible=cured_elastomer  keeps
+Tixier2004_gel true=critical_gel     winner=critical_gel     clean   -> first-plausible=critical_gel     keeps
+E              true=branched         winner=branched         FLAGGED -> first-plausible=zimm             BREAKS
+B              true=branched         winner=branched         FLAGGED -> first-plausible=zimm             BREAKS
+PS105          true=reptation        winner=reptation        clean   -> first-plausible=reptation        keeps
+PS206          true=reptation        winner=branched         FLAGGED -> first-plausible=reptation        FIXES
+PS392          true=reptation        winner=branched         clean   -> first-plausible=branched         still wrong
+PI4_Ma11k      true=star             winner=star             clean   -> first-plausible=star             keeps
+PI4_Ma17k      true=star             winner=star             clean   -> first-plausible=star             keeps
+PI4_Ma36k      true=star             winner=star             clean   -> first-plausible=star             keeps
+PI4_Ma44k      true=star             winner=star             clean   -> first-plausible=star             keeps
+PI4_Ma47k      true=star             winner=star             clean   -> first-plausible=star             keeps
+PI4_Ma95k      true=star             winner=branched         FLAGGED -> first-plausible=star             FIXES
+PI4_Ma105k     true=star             winner=branched         FLAGGED -> first-plausible=star             FIXES
+PBD3_Ma38k     true=star             winner=star             clean   -> first-plausible=star             keeps
+PBD3_Ma78k     true=star             winner=star             clean   -> first-plausible=star             keeps
+S217           true=star             winner=branched         FLAGGED -> first-plausible=star             FIXES
+S490           true=star             winner=branched         clean   -> first-plausible=branched         still wrong
+L176           true=reptation        winner=star             clean   -> first-plausible=star             still wrong
+
+==============================================================================
+currently WRONG :  7   of which elimination FIXES: 4   still wrong: 3
+currently RIGHT : 14   of which elimination BREAKS: 2
+==============================================================================
+NET change if the eliminating loop shipped: +2 curves

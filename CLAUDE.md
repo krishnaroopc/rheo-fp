@@ -1,3 +1,25 @@
+# >>>>>> PAUSED 2026-09-21 - SUCCESSOR IS `rheolyze` <<<<<<
+
+**This project is PAUSED, not abandoned.** Work continues in
+**https://github.com/krishnaroopc/rheolyze** (local: `C:\Users\krish\rheolyze`).
+
+`rheo-fp` classifies into 10 named models. Those classes mix five independent
+physical axes into one flat label and omit polydispersity entirely, so they
+cannot express what the user actually wants: **characterization from rheometry
+alone** - M_w, PDI, M_e, branching, crosslink density, i.e. the numbers you
+would otherwise need GPC, light scattering or NMR to obtain. `rheolyze`
+reports six independent axes plus those quantities.
+
+Read `rheolyze/docs/why_rheolyze.md` for the rationale and
+`rheolyze/docs/inherited_assets.md` for what transfers from here.
+
+**Everything in this repo is committed, documented and green (380 tests).**
+It remains the source of a large body of validated forward physics and a dozen
+digitized real datasets. **Read from it; do not delete or rewrite it.**
+Resume points are at the top of `.claude-notes/next-actions.md`.
+
+---
+
 # rheo-fp — Project Context
 
 Read `.claude-notes/` for evolving facts, decisions, and preferences —
