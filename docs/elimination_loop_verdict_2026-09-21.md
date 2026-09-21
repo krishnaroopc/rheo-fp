@@ -105,6 +105,6 @@ already supplies the content for it — the `first-plausible` column IS that
 second line.
 
 **Not built.** `rheo-fp` is being paused; this is recorded for whoever picks
-it up, and the same design question arises in `rheolyze`, where a per-axis
+it up, and the same design question arises in `rheolyzer`, where a per-axis
 output may dissolve it entirely (breadth and architecture stop competing for
 one label).

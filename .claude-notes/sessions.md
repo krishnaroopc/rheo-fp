@@ -6,11 +6,11 @@ the end of each working session (what was discussed, decided, and changed).
 
 ---
 
-## 2026-09-21 (sixth session) — PROJECT PAUSED; successor repo `rheolyze` created
+## 2026-09-21 (sixth session) — PROJECT PAUSED; successor repo `rheolyzer` created
 
 **`rheo-fp` is paused, not abandoned.** Everything is committed, documented
-and green. Successor: **https://github.com/krishnaroopc/rheolyze**, cloned to
-`C:\Users\krish\rheolyze`.
+and green. Successor: **https://github.com/krishnaroopc/rheolyzer**, cloned to
+`C:\Users\krish\rheolyzer`.
 
 ### Why the direction changed
 
@@ -37,7 +37,7 @@ consequences, both of which this project measured the hard way:
 dropped.** An earlier suggestion of relegating it to a vague regime label was
 explicitly rejected. The fix is SEPARATION of axes, not deletion.
 
-`rheolyze` reports **six independent axes** (solution/melt, entangled,
+`rheolyzer` reports **six independent axes** (solution/melt, entangled,
 linear/branched, narrow/broad, flowing/network, permanent/dynamic), each
 abstaining independently, plus the **quantities** that are the actual product
 (M_w, PDI, M_e, plateau modulus, crosslink density) with uncertainties and
@@ -73,7 +73,7 @@ lights. **The salvageable half** - report the best PLAUSIBLE alternative
 alongside the winner, rather than replacing it - is not built, and the
 `first-plausible` column of the measurement already supplies its content.
 
-**Implementation note worth carrying to `rheolyze`:** this is ONE PASS down
+**Implementation note worth carrying to `rheolyzer`:** this is ONE PASS down
 the ranking, not an iterative loop. Each candidate's AICc depends only on its
 own fit, so elimination promotes the next survivor without reshuffling the
 rest. Same answer, ~10x less compute.
@@ -93,7 +93,7 @@ rest. Same answer, ~10x less compute.
   "difficult to identify" taken from creep. It is a polydisperse commercial
   resin, so `branched` is arguably the HONEST answer. **Reusable lesson:
   "linear chemistry" does not imply "monodisperse linear melt".**
-- Those two exact spectra are now `rheolyze`'s first planned dataset and its
+- Those two exact spectra are now `rheolyzer`'s first planned dataset and its
   cheapest decisive experiment: a design that works must return
   (linear, broad) for the HDPE and (branched, broad) for the LDPE. This repo
   returns `branched` for both.

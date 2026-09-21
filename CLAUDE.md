@@ -1,17 +1,17 @@
-# >>>>>> PAUSED 2026-09-21 - SUCCESSOR IS `rheolyze` <<<<<<
+# >>>>>> PAUSED 2026-09-21 - SUCCESSOR IS `rheolyzer` <<<<<<
 
 **This project is PAUSED, not abandoned.** Work continues in
-**https://github.com/krishnaroopc/rheolyze** (local: `C:\Users\krish\rheolyze`).
+**https://github.com/krishnaroopc/rheolyzer** (local: `C:\Users\krish\rheolyzer`).
 
 `rheo-fp` classifies into 10 named models. Those classes mix five independent
 physical axes into one flat label and omit polydispersity entirely, so they
 cannot express what the user actually wants: **characterization from rheometry
 alone** - M_w, PDI, M_e, branching, crosslink density, i.e. the numbers you
-would otherwise need GPC, light scattering or NMR to obtain. `rheolyze`
+would otherwise need GPC, light scattering or NMR to obtain. `rheolyzer`
 reports six independent axes plus those quantities.
 
-Read `rheolyze/docs/why_rheolyze.md` for the rationale and
-`rheolyze/docs/inherited_assets.md` for what transfers from here.
+Read `rheolyzer/docs/why_rheolyzer.md` for the rationale and
+`rheolyzer/docs/inherited_assets.md` for what transfers from here.
 
 **Everything in this repo is committed, documented and green (380 tests).**
 It remains the source of a large body of validated forward physics and a dozen
