@@ -2463,3 +2463,33 @@ an instrument artifact, and the real reason is the winner/margin instability.
 
 Open: (a) blends — the original request, still not started; (b) the reptation
 noise floor, now more pointed.
+
+## 2026-09-19/21 — plain-language + dynamic-regime reporting layer (committed `eee55c1`)
+
+The work itself was done 2026-09-19 and written up in `next-actions.md` at the
+time, but it sat **staged and uncommitted** until 2026-09-21, when the user
+asked to sync. Recording it here so the journal is not missing a session.
+Committed **as-is at the user's instruction, without running the test suite**
+— `tests/test_plain_language.py` and `tests/test_report.py` are unverified on
+this machine. Verify before trusting the layer or building on it.
+
+- New `rheofp/plain_language.py` (249 lines): `plain_name`, `plain_gloss`,
+  `regime_note`, `stack_hint`, `CONCENTRATION_CAVEAT`. Wired into
+  `report.py`'s `format_report` only (+33 lines). Reporting-only; dependency
+  runs `plain_language -> report`, never back.
+- **`IDENTIFIED:` keeps the internal label** with `i.e. <plain name>` beneath.
+  Added to, never substituted — scripts, tests and these notes all speak the
+  internal label.
+- **Refuses to print a concentration regime, on purpose.** Concentration is
+  absent from the forward models; it scales amplitude and shifts the time axis
+  without changing shape, so it is degenerate with Mw, solvent viscosity and
+  temperature from one curve. The DYNAMIC regime (unscreened / screened /
+  entangled) is reported instead because that is a shape question. Full
+  reasoning in the module docstring and next-actions.
+- Also committed: `docs/corpus_paper_shortlist.md` (Crossref-verified; current
+  holdings **48 real curves**, `zimm` at **0**, both sticker classes at **0
+  correctly classified**) and `docs/restart_count_check.json`, the measurement
+  behind the `b16eeac` veto.
+
+Open, unchanged by this session: (a) blends, still not started; (b) the
+`reptation` noise floor; (c) the standing BSW fault, 3/3.
