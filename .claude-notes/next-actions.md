@@ -8,12 +8,37 @@ left off", this is where to look. Update + commit this file as items complete.
 Last updated: **2026-09-21 (plan order DECIDED: C then A then B; Plan C's papers
 supplied and `originals/` PDFs renamed + indexed. No Plan C code yet).**
 
-# >>> 2026-09-21: PLAN C IS NEXT (then A, then B). PAPERS IN, NO CODE YET. RESUME HERE. <<<
+# >>> 2026-09-21: PLAN C's MODEL CHANGED. BoB REJECTED; `comb` DIAGNOSED. RESUME HERE. <<<
 
 Three plans were drafted in a planning session; **the user then chose C, then
-A, then B**, and supplied Plan C's source papers the same day. Plan C is
-unblocked and unstarted - see "What to do when resuming" at the end of this
-section. The plan descriptions below are unchanged from when they were drafted.
+A, then B**, and supplied Plan C's source papers the same day.
+
+**Then Plan C's TARGET MODEL changed, on the user's call.** Das 2006 (BoB) was
+read in full and **rejected before any code was written** - it is an ensemble
+simulation, not a fittable forward model, and (decisively) the paper fits it to
+a LINEAR polyisoprene on the same footing as its combs and H-polymers, which is
+the exact property that vetoed `comb` (c6bb-PS) and that IS the BSW fault. Full
+assessment with page references: **`docs/bob_das2006_assessment.md`**. The user
+elected to keep Plan C's GOAL (a branched class that cannot out-fit a linear
+chain) and pursue it by **reparameterising `comb.py`** instead.
+
+**What was then actually done: the `comb` failure was DIAGNOSED and measured**
+(`docs/comb_reparameterisation_diagnosis.md`), closing the question the
+Kapnistos pre-registration left open. Headline: **`phi_b` is free, but real
+geometry fixes it (ML1998 eq 10), and all nine real fits violate their own
+geometry by a consistent factor of 3-5** - the BSW disease inside a model whose
+parameters merely have molecular NAMES. Plus `s_b` pins to its ceiling on 8/9
+real combs (the `tdd` at-bound signature), and `comb` wins the linear control
+through its own STAR limit (long arms, negligible cross-bar), which explains
+P3's star cannibalisation as the same mechanism rather than a separate problem.
+
+**NO code has been changed. The reparameterisation (drop `phi_b`, k=5 -> k=4)
+is PROPOSED ONLY** and must not be built without the pre-registration step -
+the diagnosis document lists the required protocol and the predicted failure
+mode (constraining `phi_b` may make the real combs' rms WORSE, and that is a
+legitimate outcome that must not be rescued by re-freeing the parameter).
+
+The plan descriptions below are unchanged from when they were drafted.
 
 User opened this session concerned the project has become messy/overcomplicated
 and asked a series of plain-language questions before deciding what to do. Three
@@ -218,10 +243,20 @@ the problem.
 **DECIDED 2026-09-21: order is C, then A, then B.** This is the user's explicit
 choice; it is no longer an open question.
 
-- **Plan C (NEXT, unblocked):** read `originals/das2006_branch_on_branch_bob.pdf`
-  (with `larson2001_hierarchical_model.pdf` as the companion for
-  seniority/priority), then follow `docs/proposal_new_classes.md`. No code has
-  been written yet.
+- **Plan C (IN PROGRESS, model changed):** BoB is REJECTED
+  (`docs/bob_das2006_assessment.md`) - do not re-open it without new
+  information; it is a closed question, not a matter of taste. The live
+  vehicle is the **`comb.py` reparameterisation** diagnosed in
+  `docs/comb_reparameterisation_diagnosis.md`.
+  **Next concrete step: write and COMMIT a pre-registration** (predictions +
+  the P2 `c6bb-PS` veto + `star`'s ΔAICc-50 floor) BEFORE touching
+  `comb.py`, then planted round-trip, then cannibalisation. Do not start by
+  editing the model.
+  Das 2006 is still useful to that work for two things: its **Table II +
+  Fig. 11 four PBd combs** are the second real comb source `CLAUDE.md` says
+  reopening `comb` requires (curves need digitizing), and its **Appendix A
+  multimode Kramers** treatment is a genuine improvement on `comb.py`'s
+  single-mode potential.
 - **Plan A (after C):** start with the at-bound check (cheapest, no new
   research needed, bounds already exist for all 10 classes) before the range
   table. The range table now has `fetters1994_plateau_modulus_table.pdf` for

@@ -6,6 +6,73 @@ the end of each working session (what was discussed, decided, and changed).
 
 ---
 
+## 2026-09-21 (third session) — BoB rejected on reading; the `comb` failure diagnosed
+
+**Plan C started, and its target model changed before a line was written.**
+
+**Das 2006 (BoB) read in full and REJECTED.** Recorded with page references in
+`docs/bob_das2006_assessment.md`. Three reasons, in order of weight:
+1. **It is fitted to a LINEAR polyisoprene (LIN210, Table I / Fig. 9a) using
+   the same M_e, tau_e, alpha and p^2 as its combs and H-polymers.** For the
+   paper that is the point - universal physics. For us it is the exact property
+   that vetoed `comb` (the c6bb-PS control, weight 1.000, dAICc 161.8) and that
+   IS the BSW fault. Plan C existed to REMOVE the ability to produce that
+   shape; BoB demonstrates it deliberately.
+2. **Not a fittable forward model.** An ensemble simulation: ~1e5 generated
+   molecules, multiplicative time-stepping (m = 1.001), per-arm mutable state
+   (`collapsed`/`ghost`, compound-arm friction, supertube activation), moduli
+   only at the end via eq 30. `identify()` needs `forward(w, theta)` called
+   thousands of times, and `tube.py` at 10.67 ms/call is already 94.2% of
+   runtime.
+3. **Not settled physics.** The authors cannot find one dilation exponent:
+   alpha = 4/3 fits star+linear together but "predicts much lower moduli at low
+   frequencies" for combs and m-PE, so they report everything at alpha = 1 and
+   list the inconsistency as an open problem in their own conclusions.
+   `star.py` is validated at 4/3. Also p^2 = 1/40 here against 1/12
+   (Kapnistos) and 1/6 (ML1999).
+
+Kept as genuinely useful: Das's **Table II + Fig. 11** are four PBd combs - the
+second real comb source `CLAUDE.md` says reopening `comb` needs - and its
+**Appendix A multimode Kramers** (ergodicity factor, eqs A1-A3) improves on
+`comb.py`'s single-mode potential.
+
+**User then chose to keep Plan C's goal but change the vehicle to
+reparameterising `comb.py`.** What followed is a DIAGNOSIS, no code changed:
+`docs/comb_reparameterisation_diagnosis.md`. It closes the question the
+Kapnistos pre-registration explicitly left open ("a 5-parameter model
+preferring a linear chain over a comb is a fact about comb.py... that is the
+thing to explain").
+
+Method: run `fit_comb` on all nine real Kapnistos curves and **read the fitted
+parameter vectors** - which the 2026-09-16 evaluation never did, it scored only
+which class won. Three findings:
+- **`s_b` pins to its ceiling (120) on 8 of 9 real combs**, and two also drive
+  `s_a` to its floor. The `tdd` at-bound signature: a parameter on its bound is
+  absorbing misfit, not being identified. Plan A would have flagged all eight.
+- **`comb` wins the linear control through its own STAR limit** - `s_a` = 24.6
+  (long arms), cross-bar worth only `s_b*phi_b` = 7.9, arms 89% of volume, so
+  the arm-retraction term carries the curve. That is a star. It explains P3's
+  `star` cannibalisation (5/7 -> 4/7, margins 194-225 -> 7.6-27.4) as the SAME
+  mechanism, not a second problem. Sharp, not flat: moving phi_b 0.11 -> 0.08
+  shifts log10 G' by 1.47 decades.
+- **All nine fits violate their own geometry by a consistent factor of 3-5.**
+  ML1998 eq 10 fixes `phi_b = s_b/(s_b + 2 q s_a)` and `comb.py` already
+  implements it as `phi_b_from_architecture` but does not impose it; fitted/
+  geometric ratios are 0.20-0.33 across all nine. **The BSW disease inside a
+  model whose parameters merely have molecular NAMES** - molecular names are
+  not molecular constraints.
+
+**A wrong hypothesis is recorded so it is not retried:** I expected `phi_b` to
+run to its CEILING (0.95 = all backbone = a linear chain). It does the
+opposite - 0.11 on the linear control, i.e. a branch-free molecule explained as
+89% dangling-arm material. `PHI_B_BOUNDS`' ceiling is not the leak.
+
+**Proposed, NOT built: drop `phi_b` as free, compute it from the geometry,
+k = 5 -> k = 4.** Pre-registered failure mode: removing a parameter that was
+absorbing misfit may make the real combs' rms WORSE and P1 could still fail
+0/6 - a legitimate outcome that must not be rescued by re-freeing `phi_b`.
+Next step is the pre-registration commit, not a model edit.
+
 ## 2026-09-21 (second session) — Plan order decided (C→A→B); `originals/` renamed + indexed
 
 **Decision, not a discussion: the user chose Plan C, then A, then B**, and
