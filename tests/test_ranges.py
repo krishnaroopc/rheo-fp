@@ -229,3 +229,51 @@ def test_branched_G_N_is_deliberately_unranged():
     for lg in (np.log10(635.0), np.log10(1108.0)):
         assert out_of_range_parameters(
             "branched", [lg, 1.97, 1.43, 0.5, 0.55]) == []
+
+
+# The measured real-data signature, from the full 24-curve sweep
+# (docs/ranges_and_user_fields_2026-09-21.md). Each entry is the n_e value
+# identify() actually returned on a curve whose class the source paper
+# contradicts. Recorded as data rather than re-fitted, because identify() is
+# ~88 s/curve and this pins the FINDING, not the fitter.
+WRONG_CALL_N_E = {
+    "Katzarova PS206 (linear -> branched)": 0.0597,
+    "Santangelo HL (-> branched)": 0.08391,
+    "Santangelo ML (-> branched)": 0.05,
+    "MM1998 Ma105k (star -> branched)": 0.05,
+    "MM1998 Ma95k (star -> branched)": 0.05,
+    "Santangelo S217 (-> branched)": 0.07113,
+}
+# And the two CORRECT branched calls, which push n_e the other way.
+CORRECT_LDPE_N_E = {"Pivokonsky E": 0.90, "Pivokonsky B": 0.90}
+
+
+def test_the_measured_wrong_call_signature_is_still_detected():
+    """>>> The measured payoff, pinned so it cannot silently regress. <<<
+
+    Across all 24 committed real curves the range check flags 6 of 10 wrong
+    calls and 2 of 14 correct ones (both of those being the documented
+    Pivokonsky n_e defect). Every catch works the same way: BSW's terminal
+    wedge is driven FLAT, to 0.05-0.084 against a 0.10 floor, to mimic an
+    architecture it does not describe.
+
+    If the n_e floor is ever lowered below 0.084, the project loses its only
+    automatic flag on the BSW over-flexibility fault - so that change must be
+    deliberate and measured, not incidental.
+    """
+    for label, n_e in WRONG_CALL_N_E.items():
+        bad = out_of_range_parameters("branched", [3.0, 1.0, -1.0, n_e, 0.55])
+        assert [b["index"] for b in bad] == [3], (
+            f"{label}: n_e = {n_e} no longer flagged; the BSW wrong-call "
+            f"signature would go undetected")
+        assert bad[0]["side"] == "below"
+
+
+def test_real_ldpe_pushes_n_e_the_other_way():
+    """The symmetry worth remembering: real LDPE drives n_e to its CEILING
+    (0.90) while absorbed non-LDPE material drives it to the FLOOR (~0.05).
+    Both are outside BSW's own stated 0.2-0.7, for opposite reasons."""
+    for label, n_e in CORRECT_LDPE_N_E.items():
+        bad = out_of_range_parameters("branched", [3.0, 1.0, -1.0, n_e, 0.55])
+        assert [b["index"] for b in bad] == [3], label
+        assert bad[0]["side"] == "above"

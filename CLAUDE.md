@@ -665,8 +665,20 @@ and band WIDTH from Liu et al. (2006), who measure method spread at 5-10%
 (monodisperse) to 15% (polydisperse) and record published G_N for one polymer
 spanning a factor of 3.4. Bands are therefore generous; firing means something
 is genuinely odd. **Six live checks across the five classes with a documented
-real failure.** Quiet on all four correct network/gel benchmark curves; fires
-on both Pivokonsky melts.
+real failure.**
+**>>> MEASURED on all 24 committed real curves: 6/10 WRONG calls flagged,
+2/14 correct ones - and both of those are the documented Pivokonsky `n_e`
+defect, not noise. <<<** Quiet on all four network/gel curves and all seven
+correct `star` calls. **Every catch is one mechanism, and it is the BSW
+fault's FIRST automatic flag:** the terminal wedge driven FLAT (n_e 0.05-0.084
+against a 0.10 floor) to mimic an architecture BSW does not describe - on
+Katzarova PS206, Santangelo HL/ML/S217, and MM1998 Ma95k/Ma105k. Step 1 was
+silent on every one. Symmetry worth keeping: real LDPE pushes n_e to its
+CEILING (0.90), absorbed non-LDPE to the FLOOR. **Do not lower the n_e floor
+below 0.084 without measuring** - a test pins this. **It MISSES four**: PS392
+(the strongest single case of the BSW fault), S490, and HM + L176 (wrong
+`star` wins from interior vectors). **A real detector with a known hole, NOT a
+solution to the BSW fault.**
 Two things its own tests caught: **BSW's `G_N` must NOT be ranged** (it is a
 window-limited amplitude, not a plateau modulus - the real LDPE melts fit 635
 and 1108 Pa, so a plateau floor would permanently false-alarm on the project's

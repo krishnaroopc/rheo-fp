@@ -66,6 +66,13 @@ while being a **correct** `branched` call on real LDPE. Ranging it produced a
 permanent false alarm on the project's own branched benchmark. Removed, pinned
 by `test_branched_G_N_is_deliberately_unranged`.
 
+**Confirmed empirically, not just by argument.** A full 24-curve sweep was run
+against the earlier table that still ranged `G_N`, and it fired on
+**Pivokonsky E at `G_N` = 657.7 Pa — a correct `branched` call on real LDPE**,
+exactly the false alarm predicted. That run is superseded; the shipped table
+differs from it only by this removal plus the three unreachable entries (which
+never fired), so every `n_e` row in the sweep below is what ships.
+
 **2. Three candidate entries were dead code.** Where a parameter's BOUNDS are
 already stricter than any honest literature band, a range entry implies a
 check that is not happening. Measured and removed:
@@ -94,11 +101,61 @@ Scope is the five classes with a documented real-data failure, per the plan.
 The other five have no real failure to calibrate against and inventing a range
 would be guessing dressed as physics.
 
-## Calibration on real data
+## Calibration on real data — all 24 committed real curves
 
-Quiet on all four correct network/gel benchmark curves (Darby ×3, Tixier).
-Fires on both Pivokonsky LDPE melts — the known `n_e` defect, now caught on
-the value rather than on the bound.
+Every curve in `data/` that carries a known expectation, through `identify()`,
+scored against the shipped table. "WRONG" means `identify()` returned a class
+the source paper contradicts.
+
+| set | curves | winner | status | fires |
+|---|---|---|---|---|
+| Darby ×3 | SY184, Solaris, EF0030 | cured_elastomer | correct | 0/3 |
+| Tixier | gel | critical_gel | correct | 0/1 |
+| Pivokonsky | E, B | branched | correct | **2/2** |
+| Katzarova | PS105 | reptation | correct | 0/1 |
+| Katzarova | PS392, PS206 | branched | WRONG (linear melt) | 1/2 |
+| MM1998 | Ma11k…Ma47k (5) | star | correct | 0/5 |
+| MM1998 | Ma95k, Ma105k | branched | WRONG (are stars) | **2/2** |
+| Pryke | Ma38k, Ma78k | star | correct | 0/2 |
+| Santangelo | HL, ML | branched | WRONG | **2/2** |
+| Santangelo | S217, S490 | branched | WRONG | 1/2 |
+| Santangelo | HM | star | WRONG | 0/1 |
+| Santangelo | L176 | star | WRONG (linear control) | 0/1 |
+
+**Measured: 6 of 10 wrong calls flagged; 2 of 14 correct calls flagged.**
+
+The two fires on correct calls are **both** the Pivokonsky LDPE melts, i.e.
+the genuine `n_e = 0.90` defect documented in
+`docs/at_bound_calibration_2026-09-21.md` — a real finding about BSW, not
+noise. So the practical false-alarm rate on correct answers is 2/14, and both
+are explainable and already recorded as an open item.
+
+### >>> What the wrong-call catches have in common <<<
+
+**Every one of the ten wrong calls is `branched` (or `star`) absorbing
+something it should not, and the six that are caught are caught through `n_e`
+sitting at or below its physical floor** — measured 0.05, 0.05, 0.05, 0.0597,
+0.0711, 0.0839 against a 0.10 floor. BSW's terminal wedge is being driven flat
+to mimic architectures it does not describe.
+
+That is the BSW over-flexibility fault leaving a **detectable signature**, and
+the project has had no automatic flag on it until now. Note the symmetry with
+the Pivokonsky fires: real LDPE pushes `n_e` to its *ceiling* (0.90), while
+absorbed non-LDPE material pushes it to its *floor* (~0.05). Both directions
+are outside BSW's own stated 0.2–0.7.
+
+### The four it misses, stated plainly
+
+* **PS392** (linear → `branched`): `n_e` lands interior. The strongest single
+  case of the BSW fault is invisible to this check.
+* **S490** (→ `branched`): likewise interior, at an excellent rms of 0.0140.
+* **HM** and **L176** (→ `star`): `star`'s G_N is ranged but lands in the
+  plateau band, and its Z is deliberately unranged (bounds bind first, and Z
+  is non-reportable for the class). A wrong `star` win from an interior vector
+  is invisible here.
+
+So this is **a real detector with a known hole**, not a solution to the BSW
+fault. It must not be quoted as one.
 
 ---
 

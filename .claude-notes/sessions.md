@@ -48,15 +48,32 @@ data"):
    1-100). Removed; `test_every_shipped_range_is_actually_reachable` stops
    them coming back. Six live checks ship.
 
-**Calibration on real data: quiet on all four correct network/gel curves**
-(Darby x3, Tixier), fires on both Pivokonsky melts.
+**Calibration: measured on ALL 24 committed real curves - 6/10 WRONG calls
+flagged, 2/14 correct ones** (and both of those are the documented Pivokonsky
+`n_e = 0.90` defect, so the practical false-alarm rate is explainable rather
+than noise). Quiet on all four network/gel curves and on all seven correct
+`star` calls.
 **>>> And it catches something step 1 could NOT: a wrong-class WIN. <<<**
-Katzarova's PS206 - a monodisperse LINEAR melt misidentified as `branched`,
-the standing BSW fault - fires with **n_e = 0.0597, BELOW the range**. Step 1
-was silent there (no bound hit). So the two checks are genuinely
-complementary, and this is the first automatic flag the project has on the BSW
-fault itself. (PS392 stays quiet - BSW's G_N is unranged and its n_e is
-interior, so the fault is not always visible this way.)
+All six catches are the SAME mechanism, and it is the BSW fault's first
+automatic flag: **BSW's terminal wedge driven FLAT to mimic an architecture it
+does not describe** - n_e measured 0.05, 0.05, 0.05, 0.0597, 0.0711, 0.0839
+against a 0.10 floor, on Katzarova PS206 (linear -> branched), Santangelo
+HL/ML/S217, and MM1998 Ma95k/Ma105k (real stars -> branched). Step 1 was
+silent on every one (no bound hit), so the two checks are genuinely
+complementary.
+Note the symmetry worth carrying forward: **real LDPE pushes n_e to its
+CEILING (0.90); absorbed non-LDPE material pushes it to the FLOOR (~0.05).**
+Both outside BSW's own stated 0.2-0.7, for opposite reasons.
+Pinned by `test_the_measured_wrong_call_signature_is_still_detected` - **do
+not lower the n_e floor below 0.084 without measuring**, it would delete the
+only automatic BSW-fault flag there is.
+**The four MISSES, so this is not oversold:** PS392 (the strongest single case
+of the BSW fault - n_e interior), S490 (interior at rms 0.0140), and HM + L176
+(wrong `star` wins from interior vectors). **A real detector with a known
+hole, not a solution to the fault.**
+**The G_N removal was confirmed empirically too**: a full sweep against the
+earlier table that still ranged it fired on Pivokonsky E at G_N = 657.7 Pa - a
+CORRECT branched call - exactly the false alarm predicted.
 
 ### Plan B — optional user-supplied fields (report-time slice)
 

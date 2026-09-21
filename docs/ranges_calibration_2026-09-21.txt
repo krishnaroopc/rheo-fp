@@ -1,0 +1,34 @@
+# Range-check calibration sweep, all 24 committed real curves, 2026-09-21.
+# NOTE: run against the table that still ranged branched G_N -- see the E row,
+# which is the false alarm on a CORRECT branched call that caused its removal.
+# The shipped table differs only by that removal plus three unreachable
+# entries that never fired, so every n_e row here is what ships.
+
+OK  SY184_10-1       -> cured_elastomer  rms=0.0114  quiet
+OK  Solaris_1-1      -> cured_elastomer  rms=0.0196  quiet
+OK  EF0030_1-1       -> cured_elastomer  rms=0.0173  quiet
+OK  Tixier2004_gel   -> critical_gel     rms=0.0108  quiet
+OK  E                -> branched         rms=0.0624  FIRES BSW amplitude G_N=657.7 below [1e+03,1e+07]; terminal wedge exponent n_e=0.9 above [0.1,0.8]
+OK  B                -> branched         rms=0.0557  FIRES terminal wedge exponent n_e=0.9 above [0.1,0.8]
+dif PS392            -> branched         rms=0.0250  quiet
+dif PS206            -> branched         rms=0.0261  FIRES terminal wedge exponent n_e=0.0597 below [0.1,0.8]
+OK  PS105            -> reptation        rms=0.0205  quiet
+dif HM               -> star             rms=0.0448  quiet
+dif HL               -> branched         rms=0.0997  FIRES terminal wedge exponent n_e=0.08391 below [0.1,0.8]
+dif ML               -> branched         rms=0.0733  FIRES terminal wedge exponent n_e=0.05 below [0.1,0.8]
+dif PI4_Ma105k       -> branched         rms=0.0822  FIRES terminal wedge exponent n_e=0.05 below [0.1,0.8]
+dif PI4_Ma95k        -> branched         rms=0.0765  FIRES terminal wedge exponent n_e=0.05 below [0.1,0.8]
+OK  PI4_Ma47k        -> star             rms=0.0407  quiet
+OK  PI4_Ma44k        -> star             rms=0.0334  quiet
+OK  PI4_Ma36k        -> star             rms=0.0246  quiet
+OK  PI4_Ma17k        -> star             rms=0.0242  quiet
+OK  PI4_Ma11k        -> star             rms=0.0307  quiet
+OK  PBD3_Ma38k       -> star             rms=0.0361  quiet
+OK  PBD3_Ma78k       -> star             rms=0.0882  quiet
+dif S490             -> branched         rms=0.0140  quiet
+dif S217             -> branched         rms=0.0206  FIRES terminal wedge exponent n_e=0.07113 below [0.1,0.8]
+OK  L176             -> star             rms=0.0427  quiet
+
+fired on 8/24 real curves
+
+[exited with code 0]

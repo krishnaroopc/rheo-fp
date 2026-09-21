@@ -284,6 +284,23 @@ choice; it is no longer an open question.
   **Six live checks** over the five classes with a documented real failure.
   Catches the `n_e` defect on the VALUE, so widening a bound can no longer
   hide it.
+  **>>> MEASURED on all 24 committed real curves: 6/10 WRONG calls flagged,
+  2/14 correct calls flagged (and both of those are the documented Pivokonsky
+  `n_e` defect, not noise). <<<**
+  **Every catch is the same mechanism and it is the BSW fault's first
+  automatic flag:** BSW's terminal wedge driven FLAT - n_e measured 0.05,
+  0.05, 0.05, 0.0597, 0.0711, 0.0839 against a 0.10 floor - to mimic an
+  architecture it does not describe. Note the symmetry: real LDPE pushes n_e
+  to its CEILING (0.90) while absorbed non-LDPE pushes it to the FLOOR. Both
+  outside BSW's stated 0.2-0.7. Pinned by
+  `test_the_measured_wrong_call_signature_is_still_detected`, so **do not
+  lower the n_e floor below 0.084 without measuring** - that would delete the
+  only automatic BSW-fault flag the project has.
+  **The four it MISSES, stated so this is not oversold:** PS392 (the strongest
+  single case of the BSW fault - n_e lands interior), S490 (interior at an
+  excellent rms 0.0140), and HM + L176 (wrong `star` wins from interior
+  vectors; `star`'s Z is deliberately unranged because its bounds bind first).
+  **A real detector with a known hole, NOT a solution to the BSW fault.**
   Two corrections its own tests forced: **BSW's `G_N` must NOT be ranged**
   (window-limited amplitude, not a plateau modulus - real LDPE fits 635 and
   1108 Pa, so a plateau floor false-alarms on the project's own benchmark),
