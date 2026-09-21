@@ -20,8 +20,17 @@ Two branched-melt forwards, kept for different jobs:
     (two power-law wedges: a broad terminal wedge tau^n_e and a high-frequency
     wedge tau^-n_g below a crossover time). This is the branched class's
     forward model in the classifier: it fits Pivokonsky E and B to ~0.06-0.07
-    decades RMS, and its intrinsically broad spectrum cannot fake a sharp
-    reptation terminal, so AICc still separates it from the linear-melt class.
+    decades RMS.
+    >>> CORRECTED 2026-09-21 (was falsified 2026-09-17, this comment was never
+    updated to match): its broad spectrum CAN fake a sharp reptation terminal.
+    On Katzarova (2018)'s three real monodisperse linear polystyrenes,
+    `branched` beats the verbatim Likhtman-McLeish tube model on all three
+    (rms 0.0250/0.0261/0.0207 vs 0.0314/0.0300/0.0222), at dAICc
+    50.7/28.9/12.1 - this is the project's active open fault. See CLAUDE.md's
+    "Branched / LCB melt class" section and next-actions.md for the full
+    history (a replacement model, TDD, was built and tested against exactly
+    this claim and REJECTED on its own criteria - see next-actions.md). Do
+    not let this comment drift from CLAUDE.md again.
 """
 from __future__ import annotations
 
